@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
     "db:validate": "prisma validate",
     "db:seed": "prisma db seed",
     "dev": "tsx watch src/main.ts",
@@ -14,11 +15,12 @@
     "build": "prisma generate && tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "@prisma/client": "6.19.3",
-    "@tankquest/shared": "0.1.0",
     "@nestjs/common": "latest",
     "@nestjs/core": "latest",
     "@nestjs/platform-express": "latest",
+    "@prisma/client": "6.19.3",
+    "@tankquest/shared": "0.1.0",
+    "helmet": "^8.3.0",
     "reflect-metadata": "latest",
     "rxjs": "latest",
     "zod": "latest"

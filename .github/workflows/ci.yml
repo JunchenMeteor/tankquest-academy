@@ -17,6 +17,20 @@ jobs:
   verify:
     name: Verify
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: tankquest
+          POSTGRES_PASSWORD: tankquest
+          POSTGRES_USER: tankquest
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tankquest -d tankquest"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       DATABASE_URL: postgresql://tankquest:tankquest@localhost:5432/tankquest
     steps:
@@ -49,3 +63,14 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Apply database contract
+        run: npm run db:migrate && npm run db:seed
+
+      - name: Install browser
+        run: npx playwright install --with-deps chromium
+
+      - name: End-to-end test
+        env:
+          DEBUG: pw:webserver
+        run: npm run test:e2e
