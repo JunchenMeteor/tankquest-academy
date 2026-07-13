@@ -11,15 +11,15 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace @tankquest/web",
-    "dev:api": "npm run dev --workspace @tankquest/api",
+    "dev": "npm run build --workspace @tankquest/shared && npm run dev --workspace @tankquest/web",
+    "dev:api": "npm run build --workspace @tankquest/shared && npm run dev --workspace @tankquest/api",
     "db:generate": "npm run db:generate --workspace @tankquest/api",
     "db:validate": "npm run db:validate --workspace @tankquest/api",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
+    "test": "npm run build --workspace @tankquest/shared && npm run test --workspaces --if-present",
     "build": "npm run build --workspace @tankquest/shared && npm run build --workspace @tankquest/api && npm run build --workspace @tankquest/web"
   },
   "devDependencies": {

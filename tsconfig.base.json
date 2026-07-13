@@ -6,6 +6,9 @@
     "moduleResolution": "Bundler",
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
+    "paths": {
+      "@tankquest/shared": ["./packages/shared/src/index.ts"]
+    },
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,
