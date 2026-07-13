@@ -71,4 +71,6 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: End-to-end test
+        env:
+          DEBUG: pw:webserver
         run: npm run test:e2e

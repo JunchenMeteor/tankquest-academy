@@ -25,13 +25,28 @@ test('completes the authoritative learning and upgrade journey', async ({
     requestId: expect.stringMatching(/^req_/),
   });
 
+  for (const resource of ['levels', 'tanks']) {
+    const catalog = await request.get(`http://127.0.0.1:3000/api/${resource}`);
+    expect(catalog.ok(), `${resource} catalog: ${await catalog.text()}`).toBe(
+      true
+    );
+  }
+
   const consoleErrors: string[] = [];
   page.on('console', (message) => {
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
 
   await page.goto('/');
-  await page.getByRole('button', { name: 'Start training' }).click();
+  const startButton = page.getByRole('button', { name: 'Start training' });
+  await expect(startButton)
+    .toBeVisible({ timeout: 10_000 })
+    .catch(async (error: unknown) => {
+      throw new Error(
+        `${error instanceof Error ? error.message : String(error)}\nPage content: ${await page.locator('body').innerText()}`
+      );
+    });
+  await startButton.click();
   await expect(page.locator('.game-canvas canvas')).toBeVisible();
 
   for (let index = 0; index < 3; index += 1) {
