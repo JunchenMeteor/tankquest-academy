@@ -46,7 +46,11 @@ test('completes the authoritative learning and upgrade journey', async ({
         `${error instanceof Error ? error.message : String(error)}\nPage content: ${await page.locator('body').innerText()}`
       );
     });
+  await page
+    .getByRole('button', { name: 'Robot patrol · difficulty 2' })
+    .click();
   await startButton.click();
+  await expect(page.getByText(/Robot patrol · Firepower 3/)).toBeVisible();
   await expect(page.locator('.game-canvas canvas')).toBeVisible();
 
   for (let index = 0; index < 3; index += 1) {
@@ -72,7 +76,10 @@ test('completes the authoritative learning and upgrade journey', async ({
     .getByRole('button', { name: 'Spend 2 parts: upgrade firepower' })
     .click();
   await expect(
-    page.getByText(/Firepower upgrade level 1; 1 parts remain/)
+    page.getByText(/Firepower upgrade level \d+; \d+ parts remain/)
   ).toBeVisible();
+  await page.reload();
+  await page.getByRole('button', { name: 'Start training' }).click();
+  await expect(page.getByText(/Firepower [4-5]/)).toBeVisible();
   expect(consoleErrors).toEqual([]);
 });

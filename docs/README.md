@@ -89,6 +89,9 @@ AI 开始开发前，按这个顺序阅读，不要一上来读所有文件。
 25. `release-manager.md`
     - 版本准备、受保护分支晋级和 GitHub Release 自动化。
 
+26. `phase-one-mvp-acceptance.md`
+    - 第一阶段工程验收证据、家庭试用门槛和已知非阻塞项。
+
 ## 2. 第一阶段开发顺序
 
 第一阶段不要做全量功能，只做 MVP。
