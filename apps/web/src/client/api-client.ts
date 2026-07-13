@@ -22,10 +22,14 @@ export class ApiClientError extends Error {
 }
 
 export class ApiClient {
+  private readonly request: typeof fetch;
+
   constructor(
     private readonly baseUrl: string,
-    private readonly request: typeof fetch = fetch
-  ) {}
+    request: typeof fetch = globalThis.fetch
+  ) {
+    this.request = request.bind(globalThis);
+  }
 
   listLevels() {
     return this.send<LevelDto[]>('/api/levels');
