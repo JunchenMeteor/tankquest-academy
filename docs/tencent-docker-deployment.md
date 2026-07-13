@@ -7,7 +7,7 @@ TankQuest deploys beside MeteorVoice without sharing containers, ports, database
 | Branch | Environment | Host port | Public domain |
 | --- | --- | ---: | --- |
 | `main` | preview | 3301 | `tq-pre.jcmeteor.com` |
-| `release` | production | 3300 | `tankquest.jcmeteor.com` |
+| `release` | release | 3300 | `tankquest.jcmeteor.com` |
 
 Both ports bind only to `127.0.0.1`; host Nginx is the only public entry point. PostgreSQL is internal to each Compose project and stores data in an explicit per-environment directory on the attached data disk.
 
@@ -26,7 +26,7 @@ TankQuest owns only its project subtree on the attached disk:
   preview/
     deploy/
     postgres/
-  production/
+  release/
     deploy/
     postgres/
 ```
@@ -44,4 +44,4 @@ curl --fail http://127.0.0.1:3301/api/health
 curl --fail https://tq-pre.jcmeteor.com/api/health
 ```
 
-Use port 3300 and the production paths for `release`. If a replacement fails its health check, the deployment script restores the previous API and Web images. PostgreSQL directories are never removed by deployment or rollback.
+Use port 3300 and the release paths for `release`. If a replacement fails its health check, the deployment script restores the previous API and Web images. PostgreSQL directories are never removed by deployment or rollback.

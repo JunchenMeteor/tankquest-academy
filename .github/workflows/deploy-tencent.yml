@@ -83,7 +83,7 @@ jobs:
         shell: bash
         run: |
           if [ "${GITHUB_REF_NAME}" = "release" ]; then
-            echo "environment=production" >> "$GITHUB_OUTPUT"
+            echo "environment=release" >> "$GITHUB_OUTPUT"
             echo "port=3300" >> "$GITHUB_OUTPUT"
           else
             echo "environment=preview" >> "$GITHUB_OUTPUT"
