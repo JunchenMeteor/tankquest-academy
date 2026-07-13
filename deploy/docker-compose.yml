@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       POSTGRES_USER: tankquest
     volumes:
-      - tankquest-data:/var/lib/postgresql/data
+      - ${POSTGRES_DATA_PATH:?POSTGRES_DATA_PATH is required}:/var/lib/postgresql/data
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U tankquest -d tankquest']
       interval: 10s
@@ -79,6 +79,3 @@ services:
       options:
         max-size: 10m
         max-file: '3'
-
-volumes:
-  tankquest-data:

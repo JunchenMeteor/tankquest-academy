@@ -10,12 +10,15 @@ for name in "${required[@]}"; do
 done
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-deploy_dir="/srv/containers/${APP_NAME}/${ENVIRONMENT}"
+data_root="${DATA_ROOT:-/data/projects}"
+project_dir="${data_root}/${APP_NAME}/${ENVIRONMENT}"
+deploy_dir="${project_dir}/deploy"
+postgres_data_path="${project_dir}/postgres"
 compose_file="${deploy_dir}/docker-compose.yml"
 deployment_env="${deploy_dir}/deployment.env"
 project_name="${APP_NAME}-${ENVIRONMENT}"
 
-mkdir -p "${deploy_dir}"
+mkdir -p "${deploy_dir}" "${postgres_data_path}"
 install -m 0644 "${script_dir}/docker-compose.yml" "${compose_file}"
 
 postgres_password=""
@@ -36,6 +39,7 @@ write_deployment_env() {
     printf 'HOST_PORT=%s\n' "${HOST_PORT}"
     printf 'POSTGRES_PASSWORD=%s\n' "${postgres_password}"
     printf 'DATABASE_URL=%s\n' "${database_url}"
+    printf 'POSTGRES_DATA_PATH=%s\n' "${postgres_data_path}"
   } > "${deployment_env}"
   chmod 0600 "${deployment_env}"
 }
