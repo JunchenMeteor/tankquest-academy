@@ -9,7 +9,7 @@
     "db:seed": "prisma db seed",
     "dev": "tsx watch src/main.ts",
     "lint": "eslint src",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "prisma generate && tsc --noEmit",
     "test": "vitest run",
     "build": "prisma generate && tsc -p tsconfig.build.json"
   },
