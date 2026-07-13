@@ -35,3 +35,45 @@ Start with:
 ## Development Rule
 
 Do not hardcode production questions, level data, tank stats, reward rules, or user progress inside UI components. Frontend renders API/config data. Backend is authoritative for answer validation, rewards, progression, and child safety rules.
+
+## Local Development
+
+Requirements:
+
+- Node.js 24 or newer.
+- PostgreSQL 15 or newer on `127.0.0.1:5432`.
+
+Install dependencies and initialize the development database:
+
+```bash
+npm ci
+export DATABASE_URL=postgresql://tankquest:tankquest@127.0.0.1:5432/tankquest
+npm run db:migrate
+npm run db:seed
+```
+
+Run the API and Web client in separate terminals, keeping `DATABASE_URL` set for the API process:
+
+```bash
+npm run dev:api
+npm run dev
+```
+
+The API listens at `http://127.0.0.1:3000`; the Web client listens at `http://127.0.0.1:5173`. Copy `apps/web/.env.example` to `apps/web/.env.local` only when those client defaults need to change.
+
+## Verification
+
+The standard local gate is:
+
+```bash
+npm run format:check
+npm run db:validate
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
+
+The protected `Verify` CI job additionally starts a clean PostgreSQL service, applies migrations and deterministic seed data, and runs the Playwright critical journey. For a matching local E2E run, install Chromium once with `npx playwright install chromium`, initialize the database as above, then run `npm run test:e2e`.
+
+Tags matching `v*` run the release workflow and publish separate Web and API build artifacts to a GitHub Release.
