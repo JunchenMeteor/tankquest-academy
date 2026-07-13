@@ -2,6 +2,9 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "dist",
+    "paths": {
+      "@tankquest/shared": ["../../packages/shared/dist/index.d.ts"]
+    },
     "rootDir": "src",
     "sourceMap": true
   },

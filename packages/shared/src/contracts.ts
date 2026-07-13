@@ -66,6 +66,18 @@ export interface SubmitAnswerResponse {
   resourceReward: { type: 'ammo'; amount: number };
 }
 
+export interface GameEventRequest {
+  eventType:
+    | 'enemy_defeated'
+    | 'player_hit'
+    | 'supply_collected'
+    | 'objective_completed'
+    | 'question_presented'
+    | 'level_finished';
+  payload: Record<string, unknown>;
+  clientTimeMs: number;
+}
+
 export interface FinishSessionResponse {
   sessionId: string;
   stars: number;
