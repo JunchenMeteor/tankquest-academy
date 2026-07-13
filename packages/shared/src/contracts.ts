@@ -97,5 +97,6 @@ export interface UpgradeTankResponse {
   tankId: string;
   stat: keyof TankStats;
   level: number;
+  effectiveValue: number;
   remainingParts: number;
 }

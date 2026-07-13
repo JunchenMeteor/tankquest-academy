@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { tankStatMax } from '@tankquest/shared';
 
 import { PrismaService } from '../prisma.service.js';
 import type {
@@ -23,10 +24,22 @@ export class PrismaProgressionRepository extends ProgressionRepository {
     return this.prisma.$transaction(async (transaction) => {
       const ownedTank = await transaction.childTank.findUnique({
         where: { childId_tankId: { childId, tankId } },
-        select: { id: true },
+        select: {
+          id: true,
+          tank: { select: { stats: true } },
+          upgrades: {
+            where: { statKey: stat },
+            select: { level: true },
+          },
+        },
       });
-      if (!ownedTank) {
+      const baseValue = ownedTank?.tank.stats?.[stat];
+      if (!ownedTank || baseValue == null) {
         return { status: 'unavailable' };
+      }
+      const currentLevel = ownedTank.upgrades[0]?.level ?? 0;
+      if (baseValue + currentLevel >= tankStatMax) {
+        return { status: 'max_level' };
       }
 
       const spent = await transaction.childInventory.updateMany({
@@ -69,6 +82,7 @@ export class PrismaProgressionRepository extends ProgressionRepository {
           tankId,
           stat,
           level: upgrade.level,
+          effectiveValue: Math.min(tankStatMax, baseValue + upgrade.level),
           remainingParts: inventory.amount,
         },
       };

@@ -10,4 +10,5 @@ export interface UpgradeMaterial {
 export type UpgradeResult =
   | { status: 'upgraded'; upgrade: UpgradeTankResponse }
   | { status: 'unavailable' }
-  | { status: 'insufficient_parts' };
+  | { status: 'insufficient_parts' }
+  | { status: 'max_level' };
