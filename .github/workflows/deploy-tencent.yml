@@ -99,6 +99,7 @@ jobs:
         env:
           API_IMAGE: tankquest-api:${{ github.sha }}
           APP_NAME: tankquest
+          DATA_ROOT: /data/projects
           ENVIRONMENT: ${{ steps.target.outputs.environment }}
           HOST_PORT: ${{ steps.target.outputs.port }}
           WEB_IMAGE: tankquest-web:${{ github.sha }}
