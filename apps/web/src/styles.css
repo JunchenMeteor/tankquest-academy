@@ -115,6 +115,32 @@ button:disabled {
   text-align: center;
 }
 
+.mission-picker {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.mission-picker button {
+  border-color: #667858;
+  background: #263826;
+  color: #f4f7e8;
+}
+
+.mission-picker button.selected {
+  border-color: #f1c75b;
+  background: #f1c75b;
+  color: #171d12;
+}
+
+.mission-status {
+  width: min(960px, 100%);
+  margin: 0 auto 0.75rem;
+  color: #c8d2c0;
+  text-align: center;
+}
+
 .learning-console h2 {
   margin: 0.35rem 0 1rem;
 }

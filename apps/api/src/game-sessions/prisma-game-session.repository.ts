@@ -19,6 +19,7 @@ import type {
   SessionState,
 } from './game-session.models.js';
 import { GameSessionRepository } from './game-session.repository.js';
+import { applyTankUpgrades } from './tank-upgrades.js';
 
 const setupInclude = {
   level: {
@@ -65,7 +66,10 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
         where: { id: request.childId },
         include: {
           controls: true,
-          tanks: { where: { tankId: request.tankId } },
+          tanks: {
+            where: { tankId: request.tankId },
+            include: { upgrades: true },
+          },
         },
       }),
       this.prisma.level.findUnique({
@@ -87,10 +91,11 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
     ]);
 
     const controls = child?.controls;
+    const ownedTank = child?.tanks[0];
     if (
       !child ||
       !controls ||
-      child.tanks.length === 0 ||
+      !ownedTank ||
       !level ||
       level.status !== 'published' ||
       !controls.allowedModes.includes(level.mode) ||
@@ -104,7 +109,10 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
 
     return {
       level: this.toLevel(level),
-      tank: this.toTank(tank, tank.stats),
+      tank: this.toTank(
+        tank,
+        applyTankUpgrades(tank.stats, ownedTank.upgrades)
+      ),
       questions: level.questions.map(({ question }) =>
         this.toInternalQuestion(question)
       ),

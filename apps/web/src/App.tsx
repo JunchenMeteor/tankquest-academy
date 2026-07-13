@@ -23,6 +23,7 @@ export function App() {
   const [phase, setPhase] = useState<Phase>('loading');
   const [levels, setLevels] = useState<LevelDto[]>([]);
   const [tanks, setTanks] = useState<TankDto[]>([]);
+  const [selectedLevelId, setSelectedLevelId] = useState('');
   const [session, setSession] = useState<StartSessionResponse | null>(null);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [feedback, setFeedback] = useState<SubmitAnswerResponse | null>(null);
@@ -46,6 +47,9 @@ export function App() {
         if (!active) return;
         setLevels(availableLevels);
         setTanks(availableTanks);
+        setSelectedLevelId(
+          (current) => current || availableLevels[0]?.id || ''
+        );
         setPhase('ready');
       })
       .catch((reason: unknown) => {
@@ -57,14 +61,14 @@ export function App() {
   }, []);
 
   const runtimeConfig = useMemo(
-    () => (session ? levelRuntimeConfig(session.level) : null),
+    () => (session ? levelRuntimeConfig(session.level, session.tank) : null),
     [session]
   );
   const currentQuestion = session?.questions[questionIndex];
   const selectedTank = session?.tank ?? tanks[0];
 
   const startTraining = async () => {
-    const level = levels[0];
+    const level = levels.find((item) => item.id === selectedLevelId);
     const tank = tanks[0];
     if (!level || !tank) {
       setError('No published level or available tank was found.');
@@ -80,7 +84,8 @@ export function App() {
       });
       setSession(started);
       setRuntime({
-        enemiesRemaining: levelRuntimeConfig(started.level).enemies.length,
+        enemiesRemaining: levelRuntimeConfig(started.level, started.tank)
+          .enemies.length,
         shotsFired: 0,
       });
       setQuestionIndex(0);
@@ -199,7 +204,21 @@ export function App() {
 
       {phase === 'ready' && (
         <StatusCard>
+          <h2>Choose a training mission</h2>
           <p>{levels.length} training missions are ready.</p>
+          <div className="mission-picker" aria-label="Training missions">
+            {levels.map((level) => (
+              <button
+                key={level.id}
+                className={level.id === selectedLevelId ? 'selected' : ''}
+                aria-pressed={level.id === selectedLevelId}
+                onClick={() => setSelectedLevelId(level.id)}
+              >
+                {formatMissionName(level.code)} · difficulty{' '}
+                {level.baseDifficulty}
+              </button>
+            ))}
+          </div>
           <button disabled={busy} onClick={() => void startTraining()}>
             Start training
           </button>
@@ -208,6 +227,11 @@ export function App() {
 
       {phase === 'active' && runtimeConfig && currentQuestion && (
         <>
+          <p className="mission-status">
+            {formatMissionName(session.level.code)} · Firepower{' '}
+            {session.tank.stats.firepower} · Mobility{' '}
+            {session.tank.stats.mobility}
+          </p>
           <GameCanvas config={runtimeConfig} onState={handleRuntime} />
           <section className="learning-console" aria-live="polite">
             <p className="eyebrow">
@@ -265,10 +289,13 @@ export function App() {
             Spend 2 parts: upgrade firepower
           </button>
           {upgrade && (
-            <p>
-              Firepower upgrade level {upgrade.level}; {upgrade.remainingParts}{' '}
-              parts remain.
-            </p>
+            <>
+              <p>
+                Firepower upgrade level {upgrade.level};{' '}
+                {upgrade.remainingParts} parts remain.
+              </p>
+              <p>The upgrade will change projectile speed and reload time.</p>
+            </>
           )}
         </StatusCard>
       )}
@@ -290,4 +317,9 @@ function readError(reason: unknown) {
   return reason instanceof Error
     ? reason.message
     : 'An unexpected error occurred.';
+}
+
+function formatMissionName(code: string) {
+  const value = code.replaceAll('-', ' ');
+  return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
 }
