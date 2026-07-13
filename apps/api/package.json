@@ -21,13 +21,11 @@
     "@prisma/client": "6.19.3",
     "@tankquest/shared": "0.1.0",
     "helmet": "^8.3.0",
+    "prisma": "6.19.3",
     "reflect-metadata": "latest",
     "rxjs": "latest",
+    "tsx": "^4.23.1",
     "zod": "latest"
-  },
-  "devDependencies": {
-    "prisma": "6.19.3",
-    "tsx": "latest"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
