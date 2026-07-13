@@ -13,6 +13,7 @@
   "dependencies": {
     "@tankquest/shared": "0.1.0",
     "@vitejs/plugin-react": "latest",
+    "phaser": "4.2.1",
     "vite": "latest",
     "react": "latest",
     "react-dom": "latest"

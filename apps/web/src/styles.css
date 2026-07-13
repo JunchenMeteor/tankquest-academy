@@ -1,7 +1,11 @@
 :root {
   color: #f4f7e8;
-  background: #172117;
+  background: #101710;
   font-family: Inter, system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
@@ -9,15 +13,83 @@ body {
 }
 
 .app-shell {
-  display: grid;
   min-height: 100vh;
-  place-content: center;
-  padding: 2rem;
-  text-align: center;
+  padding: 1.5rem;
+}
+
+.hud {
+  display: flex;
+  max-width: 960px;
+  margin: 0 auto 1rem;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+h1,
+p {
+  margin: 0;
 }
 
 .eyebrow {
   color: #f1c75b;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+.hud dl {
+  display: flex;
+  margin: 0;
+  gap: 1.5rem;
+}
+
+.hud dl div {
+  text-align: right;
+}
+
+.hud dt {
+  color: #a9b6a2;
+  font-size: 0.8rem;
+}
+
+.hud dd {
+  margin: 0;
+  color: #f1c75b;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.game-canvas {
+  width: min(960px, 100%);
+  aspect-ratio: 16 / 9;
+  margin: auto;
+  overflow: hidden;
+  border: 2px solid #667858;
+  border-radius: 1rem;
+  box-shadow: 0 1rem 3rem #0008;
+}
+
+.game-canvas canvas {
+  display: block;
+}
+
+.controls {
+  margin-top: 1rem;
+  color: #a9b6a2;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .app-shell {
+    padding: 0.75rem;
+  }
+
+  .hud {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .hud dl div {
+    text-align: left;
+  }
 }

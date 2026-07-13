@@ -15,7 +15,7 @@
 
 ```text
 Language: TypeScript
-Game engine: Phaser 3
+Game engine: Phaser 4.2.1
 UI framework: React 或 Vue
 Build tool: Vite
 State: Zustand/Pinia
@@ -54,7 +54,7 @@ Phase 5: 如果 3D 重度化，再评估 Unity/Godot
 第一版推荐：
 
 ```text
-Vite + TypeScript + Phaser 3 + React/Vue + typed API client
+Vite + TypeScript + Phaser 4.2.1 + React/Vue + typed API client
 ```
 
 后续桌面和移动端优先复用 Web 代码：
