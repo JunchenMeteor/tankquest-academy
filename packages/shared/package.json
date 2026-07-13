@@ -4,12 +4,19 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "lint": "echo \"shared lint not configured yet\"",
-    "typecheck": "echo \"shared typecheck not configured yet\"",
-    "test": "echo \"shared tests not configured yet\"",
-    "build": "echo \"shared build not configured yet\""
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "tsc -p tsconfig.build.json"
   }
 }

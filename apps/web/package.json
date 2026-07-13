@@ -4,9 +4,20 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "lint": "echo \"web lint not configured yet\"",
-    "typecheck": "echo \"web typecheck not configured yet\"",
-    "test": "echo \"web tests not configured yet\"",
-    "build": "echo \"web build not configured yet\""
+    "dev": "vite",
+    "lint": "eslint src vite.config.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "tsc --noEmit && vite build"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "vite": "latest",
+    "react": "latest",
+    "react-dom": "latest"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "@types/react-dom": "latest"
   }
 }

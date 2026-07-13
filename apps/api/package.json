@@ -4,9 +4,20 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "lint": "echo \"api lint not configured yet\"",
-    "typecheck": "echo \"api typecheck not configured yet\"",
-    "test": "echo \"api tests not configured yet\"",
-    "build": "echo \"api build not configured yet\""
+    "dev": "tsx watch src/main.ts",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "@nestjs/common": "latest",
+    "@nestjs/core": "latest",
+    "@nestjs/platform-express": "latest",
+    "reflect-metadata": "latest",
+    "rxjs": "latest"
+  },
+  "devDependencies": {
+    "tsx": "latest"
   }
 }

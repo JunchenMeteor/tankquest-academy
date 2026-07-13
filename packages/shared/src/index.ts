@@ -1,10 +1,7 @@
 export type AgeGroup = 'child_6_8' | 'child_9_12' | 'teen' | 'adult';
 
 export type GameMode =
-  | 'child_learning'
-  | 'teen_challenge'
-  | 'adult_casual'
-  | 'parent_management';
+  'child_learning' | 'teen_challenge' | 'adult_casual' | 'parent_management';
 
 export interface TankStats {
   firepower: number;

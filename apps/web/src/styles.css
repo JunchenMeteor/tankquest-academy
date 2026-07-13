@@ -1,0 +1,23 @@
+:root {
+  color: #f4f7e8;
+  background: #172117;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+}
+
+.app-shell {
+  display: grid;
+  min-height: 100vh;
+  place-content: center;
+  padding: 2rem;
+  text-align: center;
+}
+
+.eyebrow {
+  color: #f1c75b;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
