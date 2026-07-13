@@ -75,5 +75,4 @@ if ! compose up -d --wait --wait-timeout 240 \
   exit 1
 fi
 
-docker image prune --force >/dev/null
 printf 'Deployed %s to %s on 127.0.0.1:%s\n' "${WEB_IMAGE}" "${project_name}" "${HOST_PORT}"

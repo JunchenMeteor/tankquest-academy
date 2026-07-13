@@ -45,3 +45,5 @@ curl --fail https://tq-pre.jcmeteor.com/api/health
 ```
 
 Use port 3300 and the release paths for `release`. If a replacement fails its health check, the deployment script restores the previous API and Web images. PostgreSQL directories are never removed by deployment or rollback.
+
+Image cleanup is a separate maintenance operation. For each preview and release slot, retain the images used by the current deployment and the most recent successful deployment; remove older images only after both slots pass their health checks.
