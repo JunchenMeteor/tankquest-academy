@@ -1,0 +1,12 @@
+{
+  "name": "@tankquest/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "echo \"api lint not configured yet\"",
+    "typecheck": "echo \"api typecheck not configured yet\"",
+    "test": "echo \"api tests not configured yet\"",
+    "build": "echo \"api build not configured yet\""
+  }
+}

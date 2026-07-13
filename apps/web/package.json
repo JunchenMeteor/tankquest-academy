@@ -1,0 +1,12 @@
+{
+  "name": "@tankquest/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "echo \"web lint not configured yet\"",
+    "typecheck": "echo \"web typecheck not configured yet\"",
+    "test": "echo \"web tests not configured yet\"",
+    "build": "echo \"web build not configured yet\""
+  }
+}

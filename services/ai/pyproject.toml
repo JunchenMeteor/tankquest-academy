@@ -1,0 +1,9 @@
+[project]
+name = "tankquest-ai"
+version = "0.1.0"
+description = "AI service placeholder for TankQuest Academy"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
