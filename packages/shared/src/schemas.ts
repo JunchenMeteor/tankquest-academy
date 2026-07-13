@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { ageGroups, gameModes, subjects } from './domain.js';
+import { ageGroups, gameModes, subjects, tankStatMax } from './domain.js';
 
 const identifierSchema = z.string().trim().min(1).max(100);
 
@@ -9,11 +9,11 @@ export const gameModeSchema = z.enum(gameModes);
 export const subjectSchema = z.enum(subjects);
 
 export const tankStatsSchema = z.object({
-  firepower: z.number().int().min(1).max(5),
-  mobility: z.number().int().min(1).max(5),
-  armor: z.number().int().min(1).max(5),
-  stealth: z.number().int().min(1).max(5),
-  vision: z.number().int().min(1).max(5),
+  firepower: z.number().int().min(1).max(tankStatMax),
+  mobility: z.number().int().min(1).max(tankStatMax),
+  armor: z.number().int().min(1).max(tankStatMax),
+  stealth: z.number().int().min(1).max(tankStatMax),
+  vision: z.number().int().min(1).max(tankStatMax),
 });
 
 export const startSessionRequestSchema = z.object({

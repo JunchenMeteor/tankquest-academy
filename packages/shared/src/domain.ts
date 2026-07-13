@@ -28,3 +28,5 @@ export interface TankStats {
   stealth: number;
   vision: number;
 }
+
+export const tankStatMax = 5;

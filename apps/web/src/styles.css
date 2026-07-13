@@ -43,7 +43,7 @@ button {
 }
 
 button:disabled {
-  cursor: wait;
+  cursor: not-allowed;
   opacity: 0.55;
 }
 
@@ -174,6 +174,26 @@ button:disabled {
   color: #f1c75b;
   font-size: 2.2rem;
   letter-spacing: 0.2em;
+}
+
+.upgrade-confirmation {
+  display: grid;
+  border: 1px solid #7eb668;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  color: #e9f7df;
+  background: #21351e;
+  gap: 0.5rem;
+}
+
+.upgrade-confirmation strong {
+  color: #aee398;
+  font-size: 1.1rem;
+}
+
+.upgrade-max {
+  max-width: 34rem;
+  color: #c8d2c0;
 }
 
 .error {
