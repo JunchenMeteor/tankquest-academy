@@ -3,15 +3,30 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
+    "dev": "npm run dev --workspace @tankquest/web",
+    "dev:api": "npm run dev --workspace @tankquest/api",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "build": "npm run build --workspaces --if-present"
+    "build": "npm run build --workspace @tankquest/shared && npm run build --workspace @tankquest/api && npm run build --workspace @tankquest/web"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@eslint/js": "latest",
+    "@types/node": "^26.1.1",
+    "eslint": "latest",
+    "prettier": "latest",
+    "typescript": "latest",
+    "typescript-eslint": "latest",
+    "vitest": "latest"
+  }
 }
