@@ -11,6 +11,8 @@ TankQuest deploys beside MeteorVoice without sharing containers, ports, database
 
 Both ports bind only to `127.0.0.1`; host Nginx is the only public entry point. PostgreSQL is internal to each Compose project and stores data in its own named volume.
 
+The host proxy configuration is versioned at `deploy/host-nginx.conf` and uses the existing `*.jcmeteor.com` certificate without changing the MeteorVoice or MeteorTest virtual hosts.
+
 ## Services
 
 - `web`: Nginx serves the Vite build and proxies `/api/` to the internal API service.
