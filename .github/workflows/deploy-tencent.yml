@@ -1,0 +1,107 @@
+name: Deploy Tencent Docker
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    paths:
+      - .dockerignore
+      - Dockerfile
+      - deploy/**
+      - apps/api/**
+      - apps/web/**
+      - packages/shared/**
+      - package.json
+      - package-lock.json
+      - .github/workflows/deploy-tencent.yml
+  push:
+    branches:
+      - main
+      - release
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-tencent-docker-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate deployment images
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [api-runtime, web-runtime]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        if: github.event_name == 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64
+          target: ${{ matrix.target }}
+          tags: tankquest-${{ matrix.target }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Upload validated source artifact
+        if: github.event_name != 'pull_request' && matrix.target == 'api-runtime'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tankquest-source-${{ github.sha }}
+          path: |
+            .
+            !.git
+            !node_modules
+            !apps/**/node_modules
+            !packages/**/node_modules
+            !apps/**/dist
+            !packages/**/dist
+          retention-days: 7
+
+  deploy:
+    name: Deploy TankQuest containers
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: [self-hosted, linux, x64, tencent, tankquest]
+    steps:
+      - name: Download validated source artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tankquest-source-${{ github.sha }}
+          path: source
+
+      - name: Resolve target
+        id: target
+        shell: bash
+        run: |
+          if [ "${GITHUB_REF_NAME}" = "release" ]; then
+            echo "environment=production" >> "$GITHUB_OUTPUT"
+            echo "port=3300" >> "$GITHUB_OUTPUT"
+          else
+            echo "environment=preview" >> "$GITHUB_OUTPUT"
+            echo "port=3301" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build deployment images
+        run: |
+          docker build --target api-runtime --tag "tankquest-api:${GITHUB_SHA}" --file source/Dockerfile source
+          docker build --target web-runtime --tag "tankquest-web:${GITHUB_SHA}" --file source/Dockerfile source
+
+      - name: Deploy
+        env:
+          API_IMAGE: tankquest-api:${{ github.sha }}
+          APP_NAME: tankquest
+          ENVIRONMENT: ${{ steps.target.outputs.environment }}
+          HOST_PORT: ${{ steps.target.outputs.port }}
+          WEB_IMAGE: tankquest-web:${{ github.sha }}
+        run: |
+          chmod +x source/deploy/deploy-container.sh
+          source/deploy/deploy-container.sh
