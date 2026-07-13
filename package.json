@@ -13,6 +13,8 @@
   "scripts": {
     "dev": "npm run dev --workspace @tankquest/web",
     "dev:api": "npm run dev --workspace @tankquest/api",
+    "db:generate": "npm run db:generate --workspace @tankquest/api",
+    "db:validate": "npm run db:validate --workspace @tankquest/api",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "npm run lint --workspaces --if-present",

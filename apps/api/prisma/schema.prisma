@@ -1,0 +1,248 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  parent
+  admin
+}
+
+enum ContentStatus {
+  draft
+  published
+  archived
+}
+
+enum SessionStatus {
+  active
+  finished
+  abandoned
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  displayName  String   @map("display_name")
+  role         UserRole @default(parent)
+  children     Child[]
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Child {
+  id           String           @id @default(cuid())
+  parentUserId String           @map("parent_user_id")
+  nickname     String
+  birthYear    Int              @map("birth_year")
+  ageGroup     String           @map("age_group")
+  defaultMode  String           @default("child_learning") @map("default_mode")
+  parent       User             @relation(fields: [parentUserId], references: [id], onDelete: Cascade)
+  controls     ParentControl?
+  sessions     GameSession[]
+  tanks        ChildTank[]
+  inventory    ChildInventory[]
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  @@map("children")
+}
+
+model ParentControl {
+  id                   String   @id @default(cuid())
+  childId              String   @unique @map("child_id")
+  dailyMinutesLimit    Int      @default(30) @map("daily_minutes_limit")
+  sessionMinutesLimit  Int      @default(10) @map("session_minutes_limit")
+  allowedModes         String[] @default(["child_learning"]) @map("allowed_modes")
+  allowedSubjects      String[] @default(["math"]) @map("allowed_subjects")
+  maxDifficulty        Int      @default(2) @map("max_difficulty")
+  aiExplanationEnabled Boolean  @default(true) @map("ai_explanation_enabled")
+  adultTestsEnabled    Boolean  @default(false) @map("adult_tests_enabled")
+  child                Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@map("parent_controls")
+}
+
+model Tank {
+  id         String        @id @default(cuid())
+  code       String        @unique
+  nameKey    String        @map("name_key")
+  role       String
+  isActive   Boolean       @default(true) @map("is_active")
+  stats      TankStat?
+  childTanks ChildTank[]
+  sessions   GameSession[]
+
+  @@map("tanks")
+}
+
+model TankStat {
+  id        String @id @default(cuid())
+  tankId    String @unique @map("tank_id")
+  firepower Int
+  mobility  Int
+  armor     Int
+  stealth   Int
+  vision    Int
+  tank      Tank   @relation(fields: [tankId], references: [id], onDelete: Cascade)
+
+  @@map("tank_stats")
+}
+
+model ChildTank {
+  id         String             @id @default(cuid())
+  childId    String             @map("child_id")
+  tankId     String             @map("tank_id")
+  level      Int                @default(1)
+  child      Child              @relation(fields: [childId], references: [id], onDelete: Cascade)
+  tank       Tank               @relation(fields: [tankId], references: [id])
+  upgrades   ChildTankUpgrade[]
+  acquiredAt DateTime           @default(now()) @map("acquired_at")
+
+  @@unique([childId, tankId])
+  @@map("child_tanks")
+}
+
+model ChildTankUpgrade {
+  id          String    @id @default(cuid())
+  childTankId String    @map("child_tank_id")
+  statKey     String    @map("stat_key")
+  level       Int       @default(1)
+  childTank   ChildTank @relation(fields: [childTankId], references: [id], onDelete: Cascade)
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@unique([childTankId, statKey])
+  @@map("child_tank_upgrades")
+}
+
+model Level {
+  id             String          @id @default(cuid())
+  code           String          @unique
+  titleKey       String          @map("title_key")
+  mode           String
+  subjectFocus   String          @map("subject_focus")
+  baseDifficulty Int             @map("base_difficulty")
+  configJson     Json            @map("config_json")
+  status         ContentStatus   @default(draft)
+  version        Int             @default(1)
+  questions      LevelQuestion[]
+  sessions       GameSession[]
+
+  @@map("levels")
+}
+
+model Question {
+  id             String              @id @default(cuid())
+  subject        String
+  mode           String
+  difficulty     Int
+  prompt         String
+  explanation    String
+  status         ContentStatus       @default(draft)
+  answers        QuestionAnswer[]
+  levels         LevelQuestion[]
+  sessionAnswers GameSessionAnswer[]
+
+  @@map("questions")
+}
+
+model QuestionAnswer {
+  id         String   @id @default(cuid())
+  questionId String   @map("question_id")
+  text       String
+  isCorrect  Boolean  @default(false) @map("is_correct")
+  sortOrder  Int      @map("sort_order")
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("question_answers")
+}
+
+model LevelQuestion {
+  levelId    String   @map("level_id")
+  questionId String   @map("question_id")
+  level      Level    @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@id([levelId, questionId])
+  @@map("level_questions")
+}
+
+model GameSession {
+  id                 String              @id @default(cuid())
+  childId            String              @map("child_id")
+  levelId            String              @map("level_id")
+  tankId             String              @map("tank_id")
+  mode               String
+  status             SessionStatus       @default(active)
+  difficultySnapshot Json                 @map("difficulty_snapshot_json")
+  rewardSummary      Json?                @map("reward_summary_json")
+  child              Child               @relation(fields: [childId], references: [id])
+  level              Level               @relation(fields: [levelId], references: [id])
+  tank               Tank                @relation(fields: [tankId], references: [id])
+  events             GameSessionEvent[]
+  answers            GameSessionAnswer[]
+  rewards            GameSessionReward[]
+  startedAt          DateTime             @default(now()) @map("started_at")
+  finishedAt         DateTime?            @map("finished_at")
+
+  @@map("game_sessions")
+}
+
+model GameSessionEvent {
+  id               String      @id @default(cuid())
+  sessionId        String      @map("session_id")
+  eventType        String      @map("event_type")
+  payloadJson      Json        @map("payload_json")
+  clientTimeMs     Int         @map("client_time_ms")
+  session          GameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  serverReceivedAt DateTime    @default(now()) @map("server_received_at")
+
+  @@map("game_session_events")
+}
+
+model GameSessionAnswer {
+  id               String      @id @default(cuid())
+  sessionId        String      @map("session_id")
+  questionId       String      @map("question_id")
+  selectedAnswerId String      @map("selected_answer_id")
+  isCorrect        Boolean     @map("is_correct")
+  answerTimeMs     Int         @map("answer_time_ms")
+  session          GameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  question         Question    @relation(fields: [questionId], references: [id])
+  createdAt        DateTime    @default(now()) @map("created_at")
+
+  @@unique([sessionId, questionId])
+  @@map("game_session_answers")
+}
+
+model GameSessionReward {
+  id         String      @id @default(cuid())
+  sessionId  String      @map("session_id")
+  rewardType String      @map("reward_type")
+  rewardKey  String      @map("reward_key")
+  amount     Int
+  reason     String
+  session    GameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("game_session_rewards")
+}
+
+model ChildInventory {
+  id       String @id @default(cuid())
+  childId  String @map("child_id")
+  itemType String @map("item_type")
+  itemKey  String @map("item_key")
+  amount   Int    @default(0)
+  child    Child  @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@unique([childId, itemType, itemKey])
+  @@map("child_inventory")
+}

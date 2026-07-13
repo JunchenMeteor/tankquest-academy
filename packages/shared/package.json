@@ -13,6 +13,9 @@
   "files": [
     "dist"
   ],
+  "dependencies": {
+    "zod": "latest"
+  },
   "scripts": {
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
