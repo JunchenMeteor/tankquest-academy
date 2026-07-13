@@ -56,25 +56,31 @@
 联网后同步
 ```
 
-## 5. 4 核 4G 部署建议
+## 5. 第一阶段实际部署
 
-适合第一版：
+当前第一阶段使用单机 Docker Compose：
 
 ```text
-Nginx
-主后端 API
-PostgreSQL
-Redis optional
-前端静态文件
+公网请求
+  -> 主机 Nginx / TLS
+      -> 127.0.0.1:3300 (release)
+      -> 127.0.0.1:3301 (preview)
+          -> Web Nginx / 静态文件
+              -> NestJS API
+                  -> 独立 PostgreSQL
 ```
 
-不建议：
+preview 与 release 拥有独立 Compose 项目和 `/data/projects/tankquest/<environment>` 数据目录。Docker、containerd、runner 和其他工程部署数据也存放在 `/data`，但工程之间不得共享数据库或项目目录。详细路径和恢复方式见 `tencent-docker-deployment.md`。
+
+在 4 核 4G 主机上，每个 TankQuest 环境当前限制约为：PostgreSQL 384 MB、API 384 MB、Web 96 MB。主机还承载其他工程，增加服务前必须重新检查实际内存和磁盘余量。
+
+暂不部署：
 
 ```text
-本地部署大模型
+Redis
+本地大模型
 高并发实时多人对战
-大量 3D 模型直接走业务服务器
-视频/大文件资源托管在应用服务器
+大规模模型、视频和资源文件服务
 ```
 
 ## 6. 推荐部署拓扑
@@ -94,4 +100,4 @@ Backend API
   -> Object Storage metadata
 ```
 
-第一版家庭内测可先用 Nginx 静态托管资源，后期资源增多后再迁移到对象存储/CDN。
+第一版家庭内测继续由 Web 镜像静态托管轻量资源。资源数量和体积增长后，再按本章元数据和 hash 规则迁移到对象存储/CDN；迁移不得改变游戏业务 API 的权威判定边界。
