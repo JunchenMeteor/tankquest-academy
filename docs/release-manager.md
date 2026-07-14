@@ -1,13 +1,13 @@
-# Release Manager
+# TankQuest Release Manager
 
-TankQuest Academy uses `Release Manager` to run the release flow from one manual GitHub Actions entry while preserving the protected branch model.
+TankQuest Academy uses `TankQuest Release Manager` to run the release flow from one manual GitHub Actions entry while preserving the protected branch model.
 
 ## Entry Point
 
 Open:
 
 ```text
-GitHub -> Actions -> Release Manager -> Run workflow
+GitHub -> Actions -> TankQuest Release Manager -> Run workflow
 ```
 
 Inputs:

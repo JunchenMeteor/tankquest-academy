@@ -1,4 +1,4 @@
-name: Deploy Tencent Docker
+name: TankQuest Preview and Release
 
 permissions:
   contents: read
@@ -27,7 +27,7 @@ concurrency:
 
 jobs:
   validate:
-    name: Validate deployment images
+    name: TankQuest / Container image
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -67,7 +67,7 @@ jobs:
           retention-days: 7
 
   deploy:
-    name: Deploy TankQuest containers
+    name: TankQuest / Deploy (${{ github.ref_name == 'release' && 'release' || 'preview' }})
     if: github.event_name != 'pull_request'
     needs: validate
     runs-on: [self-hosted, linux, x64, tencent, tankquest]
