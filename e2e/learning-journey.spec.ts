@@ -132,6 +132,7 @@ test('continues combat after repeated enemy projectile impacts', async ({
       enemyTanks: [
         {
           ...closeEnemy,
+          stats: { ...closeEnemy.stats, firepower: 5 },
           x: 300,
           y: 270,
           ai: {
@@ -160,8 +161,21 @@ test('continues combat after repeated enemy projectile impacts', async ({
   await expect
     .poll(() => hullIntegrity.textContent(), { timeout: 5_000 })
     .not.toBe(healthAfterFirstImpact);
+  const impacts = await page.evaluate(() => {
+    const target = globalThis as typeof globalThis & {
+      __TANKQUEST_COMBAT_LOGS__?: Array<{
+        event: string;
+        details: Record<string, number | string>;
+      }>;
+    };
+    return (target.__TANKQUEST_COMBAT_LOGS__ ?? [])
+      .filter((entry) => entry.event === 'enemy_projectile_hit_player')
+      .map((entry) => entry.details);
+  });
 
   await expect(page.locator('.game-canvas canvas')).toBeVisible();
+  expect(impacts.length).toBeGreaterThanOrEqual(2);
+  expect(impacts.every((impact) => impact.outcome === 'penetrated')).toBe(true);
   expect(pageErrors).toEqual([]);
 });
 

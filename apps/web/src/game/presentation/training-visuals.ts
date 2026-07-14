@@ -1,6 +1,7 @@
 import type Phaser from 'phaser';
 
 import type { RuntimeLevelConfig } from '../runtime/types.js';
+import type { ProjectileImpactResult } from '../systems/projectile-impact.js';
 
 export function drawTrainingMap(
   scene: Phaser.Scene,
@@ -90,6 +91,35 @@ export function showDamage(
     y: label.y - 24,
     alpha: 0,
     duration: 500,
+    onComplete: () => label.destroy(),
+  });
+}
+
+export function showProjectileImpact(
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  impact: ProjectileImpactResult
+) {
+  const presentation = {
+    ricochet: { label: '跳弹', color: '#9ee7ff' },
+    blocked: { label: '未击穿', color: '#ffe08a' },
+    penetrated: { label: `击穿 -${impact.damage}`, color: '#ffd7cf' },
+  }[impact.outcome];
+  const label = scene.add
+    .text(x, y - 24, presentation.label, {
+      color: presentation.color,
+      fontFamily: 'sans-serif',
+      fontSize: '16px',
+      fontStyle: 'bold',
+    })
+    .setDepth(5)
+    .setOrigin(0.5);
+  scene.tweens.add({
+    targets: label,
+    y: label.y - 24,
+    alpha: 0,
+    duration: 650,
     onComplete: () => label.destroy(),
   });
 }
