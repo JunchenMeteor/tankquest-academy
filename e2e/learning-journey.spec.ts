@@ -1,3 +1,8 @@
+import type {
+  ApiResponse,
+  EnemyTankConfigDto,
+  StartSessionResponse,
+} from '@tankquest/shared';
 import { expect, test, type Page } from '@playwright/test';
 
 const correctAnswers: Record<string, string> = {
@@ -106,6 +111,58 @@ test('completes the authoritative learning and upgrade journey', async ({
   await page.getByRole('button', { name: 'Start training' }).click();
   await expect(page.getByText(/Firepower [4-5]/)).toBeVisible();
   expect(consoleErrors).toEqual([]);
+});
+
+test('continues combat after repeated enemy projectile impacts', async ({
+  page,
+}) => {
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+  await page.route('**/api/game-sessions', async (route) => {
+    const response = await route.fetch();
+    const payload =
+      (await response.json()) as ApiResponse<StartSessionResponse>;
+    const enemyTanks = payload.data?.level.config.enemyTanks;
+    if (!payload.data || !Array.isArray(enemyTanks) || !enemyTanks[0]) {
+      throw new Error('Expected a configured enemy tank in the session');
+    }
+    const closeEnemy = enemyTanks[0] as EnemyTankConfigDto;
+    payload.data.level.config = {
+      ...payload.data.level.config,
+      enemyTanks: [
+        {
+          ...closeEnemy,
+          x: 300,
+          y: 270,
+          ai: {
+            ...closeEnemy.ai,
+            attackRange: 500,
+            detectionRange: 600,
+            fireCooldownMs: 500,
+            speedMultiplier: 0.1,
+          },
+        },
+      ],
+      map: {
+        style: 'range',
+        playerSpawn: { x: 120, y: 270 },
+        obstacles: [],
+      },
+    };
+    await route.fulfill({ response, json: payload });
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Start training' }).click();
+  const hullIntegrity = page.locator('.hud dd').filter({ hasText: '/150' });
+  await expect(hullIntegrity).not.toHaveText('150/150', { timeout: 5_000 });
+  const healthAfterFirstImpact = await hullIntegrity.textContent();
+  await expect
+    .poll(() => hullIntegrity.textContent(), { timeout: 5_000 })
+    .not.toBe(healthAfterFirstImpact);
+
+  await expect(page.locator('.game-canvas canvas')).toBeVisible();
+  expect(pageErrors).toEqual([]);
 });
 
 async function fireAt(
