@@ -10,10 +10,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ApiClient } from './client/api-client.js';
 import { clientConfig } from './client/runtime-config.js';
-import { GameCanvas } from './game/GameCanvas.js';
 import { levelRuntimeConfig } from './game/config/level-runtime-config.js';
 import type { RuntimeState } from './game/runtime/types.js';
 import { MissionResult } from './MissionResult.js';
+import { ActiveTraining, AppHud, MissionPicker } from './TrainingViews.js';
 import './styles.css';
 
 const api = new ApiClient(clientConfig.apiBaseUrl);
@@ -27,15 +27,13 @@ export function App() {
   const [selectedLevelId, setSelectedLevelId] = useState('');
   const [session, setSession] = useState<StartSessionResponse | null>(null);
   const [questionIndex, setQuestionIndex] = useState(0);
+  const [learningComplete, setLearningComplete] = useState(false);
   const [feedback, setFeedback] = useState<SubmitAnswerResponse | null>(null);
   const [settlement, setSettlement] = useState<FinishSessionResponse | null>(
     null
   );
   const [upgrade, setUpgrade] = useState<UpgradeTankResponse | null>(null);
-  const [runtime, setRuntime] = useState<RuntimeState>({
-    enemiesRemaining: 0,
-    shotsFired: 0,
-  });
+  const [runtime, setRuntime] = useState<RuntimeState>(emptyRuntimeState);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const questionStartedAt = useRef(0);
@@ -65,11 +63,17 @@ export function App() {
     () => (session ? levelRuntimeConfig(session.level, session.tank) : null),
     [session]
   );
+  const selectedLevel = levels.find((item) => item.id === selectedLevelId);
+  const missionPreview = useMemo(
+    () =>
+      selectedLevel ? levelRuntimeConfig(selectedLevel, tanks[0]) : undefined,
+    [selectedLevel, tanks]
+  );
   const currentQuestion = session?.questions[questionIndex];
   const selectedTank = session?.tank ?? tanks[0];
 
   const startTraining = async () => {
-    const level = levels.find((item) => item.id === selectedLevelId);
+    const level = selectedLevel;
     const tank = tanks[0];
     if (!level || !tank) {
       setError('No published level or available tank was found.');
@@ -83,13 +87,20 @@ export function App() {
         levelId: level.id,
         tankId: tank.id,
       });
+      const startedRuntimeConfig = levelRuntimeConfig(
+        started.level,
+        started.tank
+      );
       setSession(started);
       setRuntime({
-        enemiesRemaining: levelRuntimeConfig(started.level, started.tank)
-          .enemies.length,
+        enemiesRemaining: startedRuntimeConfig.enemies.length,
         shotsFired: 0,
+        playerHealth: startedRuntimeConfig.player.maxHealth,
+        playerMaxHealth: startedRuntimeConfig.player.maxHealth,
+        playerDestroyed: false,
       });
       setQuestionIndex(0);
+      setLearningComplete(false);
       setFeedback(null);
       setSettlement(null);
       setUpgrade(null);
@@ -131,6 +142,11 @@ export function App() {
       setQuestionIndex((index) => index + 1);
       setFeedback(null);
       questionStartedAt.current = performance.now();
+      return;
+    }
+    if (runtime.enemiesRemaining > 0) {
+      setLearningComplete(true);
+      setFeedback(null);
       return;
     }
 
@@ -184,100 +200,48 @@ export function App() {
     setPhase('ready');
     setSession(null);
     setFeedback(null);
+    setLearningComplete(false);
     setSettlement(null);
     setUpgrade(null);
     setError(null);
-    setRuntime({ enemiesRemaining: 0, shotsFired: 0 });
+    setRuntime(emptyRuntimeState());
   };
 
   return (
     <main className="app-shell">
-      <header className="hud">
-        <div>
-          <p className="eyebrow">Training Base</p>
-          <h1>TankQuest Academy</h1>
-        </div>
-        <dl>
-          <div>
-            <dt>Training robots</dt>
-            <dd>{runtime.enemiesRemaining}</dd>
-          </div>
-          <div>
-            <dt>Shots fired</dt>
-            <dd>{runtime.shotsFired}</dd>
-          </div>
-        </dl>
-      </header>
+      <AppHud active={phase === 'active'} runtime={runtime} />
 
       {phase === 'loading' && (
         <StatusCard>Loading training catalog…</StatusCard>
       )}
 
       {phase === 'ready' && (
-        <StatusCard>
-          <h2>Choose a training mission</h2>
-          <p>{levels.length} training missions are ready.</p>
-          <div className="mission-picker" aria-label="Training missions">
-            {levels.map((level) => (
-              <button
-                key={level.id}
-                className={level.id === selectedLevelId ? 'selected' : ''}
-                aria-pressed={level.id === selectedLevelId}
-                onClick={() => setSelectedLevelId(level.id)}
-              >
-                {formatMissionName(level.code)} · difficulty{' '}
-                {level.baseDifficulty}
-              </button>
-            ))}
-          </div>
-          <button disabled={busy} onClick={() => void startTraining()}>
-            Start training
-          </button>
-        </StatusCard>
+        <MissionPicker
+          busy={busy}
+          levels={levels}
+          preview={missionPreview}
+          selectedLevelId={selectedLevelId}
+          onSelect={setSelectedLevelId}
+          onStart={() => void startTraining()}
+        />
       )}
 
-      {phase === 'active' && runtimeConfig && currentQuestion && (
-        <>
-          <p className="mission-status">
-            {formatMissionName(session.level.code)} · Firepower{' '}
-            {session.tank.stats.firepower} · Mobility{' '}
-            {session.tank.stats.mobility}
-          </p>
-          <GameCanvas config={runtimeConfig} onState={handleRuntime} />
-          <section className="learning-console" aria-live="polite">
-            <p className="eyebrow">
-              Supply challenge {questionIndex + 1}/{session.questions.length}
-            </p>
-            <h2>{currentQuestion.prompt}</h2>
-            <div className="choices">
-              {currentQuestion.choices.map((choice) => (
-                <button
-                  key={choice.id}
-                  disabled={busy || Boolean(feedback)}
-                  onClick={() => void submitAnswer(choice.id)}
-                >
-                  {choice.text}
-                </button>
-              ))}
-            </div>
-            {feedback && (
-              <div className={feedback.correct ? 'feedback good' : 'feedback'}>
-                <strong>
-                  {feedback.correct ? 'Supply secured!' : 'Try the next one.'}
-                </strong>
-                <span>{feedback.explanation}</span>
-                <button disabled={busy} onClick={() => void continueTraining()}>
-                  {questionIndex < session.questions.length - 1
-                    ? 'Next challenge'
-                    : 'Complete mission'}
-                </button>
-              </div>
-            )}
-          </section>
-          <p className="controls">
-            W/S drive · A/D turn · Mouse aim · Click or Space fire
-          </p>
-        </>
+      {phase === 'active' && session && runtimeConfig && currentQuestion && (
+        <ActiveTraining
+          busy={busy}
+          config={runtimeConfig}
+          currentQuestion={currentQuestion}
+          feedback={feedback}
+          learningComplete={learningComplete}
+          questionIndex={questionIndex}
+          runtime={runtime}
+          session={session}
+          onAnswer={(answerId) => void submitAnswer(answerId)}
+          onContinue={() => void continueTraining()}
+          onRestart={() => void startTraining()}
+          onReturn={continueWithUpgrade}
+          onRuntime={handleRuntime}
+        />
       )}
 
       {phase === 'finished' && settlement && selectedTank && (
@@ -287,6 +251,7 @@ export function App() {
           tank={selectedTank}
           upgrade={upgrade}
           onContinue={continueWithUpgrade}
+          onReplay={() => void startTraining()}
           onUpgrade={() => void upgradeFirepower()}
         />
       )}
@@ -310,7 +275,12 @@ function readError(reason: unknown) {
     : 'An unexpected error occurred.';
 }
 
-function formatMissionName(code: string) {
-  const value = code.replaceAll('-', ' ');
-  return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
+function emptyRuntimeState(): RuntimeState {
+  return {
+    enemiesRemaining: 0,
+    shotsFired: 0,
+    playerHealth: 0,
+    playerMaxHealth: 0,
+    playerDestroyed: false,
+  };
 }

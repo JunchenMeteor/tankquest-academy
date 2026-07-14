@@ -1,6 +1,13 @@
 import { z } from 'zod';
 
-import { ageGroups, gameModes, subjects, tankStatMax } from './domain.js';
+import {
+  ageGroups,
+  enemyTankRoles,
+  gameModes,
+  subjects,
+  tankStatMax,
+  trainingMapStyles,
+} from './domain.js';
 
 const identifierSchema = z.string().trim().min(1).max(100);
 
@@ -14,6 +21,48 @@ export const tankStatsSchema = z.object({
   armor: z.number().int().min(1).max(tankStatMax),
   stealth: z.number().int().min(1).max(tankStatMax),
   vision: z.number().int().min(1).max(tankStatMax),
+});
+
+export const enemyTankConfigSchema = z.object({
+  id: identifierSchema,
+  role: z.enum(enemyTankRoles),
+  x: z.number().min(40).max(920),
+  y: z.number().min(40).max(500),
+  stats: tankStatsSchema,
+  ai: z.object({
+    detectionRange: z.number().min(100).max(600),
+    attackRange: z.number().min(80).max(500),
+    fireCooldownMs: z.number().int().min(500).max(5000),
+    speedMultiplier: z.number().min(0.1).max(1),
+  }),
+});
+
+export const levelEnemyConfigSchema = z.object({
+  enemyTanks: z.array(enemyTankConfigSchema).min(1).max(8),
+});
+
+const mapCoordinateSchema = z.number().min(30).max(930);
+
+export const levelMapConfigSchema = z.object({
+  style: z.enum(trainingMapStyles),
+  playerSpawn: z.object({
+    x: mapCoordinateSchema,
+    y: z.number().min(30).max(510),
+  }),
+  obstacles: z
+    .array(
+      z.object({
+        x: mapCoordinateSchema,
+        y: z.number().min(30).max(510),
+        width: z.number().min(20).max(300),
+        height: z.number().min(20).max(300),
+      })
+    )
+    .max(24),
+});
+
+export const levelRuntimeContentSchema = levelEnemyConfigSchema.extend({
+  map: levelMapConfigSchema,
 });
 
 export const startSessionRequestSchema = z.object({

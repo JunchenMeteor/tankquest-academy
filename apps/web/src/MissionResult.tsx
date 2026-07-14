@@ -11,6 +11,7 @@ interface MissionResultProps {
   tank: TankDto;
   upgrade: UpgradeTankResponse | null;
   onContinue: () => void;
+  onReplay: () => void;
   onUpgrade: () => void;
 }
 
@@ -20,6 +21,7 @@ export function MissionResult({
   tank,
   upgrade,
   onContinue,
+  onReplay,
   onUpgrade,
 }: MissionResultProps) {
   const firepowerMaxed = tank.stats.firepower >= tankStatMax;
@@ -57,9 +59,18 @@ export function MissionResult({
           </strong>
           <span>{upgrade.remainingParts} cannon parts remain.</span>
           <p>The new projectile speed and reload time apply next mission.</p>
-          <button onClick={onContinue}>Use upgrade in next mission</button>
         </div>
       )}
+      <div className="result-actions">
+        <button disabled={busy} onClick={onReplay}>
+          Replay mission
+        </button>
+        <button disabled={busy} onClick={onContinue}>
+          {upgrade
+            ? 'Use upgrade in another mission'
+            : 'Return to mission selection'}
+        </button>
+      </div>
     </section>
   );
 }

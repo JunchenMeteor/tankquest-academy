@@ -1,8 +1,20 @@
-import type { LevelDto, TankDto } from '@tankquest/shared';
+import {
+  levelEnemyConfigSchema,
+  levelMapConfigSchema,
+  type EnemyTankConfigDto,
+  type LevelDto,
+  type TankDto,
+} from '@tankquest/shared';
 
+import {
+  baselineTankStats,
+  deriveCombatStats,
+} from '../systems/combat-stats.js';
 import { localTrainingConfig } from './local-training-config.js';
 
 export function levelRuntimeConfig(level: LevelDto, tank?: TankDto) {
+  const parsedEnemies = levelEnemyConfigSchema.safeParse(level.config);
+  const parsedMap = levelMapConfigSchema.safeParse(level.config.map);
   const configuredCount = level.config.enemyCount;
   const enemyCount =
     typeof configuredCount === 'number' && Number.isInteger(configuredCount)
@@ -12,22 +24,39 @@ export function levelRuntimeConfig(level: LevelDto, tank?: TankDto) {
         )
       : localTrainingConfig.enemies.length;
 
-  const firepowerDelta = (tank?.stats.firepower ?? 3) - 3;
-  const mobilityDelta = (tank?.stats.mobility ?? 3) - 3;
-
   return {
     ...localTrainingConfig,
-    player: {
-      ...localTrainingConfig.player,
-      speed: localTrainingConfig.player.speed + mobilityDelta * 18,
-      turnSpeed: localTrainingConfig.player.turnSpeed + mobilityDelta * 0.15,
-      projectileSpeed:
-        localTrainingConfig.player.projectileSpeed + firepowerDelta * 40,
-      fireCooldownMs: Math.max(
-        150,
-        localTrainingConfig.player.fireCooldownMs - firepowerDelta * 35
-      ),
-    },
-    enemies: localTrainingConfig.enemies.slice(0, enemyCount),
+    mapStyle: parsedMap.success
+      ? parsedMap.data.style
+      : localTrainingConfig.mapStyle,
+    playerSpawn: parsedMap.success
+      ? parsedMap.data.playerSpawn
+      : localTrainingConfig.playerSpawn,
+    player: deriveCombatStats(tank?.stats ?? baselineTankStats),
+    enemies: parsedEnemies.success
+      ? parsedEnemies.data.enemyTanks.map(toRuntimeEnemy)
+      : localTrainingConfig.enemies.slice(0, enemyCount),
+    obstacles: parsedMap.success
+      ? parsedMap.data.obstacles
+      : localTrainingConfig.obstacles,
+  };
+}
+
+function toRuntimeEnemy(enemy: EnemyTankConfigDto) {
+  const combat = deriveCombatStats(enemy.stats);
+  return {
+    id: enemy.id,
+    role: enemy.role,
+    x: enemy.x,
+    y: enemy.y,
+    maxHealth: combat.maxHealth,
+    armorReduction: combat.armorReduction,
+    mass: combat.mass,
+    speed: Math.round(combat.speed * enemy.ai.speedMultiplier),
+    detectionRange: enemy.ai.detectionRange,
+    attackRange: enemy.ai.attackRange,
+    projectileDamage: Math.round(combat.projectileDamage * 0.55),
+    projectileSpeed: Math.round(combat.projectileSpeed * 0.75),
+    fireCooldownMs: enemy.ai.fireCooldownMs,
   };
 }

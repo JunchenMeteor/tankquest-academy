@@ -96,7 +96,8 @@ button:disabled {
 }
 
 .status-card,
-.learning-console {
+.learning-console,
+.battle-alert {
   width: min(960px, 100%);
   margin: 1rem auto;
   border: 1px solid #667858;
@@ -104,6 +105,36 @@ button:disabled {
   padding: 1.25rem;
   background: #1b261b;
   box-shadow: 0 1rem 3rem #0005;
+}
+
+.battle-alert {
+  display: grid;
+  justify-items: center;
+  border-color: #b95b4b;
+  text-align: center;
+  gap: 0.75rem;
+}
+
+.battle-alert h2 {
+  margin: 0;
+  color: #ffd7cf;
+}
+
+.battle-objective {
+  display: grid;
+  width: min(960px, 100%);
+  margin: 1rem auto;
+  border: 1px solid #667858;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  justify-items: center;
+  text-align: center;
+  background: #1b261b;
+  gap: 0.75rem;
+}
+
+.battle-objective h2 {
+  margin: 0;
 }
 
 .status-card {
@@ -139,6 +170,18 @@ button:disabled {
   margin: 0 auto 0.75rem;
   color: #c8d2c0;
   text-align: center;
+}
+
+.combat-readout,
+.mission-preview {
+  color: #a9b6a2;
+  text-align: center;
+}
+
+.combat-readout {
+  width: min(960px, 100%);
+  margin: -0.35rem auto 0.75rem;
+  font-size: 0.9rem;
 }
 
 .learning-console h2 {
@@ -194,6 +237,19 @@ button:disabled {
 .upgrade-max {
   max-width: 34rem;
   color: #c8d2c0;
+}
+
+.result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.result-actions button:first-child {
+  border-color: #667858;
+  color: #f4f7e8;
+  background: #263826;
 }
 
 .error {

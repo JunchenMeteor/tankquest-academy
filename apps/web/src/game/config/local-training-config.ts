@@ -1,17 +1,46 @@
 import type { RuntimeLevelConfig } from '../runtime/types.js';
+import {
+  baselineTankStats,
+  deriveCombatStats,
+} from '../systems/combat-stats.js';
 
 export const localTrainingConfig: RuntimeLevelConfig = {
   width: 960,
   height: 540,
-  player: {
-    speed: 170,
-    turnSpeed: 2.8,
-    projectileSpeed: 460,
-    fireCooldownMs: 350,
-  },
+  mapStyle: 'range',
+  playerSpawn: { x: 120, y: 270 },
+  player: deriveCombatStats(baselineTankStats),
   enemies: [
-    { id: 'robot_alpha', x: 720, y: 150, speed: 45, detectionRange: 260 },
-    { id: 'robot_bravo', x: 760, y: 390, speed: 55, detectionRange: 280 },
+    {
+      id: 'robot_alpha',
+      role: 'scout',
+      x: 720,
+      y: 150,
+      maxHealth: 90,
+      armorReduction: 0.06,
+      mass: 75,
+      speed: 45,
+      detectionRange: 260,
+      attackRange: 190,
+      projectileDamage: 15,
+      projectileSpeed: 320,
+      fireCooldownMs: 1900,
+    },
+    {
+      id: 'robot_bravo',
+      role: 'medium',
+      x: 760,
+      y: 390,
+      maxHealth: 110,
+      armorReduction: 0.08,
+      mass: 85,
+      speed: 55,
+      detectionRange: 280,
+      attackRange: 220,
+      projectileDamage: 18,
+      projectileSpeed: 340,
+      fireCooldownMs: 1700,
+    },
   ],
   obstacles: [
     { x: 360, y: 170, width: 50, height: 180 },
