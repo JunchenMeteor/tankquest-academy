@@ -17,6 +17,9 @@ export interface EnemyRuntimeConfig {
   id: string;
   x: number;
   y: number;
+  maxHealth: number;
+  armorReduction: number;
+  mass: number;
   speed: number;
   detectionRange: number;
 }
@@ -39,4 +42,6 @@ export interface RuntimeLevelConfig {
 export interface RuntimeState {
   enemiesRemaining: number;
   shotsFired: number;
+  playerHealth: number;
+  playerMaxHealth: number;
 }
