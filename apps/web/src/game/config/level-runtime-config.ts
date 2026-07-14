@@ -1,5 +1,6 @@
 import {
   levelEnemyConfigSchema,
+  levelMapConfigSchema,
   type EnemyTankConfigDto,
   type LevelDto,
   type TankDto,
@@ -12,7 +13,8 @@ import {
 import { localTrainingConfig } from './local-training-config.js';
 
 export function levelRuntimeConfig(level: LevelDto, tank?: TankDto) {
-  const parsedConfig = levelEnemyConfigSchema.safeParse(level.config);
+  const parsedEnemies = levelEnemyConfigSchema.safeParse(level.config);
+  const parsedMap = levelMapConfigSchema.safeParse(level.config.map);
   const configuredCount = level.config.enemyCount;
   const enemyCount =
     typeof configuredCount === 'number' && Number.isInteger(configuredCount)
@@ -24,10 +26,19 @@ export function levelRuntimeConfig(level: LevelDto, tank?: TankDto) {
 
   return {
     ...localTrainingConfig,
+    mapStyle: parsedMap.success
+      ? parsedMap.data.style
+      : localTrainingConfig.mapStyle,
+    playerSpawn: parsedMap.success
+      ? parsedMap.data.playerSpawn
+      : localTrainingConfig.playerSpawn,
     player: deriveCombatStats(tank?.stats ?? baselineTankStats),
-    enemies: parsedConfig.success
-      ? parsedConfig.data.enemyTanks.map(toRuntimeEnemy)
+    enemies: parsedEnemies.success
+      ? parsedEnemies.data.enemyTanks.map(toRuntimeEnemy)
       : localTrainingConfig.enemies.slice(0, enemyCount),
+    obstacles: parsedMap.success
+      ? parsedMap.data.obstacles
+      : localTrainingConfig.obstacles,
   };
 }
 

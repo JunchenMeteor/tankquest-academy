@@ -78,4 +78,21 @@ describe('levelRuntimeConfig', () => {
     expect(config.player.projectileSpeed).toBeGreaterThan(460);
     expect(config.player.fireCooldownMs).toBeLessThan(350);
   });
+
+  it('maps validated backend battlefield geometry', () => {
+    const config = levelRuntimeConfig({
+      ...level,
+      config: {
+        map: {
+          style: 'patrol',
+          playerSpawn: { x: 110, y: 270 },
+          obstacles: [{ x: 500, y: 270, width: 80, height: 150 }],
+        },
+      },
+    });
+
+    expect(config.mapStyle).toBe('patrol');
+    expect(config.playerSpawn).toEqual({ x: 110, y: 270 });
+    expect(config.obstacles).toHaveLength(1);
+  });
 });

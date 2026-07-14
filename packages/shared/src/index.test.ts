@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   levelEnemyConfigSchema,
+  levelMapConfigSchema,
   startSessionRequestSchema,
   submitAnswerRequestSchema,
   tankStatsSchema,
@@ -70,5 +71,15 @@ describe('shared contracts', () => {
         ],
       }).enemyTanks
     ).toHaveLength(1);
+  });
+
+  it('validates backend-owned battlefield geometry', () => {
+    expect(
+      levelMapConfigSchema.parse({
+        style: 'gate',
+        playerSpawn: { x: 120, y: 270 },
+        obstacles: [{ x: 360, y: 120, width: 50, height: 170 }],
+      })
+    ).toMatchObject({ style: 'gate' });
   });
 });

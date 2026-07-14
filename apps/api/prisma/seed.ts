@@ -70,6 +70,14 @@ const levelSeeds = [
     code: 'addition-range',
     titleKey: 'level.additionRange.title',
     difficulty: 1,
+    map: {
+      style: 'range',
+      playerSpawn: { x: 120, y: 270 },
+      obstacles: [
+        { x: 470, y: 85, width: 170, height: 30 },
+        { x: 440, y: 455, width: 140, height: 34 },
+      ],
+    },
     enemyTanks: [
       enemyTank('addition_scout_alpha', 'scout', 720, 145),
       enemyTank('addition_scout_bravo', 'scout', 790, 390),
@@ -79,6 +87,17 @@ const levelSeeds = [
     code: 'supply-gate',
     titleKey: 'level.supplyGate.title',
     difficulty: 2,
+    map: {
+      style: 'gate',
+      playerSpawn: { x: 110, y: 270 },
+      obstacles: [
+        { x: 350, y: 115, width: 48, height: 170 },
+        { x: 350, y: 425, width: 48, height: 170 },
+        { x: 575, y: 270, width: 54, height: 210 },
+        { x: 725, y: 70, width: 170, height: 34 },
+        { x: 725, y: 470, width: 170, height: 34 },
+      ],
+    },
     enemyTanks: [
       enemyTank('supply_scout', 'scout', 690, 110),
       enemyTank('supply_medium_alpha', 'medium', 780, 270),
@@ -89,6 +108,18 @@ const levelSeeds = [
     code: 'robot-patrol',
     titleKey: 'level.robotPatrol.title',
     difficulty: 3,
+    map: {
+      style: 'patrol',
+      playerSpawn: { x: 110, y: 270 },
+      obstacles: [
+        { x: 300, y: 135, width: 110, height: 44 },
+        { x: 300, y: 405, width: 110, height: 44 },
+        { x: 500, y: 270, width: 80, height: 150 },
+        { x: 660, y: 205, width: 92, height: 40 },
+        { x: 660, y: 335, width: 92, height: 40 },
+        { x: 850, y: 270, width: 42, height: 150 },
+      ],
+    },
     enemyTanks: [
       enemyTank('patrol_scout', 'scout', 665, 90, true),
       enemyTank('patrol_medium_alpha', 'medium', 800, 170, true),
@@ -186,6 +217,7 @@ async function seed() {
     const configJson = {
       theme: 'training-base',
       enemyTanks: item.enemyTanks,
+      map: item.map,
       objectives: ['answer_questions', 'defeat_training_tanks'],
     };
     await prisma.level.upsert({

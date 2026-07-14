@@ -3,6 +3,7 @@ import Phaser from 'phaser';
 import {
   createTrainingTextures,
   destroyEnemyVisual,
+  drawTrainingMap,
   drawEnemyHealth,
   showDamage,
 } from '../presentation/training-visuals.js';
@@ -60,6 +61,12 @@ export class TrainingScene extends Phaser.Scene {
       this.levelConfig.height
     );
     this.cameras.main.setBackgroundColor('#263826');
+    drawTrainingMap(
+      this,
+      this.levelConfig.width,
+      this.levelConfig.height,
+      this.levelConfig.mapStyle
+    );
 
     const obstacles = this.physics.add.staticGroup();
     for (const obstacle of this.levelConfig.obstacles) {
@@ -68,8 +75,8 @@ export class TrainingScene extends Phaser.Scene {
     }
 
     this.player = this.physics.add.sprite(
-      130,
-      this.levelConfig.height / 2,
+      this.levelConfig.playerSpawn.x,
+      this.levelConfig.playerSpawn.y,
       'tank-body'
     );
     this.player
