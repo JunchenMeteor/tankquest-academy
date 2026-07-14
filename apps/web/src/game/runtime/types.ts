@@ -44,4 +44,5 @@ export interface RuntimeState {
   shotsFired: number;
   playerHealth: number;
   playerMaxHealth: number;
+  playerDestroyed: boolean;
 }

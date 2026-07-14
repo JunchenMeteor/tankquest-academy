@@ -37,6 +37,7 @@ export function App() {
     shotsFired: 0,
     playerHealth: 0,
     playerMaxHealth: 0,
+    playerDestroyed: false,
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -95,6 +96,7 @@ export function App() {
         shotsFired: 0,
         playerHealth: startedRuntimeConfig.player.maxHealth,
         playerMaxHealth: startedRuntimeConfig.player.maxHealth,
+        playerDestroyed: false,
       });
       setQuestionIndex(0);
       setFeedback(null);
@@ -199,6 +201,7 @@ export function App() {
       shotsFired: 0,
       playerHealth: 0,
       playerMaxHealth: 0,
+      playerDestroyed: false,
     });
   };
 
@@ -264,36 +267,57 @@ export function App() {
             {session.tank.stats.mobility}
           </p>
           <GameCanvas config={runtimeConfig} onState={handleRuntime} />
-          <section className="learning-console" aria-live="polite">
-            <p className="eyebrow">
-              Supply challenge {questionIndex + 1}/{session.questions.length}
-            </p>
-            <h2>{currentQuestion.prompt}</h2>
-            <div className="choices">
-              {currentQuestion.choices.map((choice) => (
-                <button
-                  key={choice.id}
-                  disabled={busy || Boolean(feedback)}
-                  onClick={() => void submitAnswer(choice.id)}
-                >
-                  {choice.text}
+          {runtime.playerDestroyed ? (
+            <section className="battle-alert" aria-live="assertive">
+              <p className="eyebrow">Training paused</p>
+              <h2>Tank disabled</h2>
+              <p>Use your armor and mobility to avoid the next collision.</p>
+              <div className="result-actions">
+                <button disabled={busy} onClick={() => void startTraining()}>
+                  Restart mission
                 </button>
-              ))}
-            </div>
-            {feedback && (
-              <div className={feedback.correct ? 'feedback good' : 'feedback'}>
-                <strong>
-                  {feedback.correct ? 'Supply secured!' : 'Try the next one.'}
-                </strong>
-                <span>{feedback.explanation}</span>
-                <button disabled={busy} onClick={() => void continueTraining()}>
-                  {questionIndex < session.questions.length - 1
-                    ? 'Next challenge'
-                    : 'Complete mission'}
+                <button disabled={busy} onClick={continueWithUpgrade}>
+                  Return to mission selection
                 </button>
               </div>
-            )}
-          </section>
+            </section>
+          ) : (
+            <section className="learning-console" aria-live="polite">
+              <p className="eyebrow">
+                Supply challenge {questionIndex + 1}/{session.questions.length}
+              </p>
+              <h2>{currentQuestion.prompt}</h2>
+              <div className="choices">
+                {currentQuestion.choices.map((choice) => (
+                  <button
+                    key={choice.id}
+                    disabled={busy || Boolean(feedback)}
+                    onClick={() => void submitAnswer(choice.id)}
+                  >
+                    {choice.text}
+                  </button>
+                ))}
+              </div>
+              {feedback && (
+                <div
+                  className={feedback.correct ? 'feedback good' : 'feedback'}
+                >
+                  <strong>
+                    {feedback.correct ? 'Supply secured!' : 'Try the next one.'}
+                  </strong>
+                  <span>{feedback.explanation}</span>
+                  <button
+                    disabled={busy}
+                    onClick={() => void continueTraining()}
+                  >
+                    {questionIndex < session.questions.length - 1
+                      ? 'Next challenge'
+                      : 'Complete mission'}
+                  </button>
+                </div>
+              )}
+            </section>
+          )}
           <p className="controls">
             W/S drive · A/D turn · Mouse aim · Click or Space fire
           </p>
