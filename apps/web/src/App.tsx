@@ -35,6 +35,8 @@ export function App() {
   const [runtime, setRuntime] = useState<RuntimeState>({
     enemiesRemaining: 0,
     shotsFired: 0,
+    playerHealth: 0,
+    playerMaxHealth: 0,
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,11 +85,16 @@ export function App() {
         levelId: level.id,
         tankId: tank.id,
       });
+      const startedRuntimeConfig = levelRuntimeConfig(
+        started.level,
+        started.tank
+      );
       setSession(started);
       setRuntime({
-        enemiesRemaining: levelRuntimeConfig(started.level, started.tank)
-          .enemies.length,
+        enemiesRemaining: startedRuntimeConfig.enemies.length,
         shotsFired: 0,
+        playerHealth: startedRuntimeConfig.player.maxHealth,
+        playerMaxHealth: startedRuntimeConfig.player.maxHealth,
       });
       setQuestionIndex(0);
       setFeedback(null);
@@ -187,7 +194,12 @@ export function App() {
     setSettlement(null);
     setUpgrade(null);
     setError(null);
-    setRuntime({ enemiesRemaining: 0, shotsFired: 0 });
+    setRuntime({
+      enemiesRemaining: 0,
+      shotsFired: 0,
+      playerHealth: 0,
+      playerMaxHealth: 0,
+    });
   };
 
   return (
@@ -206,6 +218,14 @@ export function App() {
             <dt>Shots fired</dt>
             <dd>{runtime.shotsFired}</dd>
           </div>
+          {phase === 'active' && (
+            <div>
+              <dt>Hull integrity</dt>
+              <dd>
+                {runtime.playerHealth}/{runtime.playerMaxHealth}
+              </dd>
+            </div>
+          )}
         </dl>
       </header>
 

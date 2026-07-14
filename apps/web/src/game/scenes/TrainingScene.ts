@@ -1,6 +1,10 @@
 import Phaser from 'phaser';
 
 import { calculateTankMotion } from '../systems/tank-motion.js';
+import {
+  calculateRamDamage,
+  isRamDamageReady,
+} from '../systems/ram-collision.js';
 import type { RuntimeLevelConfig, RuntimeState } from '../runtime/types.js';
 
 interface ControlKeys {
@@ -19,12 +23,15 @@ export class TrainingScene extends Phaser.Scene {
   private controls!: ControlKeys;
   private lastShotAt = 0;
   private shotsFired = 0;
+  private playerHealth: number;
+  private readonly lastRamAt = new Map<string, number>();
 
   constructor(
     private readonly levelConfig: RuntimeLevelConfig,
     private readonly onState: (state: RuntimeState) => void
   ) {
     super('training');
+    this.playerHealth = levelConfig.player.maxHealth;
   }
 
   create() {
@@ -52,6 +59,7 @@ export class TrainingScene extends Phaser.Scene {
       .setCollideWorldBounds(true)
       .setDrag(600, 600)
       .setMaxVelocity(220);
+    this.player.body?.setMass(this.levelConfig.player.mass);
     this.turret = this.add
       .image(this.player.x, this.player.y, 'tank-turret')
       .setDepth(2);
@@ -60,15 +68,26 @@ export class TrainingScene extends Phaser.Scene {
     for (const enemy of this.levelConfig.enemies) {
       const sprite = this.enemies.create(enemy.x, enemy.y, 'training-robot');
       sprite.setData({
+        id: enemy.id,
+        health: enemy.maxHealth,
+        armorReduction: enemy.armorReduction,
+        mass: enemy.mass,
         speed: enemy.speed,
         detectionRange: enemy.detectionRange,
+        impactVelocityX: 0,
+        impactVelocityY: 0,
       });
       sprite.setCollideWorldBounds(true);
+      sprite.body?.setMass(enemy.mass);
     }
 
     this.projectiles = this.physics.add.group({ maxSize: 24 });
     this.physics.add.collider(this.player, obstacles);
     this.physics.add.collider(this.enemies, obstacles);
+    this.physics.add.collider(this.enemies, this.enemies);
+    this.physics.add.collider(this.player, this.enemies, (_player, enemy) =>
+      this.handleRam(enemy as Phaser.Physics.Arcade.Sprite)
+    );
     this.physics.add.collider(this.projectiles, obstacles, (projectile) =>
       projectile.destroy()
     );
@@ -110,6 +129,10 @@ export class TrainingScene extends Phaser.Scene {
       }
     );
     this.player.setVelocity(motion.velocityX, motion.velocityY);
+    this.player.setData({
+      impactVelocityX: motion.velocityX,
+      impactVelocityY: motion.velocityY,
+    });
     this.player.rotation += motion.angularVelocity * (delta / 1000);
 
     const pointer = this.input.activePointer;
@@ -177,7 +200,48 @@ export class TrainingScene extends Phaser.Scene {
       } else {
         enemy.setVelocity(0, 0);
       }
+      const body = enemy.body as Phaser.Physics.Arcade.Body;
+      enemy.setData({
+        impactVelocityX: body.velocity.x,
+        impactVelocityY: body.velocity.y,
+      });
     }
+  }
+
+  private handleRam(enemy: Phaser.Physics.Arcade.Sprite) {
+    const enemyId = enemy.getData('id') as string;
+    const now = this.time.now;
+    if (!isRamDamageReady(this.lastRamAt.get(enemyId), now)) return;
+
+    const damage = calculateRamDamage(
+      {
+        armorReduction: this.levelConfig.player.armorReduction,
+        mass: this.levelConfig.player.mass,
+        velocityX: this.player.getData('impactVelocityX') as number,
+        velocityY: this.player.getData('impactVelocityY') as number,
+        x: this.player.x,
+        y: this.player.y,
+      },
+      {
+        armorReduction: enemy.getData('armorReduction') as number,
+        mass: enemy.getData('mass') as number,
+        velocityX: enemy.getData('impactVelocityX') as number,
+        velocityY: enemy.getData('impactVelocityY') as number,
+        x: enemy.x,
+        y: enemy.y,
+      }
+    );
+    if (damage.damageToFirst === 0 && damage.damageToSecond === 0) return;
+
+    this.lastRamAt.set(enemyId, now);
+    this.playerHealth = Math.max(0, this.playerHealth - damage.damageToFirst);
+    const enemyHealth = Math.max(
+      0,
+      (enemy.getData('health') as number) - damage.damageToSecond
+    );
+    enemy.setData('health', enemyHealth);
+    if (enemyHealth === 0) enemy.destroy();
+    this.emitState();
   }
 
   private emitState() {
@@ -185,6 +249,8 @@ export class TrainingScene extends Phaser.Scene {
       enemiesRemaining:
         this.enemies?.countActive(true) ?? this.levelConfig.enemies.length,
       shotsFired: this.shotsFired,
+      playerHealth: this.playerHealth,
+      playerMaxHealth: this.levelConfig.player.maxHealth,
     });
   }
 
