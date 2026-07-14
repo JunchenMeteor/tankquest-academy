@@ -1,7 +1,75 @@
 :root {
+  --theme-page: #101710;
+  --theme-surface: #1b261b;
+  --theme-muted-surface: #263826;
+  --theme-border: #667858;
+  --theme-accent: #f1c75b;
+  --theme-text: #f4f7e8;
+  --theme-muted: #a9b6a2;
   color: #f4f7e8;
   background: #101710;
   font-family: Inter, system-ui, sans-serif;
+}
+
+:root[data-theme='forest-camp'] {
+  --theme-page: #0c1812;
+  --theme-surface: #173025;
+  --theme-muted-surface: #234a35;
+  --theme-border: #5f886d;
+  --theme-accent: #e2b95f;
+  --theme-text: #f0f7e8;
+  --theme-muted: #b5c8b8;
+}
+
+:root[data-theme='snow-field'] {
+  --theme-page: #dceaf5;
+  --theme-surface: #f4f8fb;
+  --theme-muted-surface: #d2e3ef;
+  --theme-border: #7193ad;
+  --theme-accent: #b77716;
+  --theme-text: #183044;
+  --theme-muted: #48697f;
+}
+
+:root[data-theme] {
+  color: var(--theme-text);
+  background: var(--theme-page);
+}
+
+:root[data-theme] .status-card,
+:root[data-theme] .learning-console,
+:root[data-theme] .battle-alert,
+:root[data-theme] .battle-objective {
+  border-color: var(--theme-border);
+  background: var(--theme-surface);
+}
+
+:root[data-theme] .mission-picker button,
+:root[data-theme] .tank-picker button,
+:root[data-theme] .skin-picker button {
+  border-color: var(--theme-border);
+  color: var(--theme-text);
+  background: var(--theme-muted-surface);
+}
+
+:root[data-theme] .mission-picker button.selected,
+:root[data-theme] .tank-picker button.selected,
+:root[data-theme] .skin-picker button.selected {
+  border-color: var(--theme-accent);
+}
+
+:root[data-theme] .eyebrow,
+:root[data-theme] .hud dd,
+:root[data-theme] .stars {
+  color: var(--theme-accent);
+}
+
+:root[data-theme] .hud dt,
+:root[data-theme] .controls,
+:root[data-theme] .combat-readout,
+:root[data-theme] .mission-preview,
+:root[data-theme] .tank-picker span {
+  color: var(--theme-muted);
 }
 
 * {
@@ -73,6 +141,26 @@ button:disabled {
   color: #f1c75b;
   font-size: 1.5rem;
   font-weight: 700;
+}
+
+.preference-controls {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.preference-controls label {
+  display: grid;
+  color: var(--theme-muted);
+  font-size: 0.75rem;
+  gap: 0.2rem;
+}
+
+.preference-controls select {
+  border: 1px solid var(--theme-border);
+  border-radius: 0.45rem;
+  padding: 0.35rem 0.5rem;
+  color: var(--theme-text);
+  background: var(--theme-muted-surface);
 }
 
 .game-canvas {

@@ -50,6 +50,7 @@ export interface ObstacleRuntimeConfig {
 }
 
 export interface RuntimeLevelConfig {
+  locale: 'en' | 'zh-CN';
   width: number;
   height: number;
   mapStyle: 'range' | 'gate' | 'patrol';
