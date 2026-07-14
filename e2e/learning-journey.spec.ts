@@ -129,11 +129,24 @@ test('completes the authoritative learning and upgrade journey', async ({
   await expect(
     page.getByRole('heading', { name: 'Choose a training mission' })
   ).toBeVisible();
+  await expect(page.getByRole('link', { name: /parent/i })).toHaveCount(0);
   await page.reload();
   await page.getByRole('button', { name: 'Start training' }).click();
   await expect(page.locator('.mission-status')).toContainText(
     /Firepower [4-5]/
   );
+  await page.goto('/parent');
+  await expect(
+    page.getByRole('heading', { name: '30-day learning report' })
+  ).toBeVisible();
+  await expect(page.getByText('Completed missions')).toBeVisible();
+  await expect(page.getByText('Math')).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Addition within 20', exact: true })
+  ).toBeVisible();
+  await expect(
+    page.getByText('Spend the next practice session on', { exact: false })
+  ).toBeVisible();
   expect(consoleErrors).toEqual([]);
 });
 

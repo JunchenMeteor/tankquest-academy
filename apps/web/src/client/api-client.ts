@@ -5,6 +5,7 @@ import type {
   LevelDto,
   LearningProgressDto,
   OwnedTankDto,
+  ParentReportDto,
   StartSessionRequest,
   StartSessionResponse,
   SubmitAnswerRequest,
@@ -50,6 +51,10 @@ export class ApiClient {
     return this.send<LearningProgressDto[]>(
       `/api/children/${childId}/progress`
     );
+  }
+
+  getParentReport(childId: string) {
+    return this.send<ParentReportDto>(`/api/children/${childId}/report`);
   }
 
   listTankSkins(childId: string, tankId: string) {

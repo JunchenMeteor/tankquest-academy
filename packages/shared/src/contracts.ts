@@ -160,3 +160,23 @@ export interface LearningProgressDto {
   currentDifficulty: number;
   updatedAt: string;
 }
+
+export interface ParentReportMetricDto {
+  subject: Subject;
+  skillKey?: string;
+  attempts: number;
+  correctCount: number;
+  accuracy: number;
+  averageAnswerTimeMs: number;
+  currentDifficulty?: number;
+  lastPracticedAt?: string;
+}
+
+export interface ParentReportDto {
+  range: { from: string; to: string };
+  completedSessions: number;
+  totalAnswers: number;
+  subjects: ParentReportMetricDto[];
+  recentSkills: ParentReportMetricDto[];
+  focusSkill: Pick<ParentReportMetricDto, 'subject' | 'skillKey'> | null;
+}
