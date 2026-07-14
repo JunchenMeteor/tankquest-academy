@@ -11,8 +11,13 @@ import {
   deriveCombatStats,
 } from '../systems/combat-stats.js';
 import { localTrainingConfig } from './local-training-config.js';
+import type { RuntimeLevelConfig } from '../runtime/types.js';
 
-export function levelRuntimeConfig(level: LevelDto, tank?: TankDto) {
+export function levelRuntimeConfig(
+  level: LevelDto,
+  tank?: TankDto,
+  locale: RuntimeLevelConfig['locale'] = 'en'
+) {
   const parsedEnemies = levelEnemyConfigSchema.safeParse(level.config);
   const parsedMap = levelMapConfigSchema.safeParse(level.config.map);
   const configuredCount = level.config.enemyCount;
@@ -26,6 +31,7 @@ export function levelRuntimeConfig(level: LevelDto, tank?: TankDto) {
 
   return {
     ...localTrainingConfig,
+    locale,
     mapStyle: parsedMap.success
       ? parsedMap.data.style
       : localTrainingConfig.mapStyle,

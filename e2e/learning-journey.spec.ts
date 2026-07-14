@@ -222,6 +222,29 @@ test('starts a mission with the selected owned tank', async ({ page }) => {
   await expect(page.locator('.game-canvas canvas')).toBeVisible();
 });
 
+test('persists language and theme preferences', async ({ page }) => {
+  await page.goto('/');
+  await expect(
+    page.getByRole('heading', { name: 'Choose a training mission' })
+  ).toBeVisible();
+
+  await page.getByLabel('Language').selectOption('zh-CN');
+  await expect(
+    page.getByRole('heading', { name: '选择训练任务' })
+  ).toBeVisible();
+  await page.getByLabel('主题').selectOption('snow-field');
+  await expect
+    .poll(() => page.locator('html').getAttribute('data-theme'))
+    .toBe('snow-field');
+
+  await page.reload();
+  await expect(
+    page.getByRole('heading', { name: '选择训练任务' })
+  ).toBeVisible();
+  await expect(page.getByLabel('语言')).toHaveValue('zh-CN');
+  await expect(page.getByLabel('主题')).toHaveValue('snow-field');
+});
+
 async function fireAt(
   page: Page,
   worldX: number,

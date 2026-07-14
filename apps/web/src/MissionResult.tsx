@@ -5,6 +5,8 @@ import {
   type UpgradeTankResponse,
 } from '@tankquest/shared';
 
+import { useI18n } from './i18n/I18nProvider.js';
+
 interface MissionResultProps {
   busy: boolean;
   settlement: FinishSessionResponse;
@@ -24,51 +26,58 @@ export function MissionResult({
   onReplay,
   onUpgrade,
 }: MissionResultProps) {
+  const { t } = useI18n();
   const firepowerMaxed = tank.stats.firepower >= tankStatMax;
   const parts =
     settlement.rewards.find((reward) => reward.type === 'part')?.amount ?? 0;
 
   return (
     <section className="status-card">
-      <p className="stars" aria-label={`${settlement.stars} stars`}>
+      <p
+        className="stars"
+        aria-label={t('result.stars', { count: settlement.stars })}
+      >
         {'★'.repeat(settlement.stars)}
       </p>
-      <h2>Mission complete</h2>
+      <h2>{t('result.complete')}</h2>
       <p>
-        {settlement.learningSummary.correct}/{settlement.learningSummary.total}{' '}
-        challenges correct · {parts} cannon parts earned
+        {t('result.summary', {
+          correct: settlement.learningSummary.correct,
+          total: settlement.learningSummary.total,
+          parts,
+        })}
       </p>
       <button
         disabled={busy || Boolean(upgrade) || firepowerMaxed}
         onClick={onUpgrade}
       >
         {firepowerMaxed
-          ? `Firepower is at maximum (${tankStatMax}/${tankStatMax})`
-          : 'Spend 2 parts: upgrade firepower'}
+          ? t('result.max', { max: tankStatMax })
+          : t('result.upgrade')}
       </button>
       {firepowerMaxed && !upgrade && (
         <p className="upgrade-max" role="status">
-          No parts were spent. Your saved parts can be used for other upgrades
-          later.
+          {t('result.saved')}
         </p>
       )}
       {upgrade && (
         <div className="upgrade-confirmation" role="status">
           <strong>
-            Upgrade complete: Firepower {upgrade.effectiveValue}/{tankStatMax}
+            {t('result.upgraded', {
+              value: upgrade.effectiveValue,
+              max: tankStatMax,
+            })}
           </strong>
-          <span>{upgrade.remainingParts} cannon parts remain.</span>
-          <p>The new projectile speed and reload time apply next mission.</p>
+          <span>{t('result.parts', { count: upgrade.remainingParts })}</span>
+          <p>{t('result.effect')}</p>
         </div>
       )}
       <div className="result-actions">
         <button disabled={busy} onClick={onReplay}>
-          Replay mission
+          {t('action.replay')}
         </button>
         <button disabled={busy} onClick={onContinue}>
-          {upgrade
-            ? 'Use upgrade in another mission'
-            : 'Return to mission selection'}
+          {upgrade ? t('action.useUpgrade') : t('action.return')}
         </button>
       </div>
     </section>

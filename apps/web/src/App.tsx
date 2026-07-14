@@ -14,6 +14,7 @@ import { ApiClient } from './client/api-client.js';
 import { clientConfig } from './client/runtime-config.js';
 import { levelRuntimeConfig } from './game/config/level-runtime-config.js';
 import type { RuntimeState } from './game/runtime/types.js';
+import { useI18n } from './i18n/I18nProvider.js';
 import { MissionResult } from './MissionResult.js';
 import { ActiveTraining, AppHud, MissionPicker } from './TrainingViews.js';
 import './styles.css';
@@ -23,6 +24,7 @@ const api = new ApiClient(clientConfig.apiBaseUrl);
 type Phase = 'loading' | 'ready' | 'active' | 'finished';
 
 export function App() {
+  const { locale, t } = useI18n();
   const [phase, setPhase] = useState<Phase>('loading');
   const [levels, setLevels] = useState<LevelDto[]>([]);
   const [tanks, setTanks] = useState<OwnedTankDto[]>([]);
@@ -85,17 +87,18 @@ export function App() {
   }, [selectedTankId]);
 
   const runtimeConfig = useMemo(
-    () => (session ? levelRuntimeConfig(session.level, session.tank) : null),
-    [session]
+    () =>
+      session ? levelRuntimeConfig(session.level, session.tank, locale) : null,
+    [locale, session]
   );
   const selectedLevel = levels.find((item) => item.id === selectedLevelId);
   const selectedOwnedTank = tanks.find((item) => item.id === selectedTankId);
   const missionPreview = useMemo(
     () =>
       selectedLevel
-        ? levelRuntimeConfig(selectedLevel, selectedOwnedTank)
+        ? levelRuntimeConfig(selectedLevel, selectedOwnedTank, locale)
         : undefined,
-    [selectedLevel, selectedOwnedTank]
+    [locale, selectedLevel, selectedOwnedTank]
   );
   const currentQuestion = session?.questions[questionIndex];
   const selectedTank = session?.tank ?? selectedOwnedTank;
@@ -104,7 +107,7 @@ export function App() {
     const level = selectedLevel;
     const tank = selectedOwnedTank;
     if (!level || !tank) {
-      setError('No published level or available tank was found.');
+      setError(t('app.noContent'));
       return;
     }
     setBusy(true);
@@ -117,7 +120,8 @@ export function App() {
       });
       const startedRuntimeConfig = levelRuntimeConfig(
         started.level,
-        started.tank
+        started.tank,
+        locale
       );
       setSession(started);
       setRuntime({
@@ -276,9 +280,7 @@ export function App() {
     <main className="app-shell">
       <AppHud active={phase === 'active'} runtime={runtime} />
 
-      {phase === 'loading' && (
-        <StatusCard>Loading training catalog…</StatusCard>
-      )}
+      {phase === 'loading' && <StatusCard>{t('app.loading')}</StatusCard>}
 
       {phase === 'ready' && (
         <MissionPicker

@@ -5,6 +5,7 @@ import {
 } from '../systems/combat-stats.js';
 
 export const localTrainingConfig: RuntimeLevelConfig = {
+  locale: 'en',
   width: 960,
   height: 540,
   mapStyle: 'range',

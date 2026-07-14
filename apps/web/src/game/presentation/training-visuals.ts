@@ -107,13 +107,24 @@ export function showProjectileImpact(
   scene: Phaser.Scene,
   x: number,
   y: number,
-  impact: ProjectileImpactResult
+  impact: ProjectileImpactResult,
+  locale: RuntimeLevelConfig['locale'] = 'en'
 ) {
-  const presentation = {
-    ricochet: { label: '跳弹', color: '#9ee7ff' },
-    blocked: { label: '未击穿', color: '#ffe08a' },
-    penetrated: { label: `击穿 -${impact.damage}`, color: '#ffd7cf' },
-  }[impact.outcome];
+  const presentation =
+    locale === 'zh-CN'
+      ? {
+          ricochet: { label: '跳弹', color: '#9ee7ff' },
+          blocked: { label: '未击穿', color: '#ffe08a' },
+          penetrated: { label: `击穿 -${impact.damage}`, color: '#ffd7cf' },
+        }[impact.outcome]
+      : {
+          ricochet: { label: 'Ricochet', color: '#9ee7ff' },
+          blocked: { label: 'Blocked', color: '#ffe08a' },
+          penetrated: {
+            label: `Penetrated -${impact.damage}`,
+            color: '#ffd7cf',
+          },
+        }[impact.outcome];
   const label = scene.add
     .text(x, y - 24, presentation.label, {
       color: presentation.color,
