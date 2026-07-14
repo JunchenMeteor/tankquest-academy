@@ -1,14 +1,27 @@
 import type {
   ApiResponse,
   EnemyTankConfigDto,
+  LevelDto,
+  OwnedTankDto,
   StartSessionResponse,
 } from '@tankquest/shared';
-import { expect, test, type Page } from '@playwright/test';
+import {
+  expect,
+  test,
+  type APIRequestContext,
+  type Page,
+} from '@playwright/test';
 
 const correctAnswers: Record<string, string> = {
   '8 + 7 = ?': '15',
   '9 + 6 = ?': '15',
   '13 - 5 = ?': '8',
+  'Which word means a young cat?': 'kitten',
+  'Which word means fast?': 'quick',
+  'Where can you borrow books?': 'library',
+  'You face north and turn left. Which direction do you face?': 'West',
+  'Which direction is opposite east?': 'West',
+  'The supply crate is on your right. Which way should you turn?': 'Right',
 };
 
 test('completes the authoritative learning and upgrade journey', async ({
@@ -277,6 +290,92 @@ test('persists language and theme preferences', async ({ page }) => {
   await expect(page.getByLabel('语言')).toHaveValue('zh-CN');
   await expect(page.getByLabel('主题')).toHaveValue('snow-field');
 });
+
+test('completes English and direction missions through the shared API', async ({
+  page,
+  request,
+}) => {
+  await page.goto('/');
+  await expect(
+    page.getByRole('button', { name: /Word match camp/ })
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: /Compass trail/ })
+  ).toBeVisible();
+
+  await completeMission(request, 'word-match-camp');
+  await completeMission(request, 'compass-trail');
+
+  const progress = await request.get(
+    'http://127.0.0.1:3000/api/children/child_demo/progress'
+  );
+  await expect(progress.json()).resolves.toMatchObject({
+    data: expect.arrayContaining([
+      expect.objectContaining({
+        subject: 'english',
+        skillKey: 'basic-word-meaning',
+        attempts: 3,
+      }),
+      expect.objectContaining({
+        subject: 'direction',
+        skillKey: 'cardinal-directions',
+        attempts: 2,
+      }),
+      expect.objectContaining({
+        subject: 'direction',
+        skillKey: 'left-and-right',
+        attempts: 1,
+      }),
+    ]),
+  });
+});
+
+async function completeMission(request: APIRequestContext, levelCode: string) {
+  const levelsPayload = (await (
+    await request.get('http://127.0.0.1:3000/api/levels')
+  ).json()) as ApiResponse<LevelDto[]>;
+  const tanksPayload = (await (
+    await request.get('http://127.0.0.1:3000/api/children/child_demo/tanks')
+  ).json()) as ApiResponse<OwnedTankDto[]>;
+  const level = levelsPayload.data?.find((item) => item.code === levelCode);
+  const tank = tanksPayload.data?.[0];
+  expect(level, `published level ${levelCode}`).toBeTruthy();
+  expect(tank, 'owned tank').toBeTruthy();
+  if (!level || !tank) return;
+
+  const start = await request.post('http://127.0.0.1:3000/api/game-sessions', {
+    data: { childId: 'child_demo', levelId: level.id, tankId: tank.id },
+  });
+  const started = (await start.json()) as ApiResponse<StartSessionResponse>;
+  expect(start.ok(), JSON.stringify(started)).toBe(true);
+  expect(started.data).not.toBeNull();
+  if (!started.data) return;
+
+  for (const question of started.data.questions) {
+    const correctText = correctAnswers[question.prompt];
+    const answer = question.choices.find(
+      (choice) => choice.text === correctText
+    );
+    expect(answer, `known answer for ${question.prompt}`).toBeTruthy();
+    if (!answer) continue;
+    const submitted = await request.post(
+      `http://127.0.0.1:3000/api/game-sessions/${started.data.sessionId}/answers`,
+      {
+        data: {
+          questionId: question.id,
+          selectedAnswerId: answer.id,
+          answerTimeMs: 1000,
+        },
+      }
+    );
+    expect(submitted.ok(), await submitted.text()).toBe(true);
+  }
+
+  const finished = await request.post(
+    `http://127.0.0.1:3000/api/game-sessions/${started.data.sessionId}/finish`
+  );
+  expect(finished.ok(), await finished.text()).toBe(true);
+}
 
 async function fireAt(
   page: Page,

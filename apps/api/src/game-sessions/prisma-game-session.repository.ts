@@ -44,7 +44,7 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
   async listLevels(): Promise<LevelDto[]> {
     const levels = await this.prisma.level.findMany({
       where: { status: 'published' },
-      orderBy: { baseDifficulty: 'asc' },
+      orderBy: [{ baseDifficulty: 'asc' }, { code: 'asc' }],
     });
     return levels.map((level) => this.toLevel(level));
   }
