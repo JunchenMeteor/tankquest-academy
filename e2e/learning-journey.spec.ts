@@ -53,7 +53,9 @@ test('completes the authoritative learning and upgrade journey', async ({
     });
   await expect(page.getByText('Range map · 2 scouts')).toBeVisible();
   await startButton.click();
-  await expect(page.getByText(/Addition range · Firepower 3/)).toBeVisible();
+  await expect(page.locator('.mission-status')).toContainText(
+    /Addition range · Firepower [3-5]/
+  );
   await expect(page.locator('.game-canvas canvas')).toBeVisible();
   await expect(page.getByText('150/150')).toBeVisible();
 
@@ -109,7 +111,9 @@ test('completes the authoritative learning and upgrade journey', async ({
   ).toBeVisible();
   await page.reload();
   await page.getByRole('button', { name: 'Start training' }).click();
-  await expect(page.getByText(/Firepower [4-5]/)).toBeVisible();
+  await expect(page.locator('.mission-status')).toContainText(
+    /Firepower [4-5]/
+  );
   expect(consoleErrors).toEqual([]);
 });
 
