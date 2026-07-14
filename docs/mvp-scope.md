@@ -1,6 +1,6 @@
 # MVP 范围与验收标准
 
-> 状态：第一阶段工程 MVP 和首轮 Phase 1.5 战斗反馈收口已于 2026-07-14 完成，家庭试用指标待真实儿童和家长验证。逐项证据见 `phase-one-mvp-acceptance.md`。
+> 状态：第一阶段工程 MVP、Phase 1.5 战斗反馈和 Phase 1.6 命中判定已完成，家庭试用指标待真实儿童和家长验证。逐项证据见 `phase-one-mvp-acceptance.md`。
 
 ## 1. MVP 目标
 
