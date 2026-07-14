@@ -92,6 +92,12 @@ AI 开始开发前，按这个顺序阅读，不要一上来读所有文件。
 26. `phase-one-mvp-acceptance.md`
     - 第一阶段工程验收证据、家庭试用门槛和已知非阻塞项。
 
+27. `phase-one-six-combat-scope.md`
+    - Phase 1.6 穿深、方向装甲、命中反馈和验收边界。
+
+28. `phase-two-scope.md`
+    - Phase 2 多坦克、涂装、学习记录、家长报告和新学科范围。
+
 ## 2. 第一阶段开发顺序
 
 第一阶段不要做全量功能，只做 MVP。
