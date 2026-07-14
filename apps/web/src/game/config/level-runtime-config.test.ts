@@ -18,6 +18,13 @@ const tank: TankDto = {
   nameKey: 'tank.starShield.name',
   role: 'medium',
   stats: { firepower: 4, mobility: 4, armor: 3, stealth: 2, vision: 3 },
+  skin: {
+    id: 'skin_1',
+    code: 'academy-blue',
+    nameKey: 'skin.academyBlue.name',
+    primaryColor: '#426b8a',
+    secondaryColor: '#d7edf7',
+  },
 };
 
 describe('levelRuntimeConfig', () => {
@@ -82,6 +89,10 @@ describe('levelRuntimeConfig', () => {
     expect(config.player.projectilePenetration).toBeGreaterThan(82);
     expect(config.player.projectileSpeed).toBeGreaterThan(460);
     expect(config.player.fireCooldownMs).toBeLessThan(350);
+    expect(config.player.appearance).toEqual({
+      primaryColor: 0x426b8a,
+      secondaryColor: 0xd7edf7,
+    });
   });
 
   it('maps validated backend battlefield geometry', () => {

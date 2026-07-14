@@ -9,6 +9,7 @@ import type {
   SubmitAnswerRequest,
   SubmitAnswerResponse,
   TankDto,
+  TankSkinDto,
   TankStats,
   UpgradeTankResponse,
 } from '@tankquest/shared';
@@ -42,6 +43,19 @@ export class ApiClient {
 
   listOwnedTanks(childId: string) {
     return this.send<OwnedTankDto[]>(`/api/children/${childId}/tanks`);
+  }
+
+  listTankSkins(childId: string, tankId: string) {
+    return this.send<TankSkinDto[]>(
+      `/api/children/${childId}/tanks/${tankId}/skins`
+    );
+  }
+
+  equipTankSkin(childId: string, tankId: string, skinId: string) {
+    return this.send<TankSkinDto>(
+      `/api/children/${childId}/tanks/${tankId}/skins/${skinId}/equip`,
+      { method: 'POST' }
+    );
   }
 
   startSession(request: StartSessionRequest) {

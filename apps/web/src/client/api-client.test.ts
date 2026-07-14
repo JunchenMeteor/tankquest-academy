@@ -52,4 +52,20 @@ describe('ApiClient', () => {
       expect.any(Object)
     );
   });
+
+  it('equips an unlocked tank skin through the child boundary', async () => {
+    const request = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ data: { id: 'skin_1' }, error: null }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    );
+    const client = new ApiClient('http://api.test', request);
+
+    await client.equipTankSkin('child_1', 'tank_1', 'skin_1');
+    expect(request).toHaveBeenCalledWith(
+      'http://api.test/api/children/child_1/tanks/tank_1/skins/skin_1/equip',
+      expect.objectContaining({ method: 'POST' })
+    );
+  });
 });

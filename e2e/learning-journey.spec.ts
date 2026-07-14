@@ -192,15 +192,29 @@ test('starts a mission with the selected owned tank', async ({ page }) => {
   ).toBeVisible();
 
   await page.getByRole('button', { name: /Swift Fox/ }).click();
+  const arcticSkin = page.getByRole('button', { name: 'Arctic Dash' });
+  await expect(arcticSkin).toBeVisible();
+  await arcticSkin.click();
+  await expect(arcticSkin).toHaveAttribute('aria-pressed', 'true');
   const sessionRequest = page.waitForRequest(
     (request) =>
       request.url().endsWith('/api/game-sessions') &&
       request.method() === 'POST'
   );
+  const sessionResponse = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/game-sessions') &&
+      response.request().method() === 'POST'
+  );
   await page.getByRole('button', { name: 'Start training' }).click();
 
   expect((await sessionRequest).postDataJSON()).toMatchObject({
     tankId: 'tank_swift_fox',
+  });
+  await expect(
+    sessionResponse.then((response) => response.json())
+  ).resolves.toMatchObject({
+    data: { tank: { skin: { code: 'arctic-dash' } } },
   });
   await expect(
     page.getByText(/Firepower 2 · Mobility 5 · Armor 1 · Stealth 4 · Vision 4/)

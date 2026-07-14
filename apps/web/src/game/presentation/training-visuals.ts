@@ -38,11 +38,19 @@ export function drawTrainingMap(
   }
 }
 
-export function createTrainingTextures(scene: Phaser.Scene) {
+export function createTrainingTextures(
+  scene: Phaser.Scene,
+  appearance: RuntimeLevelConfig['player']['appearance']
+) {
   const graphics = scene.add.graphics();
-  graphics.fillStyle(0x5d7d46).fillRoundedRect(0, 0, 52, 34, 8);
+  graphics
+    .fillStyle(appearance?.primaryColor ?? 0x5d7d46)
+    .fillRoundedRect(0, 0, 52, 34, 8);
   graphics.generateTexture('tank-body', 52, 34);
-  graphics.clear().fillStyle(0xe8c65a).fillRoundedRect(0, 0, 42, 10, 5);
+  graphics
+    .clear()
+    .fillStyle(appearance?.secondaryColor ?? 0xe8c65a)
+    .fillRoundedRect(0, 0, 42, 10, 5);
   graphics.generateTexture('tank-turret', 42, 10);
 
   createEnemyTexture(graphics, 'scout', 42, 28, 0xb95b4b);

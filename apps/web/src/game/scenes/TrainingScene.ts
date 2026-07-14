@@ -47,7 +47,7 @@ export class TrainingScene extends Phaser.Scene {
   }
 
   create() {
-    createTrainingTextures(this);
+    createTrainingTextures(this, this.levelConfig.player.appearance);
     this.physics.world.setBounds(
       0,
       0,

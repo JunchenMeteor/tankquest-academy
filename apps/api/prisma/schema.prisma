@@ -78,6 +78,7 @@ model Tank {
   role       String
   isActive   Boolean       @default(true) @map("is_active")
   stats      TankStat?
+  skins      TankSkin[]
   childTanks ChildTank[]
   sessions   GameSession[]
 
@@ -101,14 +102,46 @@ model ChildTank {
   id         String             @id @default(cuid())
   childId    String             @map("child_id")
   tankId     String             @map("tank_id")
+  selectedSkinId String?        @map("selected_skin_id")
   level      Int                @default(1)
   child      Child              @relation(fields: [childId], references: [id], onDelete: Cascade)
   tank       Tank               @relation(fields: [tankId], references: [id])
+  selectedSkin TankSkin?        @relation("SelectedTankSkin", fields: [selectedSkinId], references: [id], onDelete: SetNull)
   upgrades   ChildTankUpgrade[]
+  unlockedSkins ChildTankSkin[]
   acquiredAt DateTime           @default(now()) @map("acquired_at")
 
   @@unique([childId, tankId])
   @@map("child_tanks")
+}
+
+model TankSkin {
+  id             String          @id @default(cuid())
+  tankId         String          @map("tank_id")
+  code           String
+  nameKey        String          @map("name_key")
+  primaryColor   String          @map("primary_color")
+  secondaryColor String          @map("secondary_color")
+  isDefault      Boolean         @default(false) @map("is_default")
+  isActive       Boolean         @default(true) @map("is_active")
+  tank           Tank            @relation(fields: [tankId], references: [id], onDelete: Cascade)
+  unlockedBy     ChildTankSkin[]
+  selectedBy     ChildTank[]     @relation("SelectedTankSkin")
+
+  @@unique([tankId, code])
+  @@map("tank_skins")
+}
+
+model ChildTankSkin {
+  id          String    @id @default(cuid())
+  childTankId String    @map("child_tank_id")
+  skinId      String    @map("skin_id")
+  childTank   ChildTank @relation(fields: [childTankId], references: [id], onDelete: Cascade)
+  skin        TankSkin  @relation(fields: [skinId], references: [id], onDelete: Cascade)
+  unlockedAt  DateTime  @default(now()) @map("unlocked_at")
+
+  @@unique([childTankId, skinId])
+  @@map("child_tank_skins")
 }
 
 model ChildTankUpgrade {

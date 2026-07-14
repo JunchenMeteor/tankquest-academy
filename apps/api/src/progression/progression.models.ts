@@ -1,4 +1,8 @@
-import type { TankStats, UpgradeTankResponse } from '@tankquest/shared';
+import type {
+  TankSkinDto,
+  TankStats,
+  UpgradeTankResponse,
+} from '@tankquest/shared';
 
 export type UpgradeStat = keyof TankStats;
 
@@ -12,3 +16,6 @@ export type UpgradeResult =
   | { status: 'unavailable' }
   | { status: 'insufficient_parts' }
   | { status: 'max_level' };
+
+export type EquipSkinResult =
+  { status: 'equipped'; skin: TankSkinDto } | { status: 'unavailable' };

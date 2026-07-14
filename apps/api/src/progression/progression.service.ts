@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import type {
   OwnedTankDto,
+  TankSkinDto,
   TankStats,
   UpgradeTankRequest,
   UpgradeTankResponse,
@@ -30,6 +31,22 @@ export class ProgressionService {
 
   listOwnedTanks(childId: string): Promise<OwnedTankDto[]> {
     return this.repository.listOwnedTanks(childId);
+  }
+
+  listSkins(childId: string, tankId: string): Promise<TankSkinDto[]> {
+    return this.repository.listSkins(childId, tankId);
+  }
+
+  async equipSkin(
+    childId: string,
+    tankId: string,
+    skinId: string
+  ): Promise<TankSkinDto> {
+    const result = await this.repository.equipSkin(childId, tankId, skinId);
+    if (result.status === 'unavailable') {
+      throw new ForbiddenException('Skin is not available for this tank');
+    }
+    return result.skin;
   }
 
   async upgradeTank(

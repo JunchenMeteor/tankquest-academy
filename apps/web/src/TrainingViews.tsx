@@ -4,6 +4,7 @@ import type {
   QuestionDto,
   StartSessionResponse,
   SubmitAnswerResponse,
+  TankSkinDto,
 } from '@tankquest/shared';
 
 import { GameCanvas } from './game/GameCanvas.js';
@@ -50,9 +51,11 @@ export function MissionPicker({
   preview,
   selectedLevelId,
   selectedTankId,
+  skins,
   tanks,
   onSelectLevel,
   onSelectTank,
+  onEquipSkin,
   onStart,
 }: {
   busy: boolean;
@@ -61,8 +64,10 @@ export function MissionPicker({
   selectedLevelId: string;
   selectedTankId: string;
   tanks: OwnedTankDto[];
+  skins: TankSkinDto[];
   onSelectLevel: (levelId: string) => void;
   onSelectTank: (tankId: string) => void;
+  onEquipSkin: (skinId: string) => void;
   onStart: () => void;
 }) {
   return (
@@ -99,6 +104,25 @@ export function MissionPicker({
               · Armor {tank.stats.armor} · Stealth {tank.stats.stealth} · Vision{' '}
               {tank.stats.vision}
             </span>
+          </button>
+        ))}
+      </div>
+      <div className="skin-picker" aria-label="Unlocked tank skins">
+        {skins.map((skin) => (
+          <button
+            key={skin.id}
+            className={skin.equipped ? 'selected' : ''}
+            aria-pressed={skin.equipped}
+            disabled={busy || !skin.unlocked}
+            onClick={() => onEquipSkin(skin.id)}
+          >
+            <span
+              className="skin-swatch"
+              style={{
+                background: `linear-gradient(135deg, ${skin.primaryColor} 50%, ${skin.secondaryColor} 50%)`,
+              }}
+            />
+            {formatTankName(skin.code)}
           </button>
         ))}
       </div>
