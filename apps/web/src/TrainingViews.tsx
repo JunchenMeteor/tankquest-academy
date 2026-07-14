@@ -124,8 +124,11 @@ export function ActiveTraining({
         {session.tank.stats.stealth} · Vision {session.tank.stats.vision}
       </p>
       <p className="combat-readout">
-        Shell {config.player.projectileDamage} · Speed {config.player.speed} ·
-        Mass {config.player.mass} · Detection {config.player.detectionRange}
+        Shell {config.player.projectileDamage} · Penetration{' '}
+        {config.player.projectilePenetration} · Armor{' '}
+        {config.player.armorProfile.front}/{config.player.armorProfile.side}/
+        {config.player.armorProfile.rear} · Speed {config.player.speed} · Mass{' '}
+        {config.player.mass} · Detection {config.player.detectionRange}
       </p>
       <GameCanvas config={config} onState={onRuntime} />
       {runtime.playerDestroyed ? (

@@ -2,7 +2,7 @@ export type CombatLogEvent =
   | 'scene_started'
   | 'player_projectile_hit_enemy'
   | 'enemy_projectile_hit_player'
-  | 'invalid_enemy_projectile_collision'
+  | 'invalid_projectile_collision'
   | 'ram_impact'
   | 'enemy_destroyed'
   | 'player_destroyed';
