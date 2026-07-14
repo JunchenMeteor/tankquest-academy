@@ -23,6 +23,24 @@ export interface TankDto {
   nameKey: string;
   role: string;
   stats: TankStats;
+  skin?: TankSkinAppearanceDto;
+}
+
+export interface TankSkinAppearanceDto {
+  id: string;
+  code: string;
+  nameKey: string;
+  primaryColor: string;
+  secondaryColor: string;
+}
+
+export interface TankSkinDto extends TankSkinAppearanceDto {
+  unlocked: boolean;
+  equipped: boolean;
+}
+
+export interface OwnedTankDto extends TankDto {
+  level: number;
 }
 
 export interface QuestionChoiceDto {
@@ -130,4 +148,35 @@ export interface UpgradeTankResponse {
   level: number;
   effectiveValue: number;
   remainingParts: number;
+}
+
+export interface LearningProgressDto {
+  subject: Subject;
+  skillKey: string;
+  attempts: number;
+  correctCount: number;
+  accuracy: number;
+  averageAnswerTimeMs: number;
+  currentDifficulty: number;
+  updatedAt: string;
+}
+
+export interface ParentReportMetricDto {
+  subject: Subject;
+  skillKey?: string;
+  attempts: number;
+  correctCount: number;
+  accuracy: number;
+  averageAnswerTimeMs: number;
+  currentDifficulty?: number;
+  lastPracticedAt?: string;
+}
+
+export interface ParentReportDto {
+  range: { from: string; to: string };
+  completedSessions: number;
+  totalAnswers: number;
+  subjects: ParentReportMetricDto[];
+  recentSkills: ParentReportMetricDto[];
+  focusSkill: Pick<ParentReportMetricDto, 'subject' | 'skillKey'> | null;
 }

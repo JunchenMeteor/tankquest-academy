@@ -13,8 +13,8 @@
 ## 2. GitHub Actions
 
 - `CI`：安装依赖，执行格式、lint、typecheck、单元测试、E2E 和生产构建。
-- `Deploy Tencent Docker`：PR 验证 Docker 构建；`main`/`release` push 部署对应环境并执行健康检查。
-- `Release Manager`：按版本创建 Issue/PR，把 `main` 晋级到 `release`，等待部署后创建 GitHub Release。
+- `TankQuest Preview and Release`：PR 验证 Docker 构建；`main`/`release` push 部署对应环境并执行健康检查；部署 Job 统一显示 `TankQuest / Deploy preview or release`。
+- `TankQuest Release Manager`：按版本创建 Issue/PR，把 `main` 晋级到 `release`，等待部署后创建 GitHub Release。
 
 发布操作见 `release-manager.md`，主机拓扑和数据路径见 `tencent-docker-deployment.md`。
 

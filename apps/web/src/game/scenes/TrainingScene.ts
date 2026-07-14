@@ -47,7 +47,7 @@ export class TrainingScene extends Phaser.Scene {
   }
 
   create() {
-    createTrainingTextures(this);
+    createTrainingTextures(this, this.levelConfig.player.appearance);
     this.physics.world.setBounds(
       0,
       0,
@@ -312,7 +312,8 @@ export class TrainingScene extends Phaser.Scene {
       ) as RuntimeLevelConfig['player']['armorProfile'],
       enemy.getData('health') as number,
       'player',
-      enemyId
+      enemyId,
+      this.levelConfig.locale
     );
     if (!resolution) return;
     enemy.setData('health', resolution.health);
@@ -342,7 +343,8 @@ export class TrainingScene extends Phaser.Scene {
       this.levelConfig.player.armorProfile,
       this.playerHealth,
       'enemy',
-      'player'
+      'player',
+      this.levelConfig.locale
     );
     if (!resolution) return;
     this.playerHealth = resolution.health;

@@ -38,11 +38,19 @@ export function drawTrainingMap(
   }
 }
 
-export function createTrainingTextures(scene: Phaser.Scene) {
+export function createTrainingTextures(
+  scene: Phaser.Scene,
+  appearance: RuntimeLevelConfig['player']['appearance']
+) {
   const graphics = scene.add.graphics();
-  graphics.fillStyle(0x5d7d46).fillRoundedRect(0, 0, 52, 34, 8);
+  graphics
+    .fillStyle(appearance?.primaryColor ?? 0x5d7d46)
+    .fillRoundedRect(0, 0, 52, 34, 8);
   graphics.generateTexture('tank-body', 52, 34);
-  graphics.clear().fillStyle(0xe8c65a).fillRoundedRect(0, 0, 42, 10, 5);
+  graphics
+    .clear()
+    .fillStyle(appearance?.secondaryColor ?? 0xe8c65a)
+    .fillRoundedRect(0, 0, 42, 10, 5);
   graphics.generateTexture('tank-turret', 42, 10);
 
   createEnemyTexture(graphics, 'scout', 42, 28, 0xb95b4b);
@@ -99,13 +107,24 @@ export function showProjectileImpact(
   scene: Phaser.Scene,
   x: number,
   y: number,
-  impact: ProjectileImpactResult
+  impact: ProjectileImpactResult,
+  locale: RuntimeLevelConfig['locale'] = 'en'
 ) {
-  const presentation = {
-    ricochet: { label: '跳弹', color: '#9ee7ff' },
-    blocked: { label: '未击穿', color: '#ffe08a' },
-    penetrated: { label: `击穿 -${impact.damage}`, color: '#ffd7cf' },
-  }[impact.outcome];
+  const presentation =
+    locale === 'zh-CN'
+      ? {
+          ricochet: { label: '跳弹', color: '#9ee7ff' },
+          blocked: { label: '未击穿', color: '#ffe08a' },
+          penetrated: { label: `击穿 -${impact.damage}`, color: '#ffd7cf' },
+        }[impact.outcome]
+      : {
+          ricochet: { label: 'Ricochet', color: '#9ee7ff' },
+          blocked: { label: 'Blocked', color: '#ffe08a' },
+          penetrated: {
+            label: `Penetrated -${impact.damage}`,
+            color: '#ffd7cf',
+          },
+        }[impact.outcome];
   const label = scene.add
     .text(x, y - 24, presentation.label, {
       color: presentation.color,

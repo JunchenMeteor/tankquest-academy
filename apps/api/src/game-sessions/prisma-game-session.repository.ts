@@ -44,7 +44,7 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
   async listLevels(): Promise<LevelDto[]> {
     const levels = await this.prisma.level.findMany({
       where: { status: 'published' },
-      orderBy: { baseDifficulty: 'asc' },
+      orderBy: [{ baseDifficulty: 'asc' }, { code: 'asc' }],
     });
     return levels.map((level) => this.toLevel(level));
   }
@@ -68,7 +68,7 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
           controls: true,
           tanks: {
             where: { tankId: request.tankId },
-            include: { upgrades: true },
+            include: { upgrades: true, selectedSkin: true },
           },
         },
       }),
@@ -86,7 +86,10 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
       }),
       this.prisma.tank.findUnique({
         where: { id: request.tankId },
-        include: { stats: true },
+        include: {
+          stats: true,
+          skins: { where: { isDefault: true, isActive: true }, take: 1 },
+        },
       }),
     ]);
 
@@ -111,7 +114,8 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
       level: this.toLevel(level),
       tank: this.toTank(
         tank,
-        applyTankUpgrades(tank.stats, ownedTank.upgrades)
+        applyTankUpgrades(tank.stats, ownedTank.upgrades),
+        ownedTank.selectedSkin ?? tank.skins[0]
       ),
       questions: level.questions.map(({ question }) =>
         this.toInternalQuestion(question)
@@ -166,14 +170,60 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
   }
 
   async recordAnswer(sessionId: string, answer: RecordedAnswer): Promise<void> {
-    await this.prisma.gameSessionAnswer.create({
-      data: {
-        sessionId,
-        questionId: answer.questionId,
-        selectedAnswerId: answer.selectedAnswerId,
-        isCorrect: answer.correct,
-        answerTimeMs: answer.answerTimeMs,
-      },
+    await this.prisma.$transaction(async (transaction) => {
+      await transaction.gameSessionAnswer.create({
+        data: {
+          sessionId,
+          questionId: answer.questionId,
+          selectedAnswerId: answer.selectedAnswerId,
+          isCorrect: answer.correct,
+          answerTimeMs: answer.answerTimeMs,
+        },
+      });
+      const [session, question] = await Promise.all([
+        transaction.gameSession.findUniqueOrThrow({
+          where: { id: sessionId },
+          select: { childId: true },
+        }),
+        transaction.question.findUniqueOrThrow({
+          where: { id: answer.questionId },
+          select: { subject: true, skillKey: true, difficulty: true },
+        }),
+      ]);
+      const key = {
+        childId_subject_skillKey: {
+          childId: session.childId,
+          subject: question.subject,
+          skillKey: question.skillKey,
+        },
+      };
+      const existing = await transaction.learningRecord.findUnique({
+        where: key,
+      });
+      const attempts = (existing?.attempts ?? 0) + 1;
+      const averageAnswerTimeMs = Math.round(
+        ((existing?.averageAnswerTimeMs ?? 0) * (attempts - 1) +
+          answer.answerTimeMs) /
+          attempts
+      );
+      await transaction.learningRecord.upsert({
+        where: key,
+        update: {
+          attempts: { increment: 1 },
+          correctCount: { increment: answer.correct ? 1 : 0 },
+          averageAnswerTimeMs,
+          currentDifficulty: question.difficulty,
+        },
+        create: {
+          childId: session.childId,
+          subject: question.subject,
+          skillKey: question.skillKey,
+          attempts: 1,
+          correctCount: answer.correct ? 1 : 0,
+          averageAnswerTimeMs: answer.answerTimeMs,
+          currentDifficulty: question.difficulty,
+        },
+      });
     });
   }
 
@@ -272,6 +322,13 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
       armor: number;
       stealth: number;
       vision: number;
+    },
+    skin?: {
+      id: string;
+      code: string;
+      nameKey: string;
+      primaryColor: string;
+      secondaryColor: string;
     }
   ): TankDto {
     return {
@@ -286,6 +343,17 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
         stealth: stats.stealth,
         vision: stats.vision,
       },
+      ...(skin
+        ? {
+            skin: {
+              id: skin.id,
+              code: skin.code,
+              nameKey: skin.nameKey,
+              primaryColor: skin.primaryColor,
+              secondaryColor: skin.secondaryColor,
+            },
+          }
+        : {}),
     };
   }
 

@@ -3,11 +3,15 @@ import type {
   FinishSessionResponse,
   GameEventRequest,
   LevelDto,
+  LearningProgressDto,
+  OwnedTankDto,
+  ParentReportDto,
   StartSessionRequest,
   StartSessionResponse,
   SubmitAnswerRequest,
   SubmitAnswerResponse,
   TankDto,
+  TankSkinDto,
   TankStats,
   UpgradeTankResponse,
 } from '@tankquest/shared';
@@ -37,6 +41,33 @@ export class ApiClient {
 
   listTanks() {
     return this.send<TankDto[]>('/api/tanks');
+  }
+
+  listOwnedTanks(childId: string) {
+    return this.send<OwnedTankDto[]>(`/api/children/${childId}/tanks`);
+  }
+
+  listLearningProgress(childId: string) {
+    return this.send<LearningProgressDto[]>(
+      `/api/children/${childId}/progress`
+    );
+  }
+
+  getParentReport(childId: string) {
+    return this.send<ParentReportDto>(`/api/children/${childId}/report`);
+  }
+
+  listTankSkins(childId: string, tankId: string) {
+    return this.send<TankSkinDto[]>(
+      `/api/children/${childId}/tanks/${tankId}/skins`
+    );
+  }
+
+  equipTankSkin(childId: string, tankId: string, skinId: string) {
+    return this.send<TankSkinDto>(
+      `/api/children/${childId}/tanks/${tankId}/skins/${skinId}/equip`,
+      { method: 'POST' }
+    );
   }
 
   startSession(request: StartSessionRequest) {

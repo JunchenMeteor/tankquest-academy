@@ -28,4 +28,14 @@ describe('applyTankUpgrades', () => {
       ]).firepower
     ).toBe(5);
   });
+
+  it('does not copy persistence-only fields into the public stats object', () => {
+    const persistedStats = {
+      ...baseStats,
+      id: 'stat_internal',
+      tankId: 'tank_internal',
+    };
+
+    expect(applyTankUpgrades(persistedStats, [])).toEqual(baseStats);
+  });
 });

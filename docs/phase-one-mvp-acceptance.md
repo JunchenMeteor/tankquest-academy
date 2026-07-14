@@ -75,7 +75,7 @@ https://tankquest.jcmeteor.com/
 https://tankquest.jcmeteor.com/api/health
 ```
 
-发布链路必须使用 Issue、PR、CI 和 `Deploy Tencent Docker`，不得直接 push 到 `main` 或 `release`。
+发布链路必须使用 Issue、PR、CI 和 `TankQuest Preview and Release`，不得直接 push 到 `main` 或 `release`。
 
 ## 5. 家庭试用门槛
 

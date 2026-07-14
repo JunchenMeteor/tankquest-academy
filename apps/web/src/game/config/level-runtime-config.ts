@@ -11,8 +11,13 @@ import {
   deriveCombatStats,
 } from '../systems/combat-stats.js';
 import { localTrainingConfig } from './local-training-config.js';
+import type { RuntimeLevelConfig } from '../runtime/types.js';
 
-export function levelRuntimeConfig(level: LevelDto, tank?: TankDto) {
+export function levelRuntimeConfig(
+  level: LevelDto,
+  tank?: TankDto,
+  locale: RuntimeLevelConfig['locale'] = 'en'
+) {
   const parsedEnemies = levelEnemyConfigSchema.safeParse(level.config);
   const parsedMap = levelMapConfigSchema.safeParse(level.config.map);
   const configuredCount = level.config.enemyCount;
@@ -26,13 +31,24 @@ export function levelRuntimeConfig(level: LevelDto, tank?: TankDto) {
 
   return {
     ...localTrainingConfig,
+    locale,
     mapStyle: parsedMap.success
       ? parsedMap.data.style
       : localTrainingConfig.mapStyle,
     playerSpawn: parsedMap.success
       ? parsedMap.data.playerSpawn
       : localTrainingConfig.playerSpawn,
-    player: deriveCombatStats(tank?.stats ?? baselineTankStats),
+    player: {
+      ...deriveCombatStats(tank?.stats ?? baselineTankStats),
+      ...(tank?.skin
+        ? {
+            appearance: {
+              primaryColor: toPhaserColor(tank.skin.primaryColor, 0x5d7d46),
+              secondaryColor: toPhaserColor(tank.skin.secondaryColor, 0xe8c65a),
+            },
+          }
+        : {}),
+    },
     enemies: parsedEnemies.success
       ? parsedEnemies.data.enemyTanks.map(toRuntimeEnemy)
       : localTrainingConfig.enemies.slice(0, enemyCount),
@@ -40,6 +56,12 @@ export function levelRuntimeConfig(level: LevelDto, tank?: TankDto) {
       ? parsedMap.data.obstacles
       : localTrainingConfig.obstacles,
   };
+}
+
+function toPhaserColor(value: string, fallback: number) {
+  return /^#[0-9a-f]{6}$/i.test(value)
+    ? Number.parseInt(value.slice(1), 16)
+    : fallback;
 }
 
 function toRuntimeEnemy(enemy: EnemyTankConfigDto) {

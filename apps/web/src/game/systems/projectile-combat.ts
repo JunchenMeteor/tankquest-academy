@@ -21,7 +21,8 @@ export function applyProjectileImpact(
   armor: ArmorProfile,
   currentHealth: number,
   source: 'enemy' | 'player',
-  targetId: string
+  targetId: string,
+  locale: 'en' | 'zh-CN' = 'en'
 ): ProjectileResolution | undefined {
   if (!projectile.active || !target.active) return undefined;
   const damage = projectile.getData('damage') as unknown;
@@ -53,7 +54,7 @@ export function applyProjectileImpact(
   });
   projectile.destroy();
   const health = healthAfterDamage(currentHealth, impact.damage);
-  showProjectileImpact(scene, target.x, target.y, impact);
+  showProjectileImpact(scene, target.x, target.y, impact, locale);
   logCombatEvent(
     source === 'player'
       ? 'player_projectile_hit_enemy'

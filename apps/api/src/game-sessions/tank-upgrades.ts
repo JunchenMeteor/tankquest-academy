@@ -12,7 +12,13 @@ export function applyTankUpgrades(
   baseStats: TankStats,
   upgrades: Array<{ statKey: string; level: number }>
 ): TankStats {
-  const effectiveStats = { ...baseStats };
+  const effectiveStats: TankStats = {
+    firepower: baseStats.firepower,
+    mobility: baseStats.mobility,
+    armor: baseStats.armor,
+    stealth: baseStats.stealth,
+    vision: baseStats.vision,
+  };
 
   for (const upgrade of upgrades) {
     if (!isStatKey(upgrade.statKey) || upgrade.level <= 0) continue;

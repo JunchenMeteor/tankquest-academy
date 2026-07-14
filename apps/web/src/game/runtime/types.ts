@@ -7,6 +7,7 @@ export interface ArmorProfile {
 }
 
 export interface PlayerRuntimeConfig {
+  appearance?: { primaryColor: number; secondaryColor: number };
   maxHealth: number;
   armorReduction: number;
   armorProfile: ArmorProfile;
@@ -49,6 +50,7 @@ export interface ObstacleRuntimeConfig {
 }
 
 export interface RuntimeLevelConfig {
+  locale: 'en' | 'zh-CN';
   width: number;
   height: number;
   mapStyle: 'range' | 'gate' | 'patrol';

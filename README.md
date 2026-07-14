@@ -2,10 +2,13 @@
 
 TankQuest Academy is a family-friendly tank training game that combines tank driving, tactical challenges, learning tasks, progression, and safe AI-assisted education.
 
-The first milestone is a Web MVP:
+The current v0.2 milestone is a Web learning-game vertical slice:
 
 - 2D top-down tank gameplay.
-- Math-driven training objectives.
+- Math, English, and direction training objectives.
+- Three child-owned tanks with persistent visual skins and upgrades.
+- Durable learning records and a separate deterministic parent report.
+- English-default multilingual UI and persistent training themes.
 - Backend-authoritative rewards and progression.
 - Config-driven tanks, levels, questions, themes, and assets.
 - AI service reserved for question drafts, explanations, and reports.
@@ -76,4 +79,4 @@ npm run build
 
 The protected `Verify` CI job additionally starts a clean PostgreSQL service, applies migrations and deterministic seed data, and runs the Playwright critical journey. For a matching local E2E run, install Chromium once with `npx playwright install chromium`, initialize the database as above, then run `npm run test:e2e`.
 
-Tags matching `v*` run the release workflow and publish separate Web and API build artifacts to a GitHub Release.
+Protected `main` and `release` branches deploy preview and release Docker environments through `TankQuest Preview and Release`. Version promotion is managed through `TankQuest Release Manager` and publishes a GitHub Release after production verification.
