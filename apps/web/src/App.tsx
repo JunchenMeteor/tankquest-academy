@@ -13,6 +13,7 @@ import { clientConfig } from './client/runtime-config.js';
 import { GameCanvas } from './game/GameCanvas.js';
 import { levelRuntimeConfig } from './game/config/level-runtime-config.js';
 import type { RuntimeState } from './game/runtime/types.js';
+import { MissionResult } from './MissionResult.js';
 import './styles.css';
 
 const api = new ApiClient(clientConfig.apiBaseUrl);
@@ -179,6 +180,16 @@ export function App() {
     setRuntime(state);
   }, []);
 
+  const continueWithUpgrade = () => {
+    setPhase('ready');
+    setSession(null);
+    setFeedback(null);
+    setSettlement(null);
+    setUpgrade(null);
+    setError(null);
+    setRuntime({ enemiesRemaining: 0, shotsFired: 0 });
+  };
+
   return (
     <main className="app-shell">
       <header className="hud">
@@ -269,35 +280,15 @@ export function App() {
         </>
       )}
 
-      {phase === 'finished' && settlement && (
-        <StatusCard>
-          <p className="stars" aria-label={`${settlement.stars} stars`}>
-            {'★'.repeat(settlement.stars)}
-          </p>
-          <h2>Mission complete</h2>
-          <p>
-            {settlement.learningSummary.correct}/
-            {settlement.learningSummary.total} challenges correct ·{' '}
-            {settlement.rewards.find((reward) => reward.type === 'part')
-              ?.amount ?? 0}{' '}
-            cannon parts earned
-          </p>
-          <button
-            disabled={busy || Boolean(upgrade)}
-            onClick={() => void upgradeFirepower()}
-          >
-            Spend 2 parts: upgrade firepower
-          </button>
-          {upgrade && (
-            <>
-              <p>
-                Firepower upgrade level {upgrade.level};{' '}
-                {upgrade.remainingParts} parts remain.
-              </p>
-              <p>The upgrade will change projectile speed and reload time.</p>
-            </>
-          )}
-        </StatusCard>
+      {phase === 'finished' && settlement && selectedTank && (
+        <MissionResult
+          busy={busy}
+          settlement={settlement}
+          tank={selectedTank}
+          upgrade={upgrade}
+          onContinue={continueWithUpgrade}
+          onUpgrade={() => void upgradeFirepower()}
+        />
       )}
 
       {error && (

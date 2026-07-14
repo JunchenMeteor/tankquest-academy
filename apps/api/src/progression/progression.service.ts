@@ -45,6 +45,11 @@ export class ProgressionService {
     if (result.status === 'insufficient_parts') {
       throw new ConflictException('Not enough parts for this upgrade');
     }
+    if (result.status === 'max_level') {
+      throw new ConflictException(
+        `${request.stat.charAt(0).toUpperCase()}${request.stat.slice(1)} is already at maximum level`
+      );
+    }
     return result.upgrade;
   }
 }

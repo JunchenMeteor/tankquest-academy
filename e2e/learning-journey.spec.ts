@@ -76,7 +76,16 @@ test('completes the authoritative learning and upgrade journey', async ({
     .getByRole('button', { name: 'Spend 2 parts: upgrade firepower' })
     .click();
   await expect(
-    page.getByText(/Firepower upgrade level \d+; \d+ parts remain/)
+    page.getByText(/Upgrade complete: Firepower [4-5]\/5/)
+  ).toBeVisible();
+  await expect(
+    page.getByText(/cannon parts remain/, { exact: false })
+  ).toBeVisible();
+  await page
+    .getByRole('button', { name: 'Use upgrade in next mission' })
+    .click();
+  await expect(
+    page.getByRole('heading', { name: 'Choose a training mission' })
   ).toBeVisible();
   await page.reload();
   await page.getByRole('button', { name: 'Start training' }).click();

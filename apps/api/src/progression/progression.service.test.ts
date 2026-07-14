@@ -16,6 +16,7 @@ class MemoryProgressionRepository extends ProgressionRepository {
       tankId: 'tank_1',
       stat: 'firepower',
       level: 1,
+      effectiveValue: 4,
       remainingParts: 1,
     },
   };
@@ -60,5 +61,12 @@ describe('ProgressionService', () => {
     await expect(
       service.upgradeTank('child_1', 'tank_1', { stat: 'firepower' })
     ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('rejects a capped stat instead of spending more parts', async () => {
+    repository.result = { status: 'max_level' };
+    await expect(
+      service.upgradeTank('child_1', 'tank_1', { stat: 'firepower' })
+    ).rejects.toThrow('Firepower is already at maximum level');
   });
 });
