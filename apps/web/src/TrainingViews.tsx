@@ -90,7 +90,7 @@ export function MissionPicker({
             aria-pressed={tank.id === selectedTankId}
             onClick={() => onSelectTank(tank.id)}
           >
-            <strong>{formatMissionName(tank.code)}</strong>
+            <strong>{formatTankName(tank.code)}</strong>
             <span>
               {tank.role} · level {tank.level}
             </span>
@@ -265,6 +265,13 @@ function LearningConsole({
 function formatMissionName(code: string) {
   const value = code.replaceAll('-', ' ');
   return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
+}
+
+function formatTankName(code: string) {
+  return code
+    .split('-')
+    .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
+    .join(' ');
 }
 
 function formatMapName(style: RuntimeLevelConfig['mapStyle']) {
