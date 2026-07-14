@@ -1,8 +1,16 @@
 export interface PlayerRuntimeConfig {
+  maxHealth: number;
+  armorReduction: number;
+  mass: number;
   speed: number;
+  reverseSpeed: number;
+  acceleration: number;
   turnSpeed: number;
+  projectileDamage: number;
   projectileSpeed: number;
   fireCooldownMs: number;
+  detectionRange: number;
+  visibilityMultiplier: number;
 }
 
 export interface EnemyRuntimeConfig {

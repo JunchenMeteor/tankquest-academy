@@ -1,14 +1,13 @@
 import type { RuntimeLevelConfig } from '../runtime/types.js';
+import {
+  baselineTankStats,
+  deriveCombatStats,
+} from '../systems/combat-stats.js';
 
 export const localTrainingConfig: RuntimeLevelConfig = {
   width: 960,
   height: 540,
-  player: {
-    speed: 170,
-    turnSpeed: 2.8,
-    projectileSpeed: 460,
-    fireCooldownMs: 350,
-  },
+  player: deriveCombatStats(baselineTankStats),
   enemies: [
     { id: 'robot_alpha', x: 720, y: 150, speed: 45, detectionRange: 260 },
     { id: 'robot_bravo', x: 760, y: 390, speed: 55, detectionRange: 280 },
