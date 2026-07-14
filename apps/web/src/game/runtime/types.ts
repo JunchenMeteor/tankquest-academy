@@ -39,6 +39,8 @@ export interface ObstacleRuntimeConfig {
 export interface RuntimeLevelConfig {
   width: number;
   height: number;
+  mapStyle: 'range' | 'gate' | 'patrol';
+  playerSpawn: { x: number; y: number };
   player: PlayerRuntimeConfig;
   enemies: EnemyRuntimeConfig[];
   obstacles: ObstacleRuntimeConfig[];

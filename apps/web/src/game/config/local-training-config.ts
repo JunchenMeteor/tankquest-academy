@@ -7,6 +7,8 @@ import {
 export const localTrainingConfig: RuntimeLevelConfig = {
   width: 960,
   height: 540,
+  mapStyle: 'range',
+  playerSpawn: { x: 120, y: 270 },
   player: deriveCombatStats(baselineTankStats),
   enemies: [
     {

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const correctAnswers: Record<string, string> = {
   '8 + 7 = ?': '15',
@@ -46,11 +46,9 @@ test('completes the authoritative learning and upgrade journey', async ({
         `${error instanceof Error ? error.message : String(error)}\nPage content: ${await page.locator('body').innerText()}`
       );
     });
-  await page
-    .getByRole('button', { name: 'Robot patrol · difficulty 3' })
-    .click();
+  await expect(page.getByText('Range map · 2 scouts')).toBeVisible();
   await startButton.click();
-  await expect(page.getByText(/Robot patrol · Firepower 3/)).toBeVisible();
+  await expect(page.getByText(/Addition range · Firepower 3/)).toBeVisible();
   await expect(page.locator('.game-canvas canvas')).toBeVisible();
   await expect(page.getByText('150/150')).toBeVisible();
 
@@ -64,10 +62,20 @@ test('completes the authoritative learning and upgrade journey', async ({
     );
     await page
       .getByRole('button', {
-        name: index === 2 ? 'Complete mission' : 'Next challenge',
+        name: index === 2 ? 'Return to battle' : 'Next challenge',
       })
       .click();
   }
+
+  await expect(
+    page.getByRole('heading', { name: '2 training tanks remain' })
+  ).toBeVisible();
+  await fireAt(page, 720, 145, 4);
+  await fireAt(page, 790, 390, 4);
+  await expect(
+    page.getByRole('heading', { name: 'Training field secured' })
+  ).toBeVisible({ timeout: 10_000 });
+  await page.getByRole('button', { name: 'Complete mission' }).click();
 
   await expect(
     page.getByRole('heading', { name: 'Mission complete' })
@@ -99,3 +107,25 @@ test('completes the authoritative learning and upgrade journey', async ({
   await expect(page.getByText(/Firepower [4-5]/)).toBeVisible();
   expect(consoleErrors).toEqual([]);
 });
+
+async function fireAt(
+  page: Page,
+  worldX: number,
+  worldY: number,
+  shots: number
+) {
+  const canvas = page.locator('.game-canvas canvas');
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+  if (!box) return;
+
+  const targetX = box.x + (worldX / 960) * box.width;
+  const targetY = box.y + (worldY / 540) * box.height;
+  await page.mouse.move(targetX, targetY);
+  await page.waitForTimeout(100);
+  for (let shot = 0; shot < shots; shot += 1) {
+    await page.mouse.click(targetX, targetY);
+    await page.waitForTimeout(400);
+  }
+  await page.waitForTimeout(1600);
+}

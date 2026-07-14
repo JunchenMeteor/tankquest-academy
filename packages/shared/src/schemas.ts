@@ -6,6 +6,7 @@ import {
   gameModes,
   subjects,
   tankStatMax,
+  trainingMapStyles,
 } from './domain.js';
 
 const identifierSchema = z.string().trim().min(1).max(100);
@@ -38,6 +39,30 @@ export const enemyTankConfigSchema = z.object({
 
 export const levelEnemyConfigSchema = z.object({
   enemyTanks: z.array(enemyTankConfigSchema).min(1).max(8),
+});
+
+const mapCoordinateSchema = z.number().min(30).max(930);
+
+export const levelMapConfigSchema = z.object({
+  style: z.enum(trainingMapStyles),
+  playerSpawn: z.object({
+    x: mapCoordinateSchema,
+    y: z.number().min(30).max(510),
+  }),
+  obstacles: z
+    .array(
+      z.object({
+        x: mapCoordinateSchema,
+        y: z.number().min(30).max(510),
+        width: z.number().min(20).max(300),
+        height: z.number().min(20).max(300),
+      })
+    )
+    .max(24),
+});
+
+export const levelRuntimeContentSchema = levelEnemyConfigSchema.extend({
+  map: levelMapConfigSchema,
 });
 
 export const startSessionRequestSchema = z.object({
