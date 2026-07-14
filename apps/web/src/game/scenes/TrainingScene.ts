@@ -11,6 +11,7 @@ import {
   calculateArmoredDamage,
   healthAfterDamage,
 } from '../systems/combat-damage.js';
+import { logCombatEvent } from '../systems/combat-log.js';
 import {
   effectiveEnemyDetectionRange,
   selectEnemyAction,
@@ -134,8 +135,13 @@ export class TrainingScene extends Phaser.Scene {
     this.physics.add.collider(this.enemyProjectiles, obstacles, (projectile) =>
       projectile.destroy()
     );
-    this.physics.add.overlap(this.enemyProjectiles, this.player, (projectile) =>
-      this.handleEnemyProjectileHit(projectile as Phaser.Physics.Arcade.Sprite)
+    this.physics.add.overlap(
+      this.player,
+      this.enemyProjectiles,
+      (_player, projectile) =>
+        this.handleEnemyProjectileHit(
+          projectile as Phaser.Physics.Arcade.Sprite
+        )
     );
     this.physics.add.overlap(
       this.projectiles,
@@ -159,6 +165,10 @@ export class TrainingScene extends Phaser.Scene {
       fire: Phaser.Input.Keyboard.KeyCodes.SPACE,
     }) as ControlKeys;
     this.input.on('pointerdown', () => this.fire());
+    logCombatEvent('scene_started', {
+      enemyCount: this.levelConfig.enemies.length,
+      mapStyle: this.levelConfig.mapStyle,
+    });
     this.emitState();
   }
 
@@ -294,6 +304,7 @@ export class TrainingScene extends Phaser.Scene {
     projectile: Phaser.Physics.Arcade.Sprite,
     enemy: Phaser.Physics.Arcade.Sprite
   ) {
+    if (!projectile.active || !enemy.active) return;
     projectile.destroy();
     const damage = calculateArmoredDamage(
       this.levelConfig.player.projectileDamage,
@@ -302,8 +313,17 @@ export class TrainingScene extends Phaser.Scene {
     const health = healthAfterDamage(enemy.getData('health') as number, damage);
     enemy.setData('health', health);
     showDamage(this, enemy.x, enemy.y, damage);
+    logCombatEvent('player_projectile_hit_enemy', {
+      damage,
+      enemyHealth: health,
+      enemyId: enemy.getData('id') as string,
+    });
 
     if (health === 0) {
+      logCombatEvent('enemy_destroyed', {
+        enemyId: enemy.getData('id') as string,
+        source: 'projectile',
+      });
       destroyEnemyVisual(enemy);
     } else {
       enemy.setTint(0xffffff);
@@ -316,7 +336,17 @@ export class TrainingScene extends Phaser.Scene {
   }
 
   private handleEnemyProjectileHit(projectile: Phaser.Physics.Arcade.Sprite) {
-    const incomingDamage = projectile.getData('damage') as number;
+    if (!projectile.active) return;
+    const incomingDamage = projectile.getData('damage') as unknown;
+    if (
+      typeof incomingDamage !== 'number' ||
+      !Number.isFinite(incomingDamage)
+    ) {
+      logCombatEvent('invalid_enemy_projectile_collision', {
+        objectType: projectile.texture.key,
+      });
+      return;
+    }
     projectile.destroy();
     if (this.playerDestroyed) return;
     const damage = calculateArmoredDamage(
@@ -325,6 +355,10 @@ export class TrainingScene extends Phaser.Scene {
     );
     this.playerHealth = healthAfterDamage(this.playerHealth, damage);
     showDamage(this, this.player.x, this.player.y, damage);
+    logCombatEvent('enemy_projectile_hit_player', {
+      damage,
+      playerHealth: this.playerHealth,
+    });
     this.player.setTint(0xffffff);
     this.time.delayedCall(80, () => {
       if (!this.playerDestroyed) this.player.clearTint();
@@ -370,15 +404,26 @@ export class TrainingScene extends Phaser.Scene {
     enemy.setData('health', enemyHealth);
     showDamage(this, this.player.x, this.player.y, damage.damageToFirst);
     showDamage(this, enemy.x, enemy.y, damage.damageToSecond);
-    if (enemyHealth === 0) destroyEnemyVisual(enemy);
+    logCombatEvent('ram_impact', {
+      damageToEnemy: damage.damageToSecond,
+      damageToPlayer: damage.damageToFirst,
+      enemyId,
+      relativeSpeed: Math.round(damage.relativeSpeed),
+    });
+    if (enemyHealth === 0) {
+      logCombatEvent('enemy_destroyed', { enemyId, source: 'ram' });
+      destroyEnemyVisual(enemy);
+    }
     if (this.playerHealth === 0) this.disablePlayer();
     this.emitState();
   }
 
   private disablePlayer() {
+    if (this.playerDestroyed) return;
     this.playerDestroyed = true;
     this.player.setVelocity(0, 0).setTint(0xb95b4b);
     this.turret.setTint(0xb95b4b);
+    logCombatEvent('player_destroyed', { playerHealth: this.playerHealth });
   }
 
   private emitState() {
