@@ -39,9 +39,81 @@
 :root[data-theme] .status-card,
 :root[data-theme] .learning-console,
 :root[data-theme] .battle-alert,
-:root[data-theme] .battle-objective {
+:root[data-theme] .battle-objective,
+:root[data-theme] .report-overview,
+:root[data-theme] .report-section {
   border-color: var(--theme-border);
   background: var(--theme-surface);
+}
+
+.parent-shell {
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+.parent-header {
+  display: flex;
+  margin-bottom: 1rem;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.report-overview,
+.report-section {
+  margin: 1rem 0;
+  border: 1px solid var(--theme-border);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  background: var(--theme-surface);
+}
+
+.report-overview {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 1rem;
+}
+
+.report-overview div,
+.metric-card {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.report-overview span,
+.metric-card span {
+  color: var(--theme-muted);
+}
+
+.report-overview strong,
+.metric-card > strong {
+  color: var(--theme-accent);
+  font-size: 1.5rem;
+}
+
+.report-section h2,
+.metric-card h3 {
+  margin-top: 0;
+}
+
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.75rem;
+}
+
+.metric-card {
+  border: 1px solid var(--theme-border);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  background: var(--theme-muted-surface);
+}
+
+.parent-return {
+  display: inline-block;
+  margin-bottom: 2rem;
+  color: var(--theme-accent);
+  font-weight: 700;
 }
 
 :root[data-theme] .mission-picker button,
@@ -413,6 +485,15 @@ button:disabled {
   .hud {
     align-items: start;
     flex-direction: column;
+  }
+
+  .parent-header {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .report-overview {
+    grid-template-columns: 1fr;
   }
 
   .hud dl div {

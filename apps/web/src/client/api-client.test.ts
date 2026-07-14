@@ -84,4 +84,22 @@ describe('ApiClient', () => {
       expect.any(Object)
     );
   });
+
+  it('loads the aggregate parent report without raw child data', async () => {
+    const request = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ data: { subjects: [] }, error: null }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    );
+    const client = new ApiClient('http://api.test', request);
+
+    await expect(client.getParentReport('child_1')).resolves.toEqual({
+      subjects: [],
+    });
+    expect(request).toHaveBeenCalledWith(
+      'http://api.test/api/children/child_1/report',
+      expect.any(Object)
+    );
+  });
 });

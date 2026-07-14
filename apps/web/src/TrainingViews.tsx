@@ -19,8 +19,7 @@ export function AppHud({
   active: boolean;
   runtime: RuntimeState;
 }) {
-  const { locale, setLocale, t } = useI18n();
-  const { theme, setTheme } = useTheme();
+  const { t } = useI18n();
   return (
     <header className="hud">
       <div>
@@ -45,36 +44,44 @@ export function AppHud({
           </div>
         )}
       </dl>
-      <div className="preference-controls">
-        <label>
-          {t('settings.language')}
-          <select
-            aria-label={t('settings.language')}
-            value={locale}
-            onChange={(event) =>
-              setLocale(event.target.value === 'zh-CN' ? 'zh-CN' : 'en')
-            }
-          >
-            <option value="en">{t('language.en')}</option>
-            <option value="zh-CN">{t('language.zh-CN')}</option>
-          </select>
-        </label>
-        <label>
-          {t('settings.theme')}
-          <select
-            aria-label={t('settings.theme')}
-            value={theme}
-            onChange={(event) => setTheme(event.target.value as ThemeCode)}
-          >
-            {themes.map((code) => (
-              <option key={code} value={code}>
-                {t(`theme.${code}`)}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+      <PreferenceControls />
     </header>
+  );
+}
+
+export function PreferenceControls() {
+  const { locale, setLocale, t } = useI18n();
+  const { theme, setTheme } = useTheme();
+  return (
+    <div className="preference-controls">
+      <label>
+        {t('settings.language')}
+        <select
+          aria-label={t('settings.language')}
+          value={locale}
+          onChange={(event) =>
+            setLocale(event.target.value === 'zh-CN' ? 'zh-CN' : 'en')
+          }
+        >
+          <option value="en">{t('language.en')}</option>
+          <option value="zh-CN">{t('language.zh-CN')}</option>
+        </select>
+      </label>
+      <label>
+        {t('settings.theme')}
+        <select
+          aria-label={t('settings.theme')}
+          value={theme}
+          onChange={(event) => setTheme(event.target.value as ThemeCode)}
+        >
+          {themes.map((code) => (
+            <option key={code} value={code}>
+              {t(`theme.${code}`)}
+            </option>
+          ))}
+        </select>
+      </label>
+    </div>
   );
 }
 
