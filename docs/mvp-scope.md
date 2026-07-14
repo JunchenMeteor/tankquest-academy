@@ -1,6 +1,6 @@
 # MVP 范围与验收标准
 
-> 状态：第一阶段工程 MVP、Phase 1.5 战斗反馈和 Phase 1.6 命中判定已完成，家庭试用指标待真实儿童和家长验证。逐项证据见 `phase-one-mvp-acceptance.md`。
+> 状态：第一阶段工程 MVP、Phase 1.5、Phase 1.6 和 Phase 2 工程范围已完成；家庭试用指标待真实儿童和家长验证。逐项证据见 `phase-one-mvp-acceptance.md` 和 `phase-two-acceptance.md`。
 
 ## 1. MVP 目标
 

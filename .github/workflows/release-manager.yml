@@ -1,4 +1,4 @@
-name: Release Manager
+name: TankQuest Release Manager
 
 permissions:
   contents: write
@@ -31,7 +31,7 @@ concurrency:
 
 jobs:
   release:
-    name: Release Manager
+    name: TankQuest / Release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -45,7 +45,7 @@ jobs:
         with:
           node-version: 24
 
-      - name: Run Release Manager
+      - name: Run TankQuest release manager
         env:
           GH_TOKEN: ${{ secrets.RELEASE_MANAGER_TOKEN || github.token }}
         run: node scripts/release-manager.mjs "${{ inputs.action }}" --version "${{ inputs.version }}"
