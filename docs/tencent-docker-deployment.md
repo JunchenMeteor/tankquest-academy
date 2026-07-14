@@ -56,7 +56,7 @@ MeteorVoice、MeteorTest、既有 runner、Docker 和 containerd 通过 `/etc/fs
 - `api`：NestJS 启动前执行 Prisma migration 和幂等 seed，监听容器内 3000。
 - `db`：PostgreSQL 17，数据写入对应环境的 `postgres` 目录。
 
-`TankQuest Preview and Release` 在 PR 中验证 API/Web 镜像；合并到 `main` 或 `release` 后，Job 分别显示 `TankQuest / Deploy (preview)` 或 `TankQuest / Deploy (release)`，由 TankQuest self-hosted runner 构建带提交 SHA 的镜像并调用 `deploy/deploy-container.sh`。部署必须通过 Compose health check 和本机 `/api/health` 检查。
+`TankQuest Preview and Release` 在 PR 中验证 API/Web 镜像；合并到 `main` 或 `release` 后，Job 统一显示 `TankQuest / Deploy preview or release`，具体目标由 `Resolve target` 步骤记录为 `preview` 或 `release`。TankQuest self-hosted runner 构建带提交 SHA 的镜像并调用 `deploy/deploy-container.sh`。部署必须通过 Compose health check 和本机 `/api/health` 检查。
 
 如果新容器失败，脚本恢复 `deployment.env` 中记录的上一组 API/Web 镜像。数据库目录不会被部署或回滚流程删除。
 

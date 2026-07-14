@@ -67,7 +67,7 @@ jobs:
           retention-days: 7
 
   deploy:
-    name: TankQuest / Deploy (${{ github.ref_name == 'release' && 'release' || 'preview' }})
+    name: TankQuest / Deploy preview or release
     if: github.event_name != 'pull_request'
     needs: validate
     runs-on: [self-hosted, linux, x64, tencent, tankquest]
