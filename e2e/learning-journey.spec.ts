@@ -52,6 +52,7 @@ test('completes the authoritative learning and upgrade journey', async ({
   await startButton.click();
   await expect(page.getByText(/Robot patrol · Firepower 3/)).toBeVisible();
   await expect(page.locator('.game-canvas canvas')).toBeVisible();
+  await expect(page.getByText('150/150')).toBeVisible();
 
   for (let index = 0; index < 3; index += 1) {
     const prompt = await page.locator('.learning-console h2').textContent();
