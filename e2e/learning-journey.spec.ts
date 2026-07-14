@@ -141,7 +141,9 @@ test('completes the authoritative learning and upgrade journey', async ({
   ).toBeVisible();
   await expect(page.getByText('Completed missions')).toBeVisible();
   await expect(page.getByText('Math')).toBeVisible();
-  await expect(page.getByText('Addition within 20')).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Addition within 20', exact: true })
+  ).toBeVisible();
   await expect(
     page.getByText('Spend the next practice session on', { exact: false })
   ).toBeVisible();
