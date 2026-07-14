@@ -4,6 +4,7 @@ import type {
   OwnedTankDto,
   StartSessionResponse,
   SubmitAnswerResponse,
+  TankSkinDto,
   UpgradeTankResponse,
 } from '@tankquest/shared';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -27,6 +28,7 @@ export function App() {
   const [tanks, setTanks] = useState<OwnedTankDto[]>([]);
   const [selectedLevelId, setSelectedLevelId] = useState('');
   const [selectedTankId, setSelectedTankId] = useState('');
+  const [skins, setSkins] = useState<TankSkinDto[]>([]);
   const [session, setSession] = useState<StartSessionResponse | null>(null);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [learningComplete, setLearningComplete] = useState(false);
@@ -64,6 +66,23 @@ export function App() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!selectedTankId) return;
+    let active = true;
+    setSkins([]);
+    void api
+      .listTankSkins(clientConfig.demoChildId, selectedTankId)
+      .then((availableSkins) => {
+        if (active) setSkins(availableSkins);
+      })
+      .catch((reason: unknown) => {
+        if (active) setError(readError(reason));
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedTankId]);
 
   const runtimeConfig = useMemo(
     () => (session ? levelRuntimeConfig(session.level, session.tank) : null),
@@ -116,6 +135,34 @@ export function App() {
       sessionStartedAt.current = performance.now();
       questionStartedAt.current = sessionStartedAt.current;
       setPhase('active');
+    } catch (reason) {
+      setError(readError(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const equipSkin = async (skinId: string) => {
+    if (!selectedOwnedTank) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const equipped = await api.equipTankSkin(
+        clientConfig.demoChildId,
+        selectedOwnedTank.id,
+        skinId
+      );
+      setSkins((current) =>
+        current.map((skin) => ({
+          ...skin,
+          equipped: skin.id === equipped.id,
+        }))
+      );
+      setTanks((current) =>
+        current.map((tank) =>
+          tank.id === selectedOwnedTank.id ? { ...tank, skin: equipped } : tank
+        )
+      );
     } catch (reason) {
       setError(readError(reason));
     } finally {
@@ -240,9 +287,11 @@ export function App() {
           preview={missionPreview}
           selectedLevelId={selectedLevelId}
           selectedTankId={selectedTankId}
+          skins={skins}
           tanks={tanks}
           onSelectLevel={setSelectedLevelId}
           onSelectTank={setSelectedTankId}
+          onEquipSkin={(skinId) => void equipSkin(skinId)}
           onStart={() => void startTraining()}
         />
       )}

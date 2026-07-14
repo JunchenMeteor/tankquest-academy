@@ -23,6 +23,20 @@ export interface TankDto {
   nameKey: string;
   role: string;
   stats: TankStats;
+  skin?: TankSkinAppearanceDto;
+}
+
+export interface TankSkinAppearanceDto {
+  id: string;
+  code: string;
+  nameKey: string;
+  primaryColor: string;
+  secondaryColor: string;
+}
+
+export interface TankSkinDto extends TankSkinAppearanceDto {
+  unlocked: boolean;
+  equipped: boolean;
 }
 
 export interface OwnedTankDto extends TankDto {

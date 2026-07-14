@@ -39,6 +39,10 @@ const tankSeeds = [
     nameKey: 'tank.starShield.name',
     role: 'medium',
     stats: { firepower: 3, mobility: 3, armor: 3, stealth: 2, vision: 3 },
+    skins: [
+      ['field-olive', 'skin.fieldOlive.name', '#5d7d46', '#e8c65a'],
+      ['academy-blue', 'skin.academyBlue.name', '#426b8a', '#d7edf7'],
+    ],
   },
   {
     id: 'tank_swift_fox',
@@ -46,6 +50,10 @@ const tankSeeds = [
     nameKey: 'tank.swiftFox.name',
     role: 'scout',
     stats: { firepower: 2, mobility: 5, armor: 1, stealth: 4, vision: 4 },
+    skins: [
+      ['forest-fox', 'skin.forestFox.name', '#4f7748', '#d8a34c'],
+      ['arctic-dash', 'skin.arcticDash.name', '#85aebf', '#f2f7f8'],
+    ],
   },
   {
     id: 'tank_iron_mountain',
@@ -53,6 +61,10 @@ const tankSeeds = [
     nameKey: 'tank.ironMountain.name',
     role: 'heavy',
     stats: { firepower: 4, mobility: 1, armor: 5, stealth: 1, vision: 2 },
+    skins: [
+      ['iron-red', 'skin.ironRed.name', '#733f39', '#d7aa57'],
+      ['night-fortress', 'skin.nightFortress.name', '#343b47', '#91a3bc'],
+    ],
   },
 ] as const;
 
@@ -207,11 +219,47 @@ async function seed() {
       },
     });
 
-    await prisma.childTank.upsert({
+    const childTank = await prisma.childTank.upsert({
       where: { childId_tankId: { childId: child.id, tankId: tank.id } },
       update: {},
       create: { childId: child.id, tankId: tank.id },
     });
+
+    for (const [index, skinSeed] of item.skins.entries()) {
+      const [code, nameKey, primaryColor, secondaryColor] = skinSeed;
+      const skin = await prisma.tankSkin.upsert({
+        where: { tankId_code: { tankId: tank.id, code } },
+        update: {
+          nameKey,
+          primaryColor,
+          secondaryColor,
+          isDefault: index === 0,
+          isActive: true,
+        },
+        create: {
+          id: `skin_${item.code.replaceAll('-', '_')}_${code.replaceAll('-', '_')}`,
+          tankId: tank.id,
+          code,
+          nameKey,
+          primaryColor,
+          secondaryColor,
+          isDefault: index === 0,
+        },
+      });
+      await prisma.childTankSkin.upsert({
+        where: {
+          childTankId_skinId: { childTankId: childTank.id, skinId: skin.id },
+        },
+        update: {},
+        create: { childTankId: childTank.id, skinId: skin.id },
+      });
+      if (index === 0 && !childTank.selectedSkinId) {
+        await prisma.childTank.update({
+          where: { id: childTank.id },
+          data: { selectedSkinId: skin.id },
+        });
+      }
+    }
   }
 
   const questions = [];

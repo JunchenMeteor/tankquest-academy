@@ -68,7 +68,7 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
           controls: true,
           tanks: {
             where: { tankId: request.tankId },
-            include: { upgrades: true },
+            include: { upgrades: true, selectedSkin: true },
           },
         },
       }),
@@ -86,7 +86,10 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
       }),
       this.prisma.tank.findUnique({
         where: { id: request.tankId },
-        include: { stats: true },
+        include: {
+          stats: true,
+          skins: { where: { isDefault: true, isActive: true }, take: 1 },
+        },
       }),
     ]);
 
@@ -111,7 +114,8 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
       level: this.toLevel(level),
       tank: this.toTank(
         tank,
-        applyTankUpgrades(tank.stats, ownedTank.upgrades)
+        applyTankUpgrades(tank.stats, ownedTank.upgrades),
+        ownedTank.selectedSkin ?? tank.skins[0]
       ),
       questions: level.questions.map(({ question }) =>
         this.toInternalQuestion(question)
@@ -272,6 +276,13 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
       armor: number;
       stealth: number;
       vision: number;
+    },
+    skin?: {
+      id: string;
+      code: string;
+      nameKey: string;
+      primaryColor: string;
+      secondaryColor: string;
     }
   ): TankDto {
     return {
@@ -286,6 +297,17 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
         stealth: stats.stealth,
         vision: stats.vision,
       },
+      ...(skin
+        ? {
+            skin: {
+              id: skin.id,
+              code: skin.code,
+              nameKey: skin.nameKey,
+              primaryColor: skin.primaryColor,
+              secondaryColor: skin.secondaryColor,
+            },
+          }
+        : {}),
     };
   }
 

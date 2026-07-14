@@ -1,8 +1,9 @@
 import { ConflictException, ForbiddenException } from '@nestjs/common';
-import type { OwnedTankDto } from '@tankquest/shared';
+import type { OwnedTankDto, TankSkinDto } from '@tankquest/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type {
+  EquipSkinResult,
   UpgradeMaterial,
   UpgradeResult,
   UpgradeStat,
@@ -23,9 +24,19 @@ class MemoryProgressionRepository extends ProgressionRepository {
     },
   };
   material: UpgradeMaterial | null = null;
+  skins: TankSkinDto[] = [];
+  equipResult: EquipSkinResult = { status: 'unavailable' };
 
   async listOwnedTanks(): Promise<OwnedTankDto[]> {
     return this.ownedTanks;
+  }
+
+  async listSkins(): Promise<TankSkinDto[]> {
+    return this.skins;
+  }
+
+  async equipSkin(): Promise<EquipSkinResult> {
+    return this.equipResult;
   }
 
   async upgradeTank(
@@ -76,6 +87,33 @@ describe('ProgressionService', () => {
     await expect(service.listOwnedTanks('child_1')).resolves.toEqual(
       repository.ownedTanks
     );
+  });
+
+  it('returns unlocked skins and equips an available cosmetic skin', async () => {
+    const skin: TankSkinDto = {
+      id: 'skin_1',
+      code: 'academy-blue',
+      nameKey: 'skin.academyBlue.name',
+      primaryColor: '#426b8a',
+      secondaryColor: '#d7edf7',
+      unlocked: true,
+      equipped: true,
+    };
+    repository.skins = [skin];
+    repository.equipResult = { status: 'equipped', skin };
+
+    await expect(service.listSkins('child_1', 'tank_1')).resolves.toEqual([
+      skin,
+    ]);
+    await expect(
+      service.equipSkin('child_1', 'tank_1', 'skin_1')
+    ).resolves.toEqual(skin);
+  });
+
+  it('does not reveal whether a locked skin exists', async () => {
+    await expect(
+      service.equipSkin('child_1', 'tank_1', 'skin_locked')
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('does not reveal whether an unowned tank exists', async () => {

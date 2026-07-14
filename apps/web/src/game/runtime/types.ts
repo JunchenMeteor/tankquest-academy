@@ -7,6 +7,7 @@ export interface ArmorProfile {
 }
 
 export interface PlayerRuntimeConfig {
+  appearance?: { primaryColor: number; secondaryColor: number };
   maxHealth: number;
   armorReduction: number;
   armorProfile: ArmorProfile;
