@@ -101,10 +101,18 @@ function enemyTank(
   };
 }
 
+function getQuestionId(questions: Map<string, string>, code: string) {
+  const questionId = questions.get(code);
+  if (!questionId) throw new Error(`Missing seeded question: ${code}`);
+  return questionId;
+}
+
 const levelSeeds = [
   {
     code: 'addition-range',
     titleKey: 'level.additionRange.title',
+    subject: 'math',
+    questionCodes: ['math-addition-1', 'math-addition-2', 'math-subtraction-1'],
     difficulty: 1,
     map: {
       style: 'range',
@@ -122,6 +130,8 @@ const levelSeeds = [
   {
     code: 'supply-gate',
     titleKey: 'level.supplyGate.title',
+    subject: 'math',
+    questionCodes: ['math-addition-1', 'math-addition-2', 'math-subtraction-1'],
     difficulty: 2,
     map: {
       style: 'gate',
@@ -143,6 +153,8 @@ const levelSeeds = [
   {
     code: 'robot-patrol',
     titleKey: 'level.robotPatrol.title',
+    subject: 'math',
+    questionCodes: ['math-addition-1', 'math-addition-2', 'math-subtraction-1'],
     difficulty: 3,
     map: {
       style: 'patrol',
@@ -163,26 +175,149 @@ const levelSeeds = [
       enemyTank('patrol_heavy', 'heavy', 665, 450, true),
     ],
   },
+  {
+    code: 'word-match-camp',
+    titleKey: 'level.wordMatchCamp.title',
+    subject: 'english',
+    questionCodes: ['english-kitten', 'english-quick', 'english-library'],
+    difficulty: 1,
+    map: {
+      style: 'range',
+      playerSpawn: { x: 120, y: 270 },
+      obstacles: [
+        { x: 420, y: 120, width: 130, height: 34 },
+        { x: 520, y: 420, width: 160, height: 34 },
+      ],
+    },
+    enemyTanks: [
+      enemyTank('word_scout_alpha', 'scout', 730, 150),
+      enemyTank('word_scout_bravo', 'scout', 780, 390),
+    ],
+  },
+  {
+    code: 'compass-trail',
+    titleKey: 'level.compassTrail.title',
+    subject: 'direction',
+    questionCodes: [
+      'direction-left-turn',
+      'direction-opposite',
+      'direction-right',
+    ],
+    difficulty: 1,
+    map: {
+      style: 'patrol',
+      playerSpawn: { x: 120, y: 270 },
+      obstacles: [
+        { x: 380, y: 160, width: 52, height: 170 },
+        { x: 580, y: 380, width: 180, height: 42 },
+      ],
+    },
+    enemyTanks: [
+      enemyTank('compass_scout', 'scout', 720, 130),
+      enemyTank('compass_medium', 'medium', 790, 390),
+    ],
+  },
 ];
 
 const questionSeeds = [
   {
+    id: 'question_math_1',
+    code: 'math-addition-1',
+    subject: 'math',
+    difficulty: 1,
     skillKey: 'addition-within-20',
     prompt: '8 + 7 = ?',
     correct: '15',
     choices: ['12', '15', '17'],
+    explanation: '8 + 7 = 15.',
   },
   {
+    id: 'question_math_2',
+    code: 'math-addition-2',
+    subject: 'math',
+    difficulty: 1,
     skillKey: 'addition-within-20',
     prompt: '9 + 6 = ?',
     correct: '15',
     choices: ['14', '15', '16'],
+    explanation: '9 + 6 = 15.',
   },
   {
+    id: 'question_math_3',
+    code: 'math-subtraction-1',
+    subject: 'math',
+    difficulty: 2,
     skillKey: 'subtraction-within-20',
     prompt: '13 - 5 = ?',
     correct: '8',
     choices: ['7', '8', '9'],
+    explanation: '13 - 5 = 8.',
+  },
+  {
+    id: 'question_english_1',
+    code: 'english-kitten',
+    subject: 'english',
+    difficulty: 1,
+    skillKey: 'basic-word-meaning',
+    prompt: 'Which word means a young cat?',
+    correct: 'kitten',
+    choices: ['kitten', 'river', 'chair'],
+    explanation: 'A kitten is a young cat.',
+  },
+  {
+    id: 'question_english_2',
+    code: 'english-quick',
+    subject: 'english',
+    difficulty: 1,
+    skillKey: 'basic-word-meaning',
+    prompt: 'Which word means fast?',
+    correct: 'quick',
+    choices: ['quiet', 'round', 'quick'],
+    explanation: 'Quick means fast.',
+  },
+  {
+    id: 'question_english_3',
+    code: 'english-library',
+    subject: 'english',
+    difficulty: 1,
+    skillKey: 'basic-word-meaning',
+    prompt: 'Where can you borrow books?',
+    correct: 'library',
+    choices: ['garden', 'library', 'kitchen'],
+    explanation: 'A library is a place where you can borrow books.',
+  },
+  {
+    id: 'question_direction_1',
+    code: 'direction-left-turn',
+    subject: 'direction',
+    difficulty: 1,
+    skillKey: 'cardinal-directions',
+    prompt: 'You face north and turn left. Which direction do you face?',
+    correct: 'West',
+    choices: ['East', 'South', 'West'],
+    explanation: 'Turning left from north points west.',
+  },
+  {
+    id: 'question_direction_2',
+    code: 'direction-opposite',
+    subject: 'direction',
+    difficulty: 1,
+    skillKey: 'cardinal-directions',
+    prompt: 'Which direction is opposite east?',
+    correct: 'West',
+    choices: ['North', 'West', 'South'],
+    explanation: 'West is opposite east.',
+  },
+  {
+    id: 'question_direction_3',
+    code: 'direction-right',
+    subject: 'direction',
+    difficulty: 1,
+    skillKey: 'left-and-right',
+    prompt: 'The supply crate is on your right. Which way should you turn?',
+    correct: 'Right',
+    choices: ['Left', 'Right', 'Straight'],
+    explanation: 'Turn right to move toward an object on your right.',
   },
 ];
 
@@ -212,8 +347,15 @@ async function seed() {
 
   await prisma.parentControl.upsert({
     where: { childId: child.id },
-    update: { maxDifficulty: 3 },
-    create: { childId: child.id, maxDifficulty: 3 },
+    update: {
+      maxDifficulty: 3,
+      allowedSubjects: ['math', 'english', 'direction'],
+    },
+    create: {
+      childId: child.id,
+      maxDifficulty: 3,
+      allowedSubjects: ['math', 'english', 'direction'],
+    },
   });
 
   for (const item of tankSeeds) {
@@ -265,7 +407,7 @@ async function seed() {
         where: {
           childTankId_skinId: { childTankId: childTank.id, skinId: skin.id },
         },
-        update: { skillKey: item.skillKey },
+        update: {},
         create: { childTankId: childTank.id, skinId: skin.id },
       });
       if (index === 0 && !childTank.selectedSkinId) {
@@ -277,33 +419,39 @@ async function seed() {
     }
   }
 
-  const questions = [];
-  for (const [index, item] of questionSeeds.entries()) {
-    const id = `question_math_${index + 1}`;
-    questions.push(
-      await prisma.question.upsert({
-        where: { id },
-        update: {},
-        create: {
-          id,
-          subject: 'math',
-          mode: 'child_learning',
-          difficulty: index === 2 ? 2 : 1,
-          skillKey: item.skillKey,
-          prompt: item.prompt,
-          explanation: `${item.prompt.replace('?', item.correct)}`,
-          status: 'published',
-          answers: {
-            create: item.choices.map((choice, choiceIndex) => ({
-              id: `${id}_answer_${choiceIndex + 1}`,
-              text: choice,
-              isCorrect: choice === item.correct,
-              sortOrder: choiceIndex,
-            })),
-          },
+  const questions = new Map<string, string>();
+  for (const item of questionSeeds) {
+    const question = await prisma.question.upsert({
+      where: { id: item.id },
+      update: {
+        subject: item.subject,
+        mode: 'child_learning',
+        difficulty: item.difficulty,
+        skillKey: item.skillKey,
+        prompt: item.prompt,
+        explanation: item.explanation,
+        status: 'published',
+      },
+      create: {
+        id: item.id,
+        subject: item.subject,
+        mode: 'child_learning',
+        difficulty: item.difficulty,
+        skillKey: item.skillKey,
+        prompt: item.prompt,
+        explanation: item.explanation,
+        status: 'published',
+        answers: {
+          create: item.choices.map((choice, choiceIndex) => ({
+            id: `${item.id}_answer_${choiceIndex + 1}`,
+            text: choice,
+            isCorrect: choice === item.correct,
+            sortOrder: choiceIndex,
+          })),
         },
-      })
-    );
+      },
+    });
+    questions.set(item.code, question.id);
   }
 
   for (const item of levelSeeds) {
@@ -316,21 +464,33 @@ async function seed() {
     await prisma.level.upsert({
       where: { code: item.code },
       update: {
+        titleKey: item.titleKey,
+        mode: 'child_learning',
+        subjectFocus: item.subject,
         baseDifficulty: item.difficulty,
         configJson,
+        status: 'published',
         version: 2,
+        questions: {
+          deleteMany: {},
+          create: item.questionCodes.map((code) => ({
+            questionId: getQuestionId(questions, code),
+          })),
+        },
       },
       create: {
         id: `level_${item.code.replaceAll('-', '_')}`,
         code: item.code,
         titleKey: item.titleKey,
         mode: 'child_learning',
-        subjectFocus: 'math',
+        subjectFocus: item.subject,
         baseDifficulty: item.difficulty,
         status: 'published',
         configJson,
         questions: {
-          create: questions.map((question) => ({ questionId: question.id })),
+          create: item.questionCodes.map((code) => ({
+            questionId: getQuestionId(questions, code),
+          })),
         },
       },
     });
