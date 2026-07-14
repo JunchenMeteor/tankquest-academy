@@ -179,6 +179,31 @@ test('continues combat after repeated enemy projectile impacts', async ({
   expect(pageErrors).toEqual([]);
 });
 
+test('starts a mission with the selected owned tank', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: /Star Shield/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Swift Fox/ })).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: /Iron Mountain/ })
+  ).toBeVisible();
+
+  await page.getByRole('button', { name: /Swift Fox/ }).click();
+  const sessionRequest = page.waitForRequest(
+    (request) =>
+      request.url().endsWith('/api/game-sessions') &&
+      request.method() === 'POST'
+  );
+  await page.getByRole('button', { name: 'Start training' }).click();
+
+  expect((await sessionRequest).postDataJSON()).toMatchObject({
+    tankId: 'tank_swift_fox',
+  });
+  await expect(
+    page.getByText(/Firepower 2 · Mobility 5 · Armor 1 · Stealth 4 · Vision 4/)
+  ).toBeVisible();
+  await expect(page.locator('.game-canvas canvas')).toBeVisible();
+});
+
 async function fireAt(
   page: Page,
   worldX: number,

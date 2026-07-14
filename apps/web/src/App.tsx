@@ -1,13 +1,14 @@
 import type {
   FinishSessionResponse,
   LevelDto,
+  OwnedTankDto,
   StartSessionResponse,
   SubmitAnswerResponse,
-  TankDto,
   UpgradeTankResponse,
 } from '@tankquest/shared';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { emptyRuntimeState, readError } from './app-state.js';
 import { ApiClient } from './client/api-client.js';
 import { clientConfig } from './client/runtime-config.js';
 import { levelRuntimeConfig } from './game/config/level-runtime-config.js';
@@ -23,8 +24,9 @@ type Phase = 'loading' | 'ready' | 'active' | 'finished';
 export function App() {
   const [phase, setPhase] = useState<Phase>('loading');
   const [levels, setLevels] = useState<LevelDto[]>([]);
-  const [tanks, setTanks] = useState<TankDto[]>([]);
+  const [tanks, setTanks] = useState<OwnedTankDto[]>([]);
   const [selectedLevelId, setSelectedLevelId] = useState('');
+  const [selectedTankId, setSelectedTankId] = useState('');
   const [session, setSession] = useState<StartSessionResponse | null>(null);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [learningComplete, setLearningComplete] = useState(false);
@@ -41,7 +43,10 @@ export function App() {
 
   useEffect(() => {
     let active = true;
-    void Promise.all([api.listLevels(), api.listTanks()])
+    void Promise.all([
+      api.listLevels(),
+      api.listOwnedTanks(clientConfig.demoChildId),
+    ])
       .then(([availableLevels, availableTanks]) => {
         if (!active) return;
         setLevels(availableLevels);
@@ -49,6 +54,7 @@ export function App() {
         setSelectedLevelId(
           (current) => current || availableLevels[0]?.id || ''
         );
+        setSelectedTankId((current) => current || availableTanks[0]?.id || '');
         setPhase('ready');
       })
       .catch((reason: unknown) => {
@@ -64,17 +70,20 @@ export function App() {
     [session]
   );
   const selectedLevel = levels.find((item) => item.id === selectedLevelId);
+  const selectedOwnedTank = tanks.find((item) => item.id === selectedTankId);
   const missionPreview = useMemo(
     () =>
-      selectedLevel ? levelRuntimeConfig(selectedLevel, tanks[0]) : undefined,
-    [selectedLevel, tanks]
+      selectedLevel
+        ? levelRuntimeConfig(selectedLevel, selectedOwnedTank)
+        : undefined,
+    [selectedLevel, selectedOwnedTank]
   );
   const currentQuestion = session?.questions[questionIndex];
-  const selectedTank = session?.tank ?? tanks[0];
+  const selectedTank = session?.tank ?? selectedOwnedTank;
 
   const startTraining = async () => {
     const level = selectedLevel;
-    const tank = tanks[0];
+    const tank = selectedOwnedTank;
     if (!level || !tank) {
       setError('No published level or available tank was found.');
       return;
@@ -178,11 +187,20 @@ export function App() {
     setBusy(true);
     setError(null);
     try {
-      setUpgrade(
-        await api.upgradeTank(
-          clientConfig.demoChildId,
-          selectedTank.id,
-          'firepower'
+      const upgraded = await api.upgradeTank(
+        clientConfig.demoChildId,
+        selectedTank.id,
+        'firepower'
+      );
+      setUpgrade(upgraded);
+      setTanks((current) =>
+        current.map((tank) =>
+          tank.id === upgraded.tankId
+            ? {
+                ...tank,
+                stats: { ...tank.stats, firepower: upgraded.effectiveValue },
+              }
+            : tank
         )
       );
     } catch (reason) {
@@ -221,7 +239,10 @@ export function App() {
           levels={levels}
           preview={missionPreview}
           selectedLevelId={selectedLevelId}
-          onSelect={setSelectedLevelId}
+          selectedTankId={selectedTankId}
+          tanks={tanks}
+          onSelectLevel={setSelectedLevelId}
+          onSelectTank={setSelectedTankId}
           onStart={() => void startTraining()}
         />
       )}
@@ -267,20 +288,4 @@ export function App() {
 
 function StatusCard({ children }: { children: React.ReactNode }) {
   return <section className="status-card">{children}</section>;
-}
-
-function readError(reason: unknown) {
-  return reason instanceof Error
-    ? reason.message
-    : 'An unexpected error occurred.';
-}
-
-function emptyRuntimeState(): RuntimeState {
-  return {
-    enemiesRemaining: 0,
-    shotsFired: 0,
-    playerHealth: 0,
-    playerMaxHealth: 0,
-    playerDestroyed: false,
-  };
 }

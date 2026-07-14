@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { tankStatMax } from '@tankquest/shared';
+import { tankStatMax, type OwnedTankDto } from '@tankquest/shared';
 
 import { PrismaService } from '../prisma.service.js';
+import { applyTankUpgrades } from '../game-sessions/tank-upgrades.js';
 import type {
   UpgradeMaterial,
   UpgradeResult,
@@ -13,6 +14,32 @@ import { ProgressionRepository } from './progression.repository.js';
 export class PrismaProgressionRepository extends ProgressionRepository {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {
     super();
+  }
+
+  async listOwnedTanks(childId: string): Promise<OwnedTankDto[]> {
+    const ownedTanks = await this.prisma.childTank.findMany({
+      where: { childId, tank: { isActive: true } },
+      include: {
+        tank: { include: { stats: true } },
+        upgrades: true,
+      },
+      orderBy: { acquiredAt: 'asc' },
+    });
+
+    return ownedTanks.flatMap((ownedTank) => {
+      const stats = ownedTank.tank.stats;
+      if (!stats) return [];
+      return [
+        {
+          id: ownedTank.tank.id,
+          code: ownedTank.tank.code,
+          nameKey: ownedTank.tank.nameKey,
+          role: ownedTank.tank.role,
+          level: ownedTank.level,
+          stats: applyTankUpgrades(stats, ownedTank.upgrades),
+        },
+      ];
+    });
   }
 
   async upgradeTank(

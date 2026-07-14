@@ -5,6 +5,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import type {
+  OwnedTankDto,
   TankStats,
   UpgradeTankRequest,
   UpgradeTankResponse,
@@ -26,6 +27,10 @@ export class ProgressionService {
     @Inject(ProgressionRepository)
     private readonly repository: ProgressionRepository
   ) {}
+
+  listOwnedTanks(childId: string): Promise<OwnedTankDto[]> {
+    return this.repository.listOwnedTanks(childId);
+  }
 
   async upgradeTank(
     childId: string,

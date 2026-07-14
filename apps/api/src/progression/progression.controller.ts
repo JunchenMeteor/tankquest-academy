@@ -1,4 +1,4 @@
-import { Body, Controller, Inject, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, Post } from '@nestjs/common';
 import { upgradeTankRequestSchema } from '@tankquest/shared';
 import { randomUUID } from 'node:crypto';
 
@@ -11,6 +11,12 @@ export class ProgressionController {
     @Inject(ProgressionService)
     private readonly service: ProgressionService
   ) {}
+
+  @Get()
+  async list(@Param('childId') childId: string) {
+    const data = await this.service.listOwnedTanks(childId);
+    return { data, error: null, requestId: `req_${randomUUID()}` };
+  }
 
   @Post(':tankId/upgrades')
   async upgrade(
