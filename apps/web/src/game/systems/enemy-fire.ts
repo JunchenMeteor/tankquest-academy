@@ -18,7 +18,10 @@ export function fireEnemyProjectile(
   projectile
     .setActive(true)
     .setVisible(true)
-    .setData('damage', enemy.getData('projectileDamage') as number);
+    .setData({
+      damage: enemy.getData('projectileDamage') as number,
+      penetration: enemy.getData('projectilePenetration') as number,
+    });
   scene.physics.velocityFromRotation(
     turret.rotation,
     enemy.getData('projectileSpeed') as number,

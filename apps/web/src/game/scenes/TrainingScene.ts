@@ -5,23 +5,16 @@ import {
   destroyEnemyVisual,
   drawTrainingMap,
   drawEnemyHealth,
-  showDamage,
 } from '../presentation/training-visuals.js';
-import {
-  calculateArmoredDamage,
-  healthAfterDamage,
-} from '../systems/combat-damage.js';
 import { logCombatEvent } from '../systems/combat-log.js';
 import {
   effectiveEnemyDetectionRange,
   selectEnemyAction,
 } from '../systems/enemy-ai.js';
 import { fireEnemyProjectile } from '../systems/enemy-fire.js';
+import { applyProjectileImpact } from '../systems/projectile-combat.js';
+import { applyRamImpact } from '../systems/ram-combat.js';
 import { calculateTankMotion } from '../systems/tank-motion.js';
-import {
-  calculateRamDamage,
-  isRamDamageReady,
-} from '../systems/ram-collision.js';
 import type { RuntimeLevelConfig, RuntimeState } from '../runtime/types.js';
 
 interface ControlKeys {
@@ -105,11 +98,13 @@ export class TrainingScene extends Phaser.Scene {
         health: enemy.maxHealth,
         maxHealth: enemy.maxHealth,
         armorReduction: enemy.armorReduction,
+        armorProfile: enemy.armorProfile,
         mass: enemy.mass,
         speed: enemy.speed,
         detectionRange: enemy.detectionRange,
         attackRange: enemy.attackRange,
         projectileDamage: enemy.projectileDamage,
+        projectilePenetration: enemy.projectilePenetration,
         projectileSpeed: enemy.projectileSpeed,
         fireCooldownMs: enemy.fireCooldownMs,
         lastShotAt: -enemy.fireCooldownMs,
@@ -227,7 +222,10 @@ export class TrainingScene extends Phaser.Scene {
     if (!projectile) {
       return;
     }
-    projectile.setActive(true).setVisible(true);
+    projectile.setActive(true).setVisible(true).setData({
+      damage: this.levelConfig.player.projectileDamage,
+      penetration: this.levelConfig.player.projectilePenetration,
+    });
     this.physics.velocityFromRotation(
       this.turret.rotation,
       this.levelConfig.player.projectileSpeed,
@@ -304,24 +302,24 @@ export class TrainingScene extends Phaser.Scene {
     projectile: Phaser.Physics.Arcade.Sprite,
     enemy: Phaser.Physics.Arcade.Sprite
   ) {
-    if (!projectile.active || !enemy.active) return;
-    projectile.destroy();
-    const damage = calculateArmoredDamage(
-      this.levelConfig.player.projectileDamage,
-      enemy.getData('armorReduction') as number
+    const enemyId = enemy.getData('id') as string;
+    const resolution = applyProjectileImpact(
+      this,
+      projectile,
+      enemy,
+      enemy.getData(
+        'armorProfile'
+      ) as RuntimeLevelConfig['player']['armorProfile'],
+      enemy.getData('health') as number,
+      'player',
+      enemyId
     );
-    const health = healthAfterDamage(enemy.getData('health') as number, damage);
-    enemy.setData('health', health);
-    showDamage(this, enemy.x, enemy.y, damage);
-    logCombatEvent('player_projectile_hit_enemy', {
-      damage,
-      enemyHealth: health,
-      enemyId: enemy.getData('id') as string,
-    });
+    if (!resolution) return;
+    enemy.setData('health', resolution.health);
 
-    if (health === 0) {
+    if (resolution.health === 0) {
       logCombatEvent('enemy_destroyed', {
-        enemyId: enemy.getData('id') as string,
+        enemyId,
         source: 'projectile',
       });
       destroyEnemyVisual(enemy);
@@ -336,29 +334,18 @@ export class TrainingScene extends Phaser.Scene {
   }
 
   private handleEnemyProjectileHit(projectile: Phaser.Physics.Arcade.Sprite) {
-    if (!projectile.active) return;
-    const incomingDamage = projectile.getData('damage') as unknown;
-    if (
-      typeof incomingDamage !== 'number' ||
-      !Number.isFinite(incomingDamage)
-    ) {
-      logCombatEvent('invalid_enemy_projectile_collision', {
-        objectType: projectile.texture.key,
-      });
-      return;
-    }
-    projectile.destroy();
     if (this.playerDestroyed) return;
-    const damage = calculateArmoredDamage(
-      incomingDamage,
-      this.levelConfig.player.armorReduction
+    const resolution = applyProjectileImpact(
+      this,
+      projectile,
+      this.player,
+      this.levelConfig.player.armorProfile,
+      this.playerHealth,
+      'enemy',
+      'player'
     );
-    this.playerHealth = healthAfterDamage(this.playerHealth, damage);
-    showDamage(this, this.player.x, this.player.y, damage);
-    logCombatEvent('enemy_projectile_hit_player', {
-      damage,
-      playerHealth: this.playerHealth,
-    });
+    if (!resolution) return;
+    this.playerHealth = resolution.health;
     this.player.setTint(0xffffff);
     this.time.delayedCall(80, () => {
       if (!this.playerDestroyed) this.player.clearTint();
@@ -368,52 +355,20 @@ export class TrainingScene extends Phaser.Scene {
   }
 
   private handleRam(enemy: Phaser.Physics.Arcade.Sprite) {
-    const enemyId = enemy.getData('id') as string;
     const now = this.time.now;
-    if (!isRamDamageReady(this.lastRamAt.get(enemyId), now)) return;
-
-    const damage = calculateRamDamage(
-      {
-        armorReduction: this.levelConfig.player.armorReduction,
-        mass: this.levelConfig.player.mass,
-        velocityX: this.player.getData('impactVelocityX') as number,
-        velocityY: this.player.getData('impactVelocityY') as number,
-        x: this.player.x,
-        y: this.player.y,
-      },
-      {
-        armorReduction: enemy.getData('armorReduction') as number,
-        mass: enemy.getData('mass') as number,
-        velocityX: enemy.getData('impactVelocityX') as number,
-        velocityY: enemy.getData('impactVelocityY') as number,
-        x: enemy.x,
-        y: enemy.y,
-      }
-    );
-    if (damage.damageToFirst === 0 && damage.damageToSecond === 0) return;
-
-    this.lastRamAt.set(enemyId, now);
-    this.playerHealth = healthAfterDamage(
+    const enemyId = enemy.getData('id') as string;
+    const resolution = applyRamImpact(
+      this,
+      this.player,
+      enemy,
+      this.levelConfig.player,
       this.playerHealth,
-      damage.damageToFirst
+      this.lastRamAt.get(enemyId),
+      now
     );
-    const enemyHealth = healthAfterDamage(
-      enemy.getData('health') as number,
-      damage.damageToSecond
-    );
-    enemy.setData('health', enemyHealth);
-    showDamage(this, this.player.x, this.player.y, damage.damageToFirst);
-    showDamage(this, enemy.x, enemy.y, damage.damageToSecond);
-    logCombatEvent('ram_impact', {
-      damageToEnemy: damage.damageToSecond,
-      damageToPlayer: damage.damageToFirst,
-      enemyId,
-      relativeSpeed: Math.round(damage.relativeSpeed),
-    });
-    if (enemyHealth === 0) {
-      logCombatEvent('enemy_destroyed', { enemyId, source: 'ram' });
-      destroyEnemyVisual(enemy);
-    }
+    if (!resolution) return;
+    this.lastRamAt.set(resolution.enemyId, now);
+    this.playerHealth = resolution.playerHealth;
     if (this.playerHealth === 0) this.disablePlayer();
     this.emitState();
   }

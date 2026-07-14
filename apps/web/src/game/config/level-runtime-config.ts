@@ -51,11 +51,13 @@ function toRuntimeEnemy(enemy: EnemyTankConfigDto) {
     y: enemy.y,
     maxHealth: combat.maxHealth,
     armorReduction: combat.armorReduction,
+    armorProfile: combat.armorProfile,
     mass: combat.mass,
     speed: Math.round(combat.speed * enemy.ai.speedMultiplier),
     detectionRange: enemy.ai.detectionRange,
     attackRange: enemy.ai.attackRange,
     projectileDamage: Math.round(combat.projectileDamage * 0.55),
+    projectilePenetration: Math.round(combat.projectilePenetration * 0.82),
     projectileSpeed: Math.round(combat.projectileSpeed * 0.75),
     fireCooldownMs: enemy.ai.fireCooldownMs,
   };
