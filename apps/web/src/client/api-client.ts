@@ -3,6 +3,7 @@ import type {
   FinishSessionResponse,
   GameEventRequest,
   LevelDto,
+  LearningProgressDto,
   OwnedTankDto,
   StartSessionRequest,
   StartSessionResponse,
@@ -43,6 +44,12 @@ export class ApiClient {
 
   listOwnedTanks(childId: string) {
     return this.send<OwnedTankDto[]>(`/api/children/${childId}/tanks`);
+  }
+
+  listLearningProgress(childId: string) {
+    return this.send<LearningProgressDto[]>(
+      `/api/children/${childId}/progress`
+    );
   }
 
   listTankSkins(childId: string, tankId: string) {

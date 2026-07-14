@@ -74,6 +74,26 @@ test('completes the authoritative learning and upgrade journey', async ({
       .click();
   }
 
+  const progressResponse = await request.get(
+    'http://127.0.0.1:3000/api/children/child_demo/progress'
+  );
+  expect(progressResponse.ok()).toBe(true);
+  await expect(progressResponse.json()).resolves.toMatchObject({
+    data: expect.arrayContaining([
+      expect.objectContaining({
+        subject: 'math',
+        skillKey: 'addition-within-20',
+        correctCount: expect.any(Number),
+        accuracy: expect.any(Number),
+      }),
+      expect.objectContaining({
+        subject: 'math',
+        skillKey: 'subtraction-within-20',
+        averageAnswerTimeMs: expect.any(Number),
+      }),
+    ]),
+  });
+
   await expect(
     page.getByRole('heading', { name: '2 training tanks remain' })
   ).toBeVisible();

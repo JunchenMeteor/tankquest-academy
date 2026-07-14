@@ -49,6 +49,7 @@ model Child {
   sessions     GameSession[]
   tanks        ChildTank[]
   inventory    ChildInventory[]
+  learningRecords LearningRecord[]
   createdAt    DateTime         @default(now()) @map("created_at")
   updatedAt    DateTime         @updatedAt @map("updated_at")
 
@@ -177,6 +178,7 @@ model Question {
   subject        String
   mode           String
   difficulty     Int
+  skillKey       String              @map("skill_key")
   prompt         String
   explanation    String
   status         ContentStatus       @default(draft)
@@ -185,6 +187,22 @@ model Question {
   sessionAnswers GameSessionAnswer[]
 
   @@map("questions")
+}
+
+model LearningRecord {
+  id                    String   @id @default(cuid())
+  childId               String   @map("child_id")
+  subject               String
+  skillKey              String   @map("skill_key")
+  attempts              Int      @default(0)
+  correctCount          Int      @default(0) @map("correct_count")
+  averageAnswerTimeMs   Int      @default(0) @map("average_answer_time_ms")
+  currentDifficulty     Int      @default(1) @map("current_difficulty")
+  child                 Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@unique([childId, subject, skillKey])
+  @@map("learning_records")
 }
 
 model QuestionAnswer {

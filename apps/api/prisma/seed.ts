@@ -166,9 +166,24 @@ const levelSeeds = [
 ];
 
 const questionSeeds = [
-  { prompt: '8 + 7 = ?', correct: '15', choices: ['12', '15', '17'] },
-  { prompt: '9 + 6 = ?', correct: '15', choices: ['14', '15', '16'] },
-  { prompt: '13 - 5 = ?', correct: '8', choices: ['7', '8', '9'] },
+  {
+    skillKey: 'addition-within-20',
+    prompt: '8 + 7 = ?',
+    correct: '15',
+    choices: ['12', '15', '17'],
+  },
+  {
+    skillKey: 'addition-within-20',
+    prompt: '9 + 6 = ?',
+    correct: '15',
+    choices: ['14', '15', '16'],
+  },
+  {
+    skillKey: 'subtraction-within-20',
+    prompt: '13 - 5 = ?',
+    correct: '8',
+    choices: ['7', '8', '9'],
+  },
 ];
 
 async function seed() {
@@ -250,7 +265,7 @@ async function seed() {
         where: {
           childTankId_skinId: { childTankId: childTank.id, skinId: skin.id },
         },
-        update: {},
+        update: { skillKey: item.skillKey },
         create: { childTankId: childTank.id, skinId: skin.id },
       });
       if (index === 0 && !childTank.selectedSkinId) {
@@ -274,6 +289,7 @@ async function seed() {
           subject: 'math',
           mode: 'child_learning',
           difficulty: index === 2 ? 2 : 1,
+          skillKey: item.skillKey,
           prompt: item.prompt,
           explanation: `${item.prompt.replace('?', item.correct)}`,
           status: 'published',

@@ -170,14 +170,60 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
   }
 
   async recordAnswer(sessionId: string, answer: RecordedAnswer): Promise<void> {
-    await this.prisma.gameSessionAnswer.create({
-      data: {
-        sessionId,
-        questionId: answer.questionId,
-        selectedAnswerId: answer.selectedAnswerId,
-        isCorrect: answer.correct,
-        answerTimeMs: answer.answerTimeMs,
-      },
+    await this.prisma.$transaction(async (transaction) => {
+      await transaction.gameSessionAnswer.create({
+        data: {
+          sessionId,
+          questionId: answer.questionId,
+          selectedAnswerId: answer.selectedAnswerId,
+          isCorrect: answer.correct,
+          answerTimeMs: answer.answerTimeMs,
+        },
+      });
+      const [session, question] = await Promise.all([
+        transaction.gameSession.findUniqueOrThrow({
+          where: { id: sessionId },
+          select: { childId: true },
+        }),
+        transaction.question.findUniqueOrThrow({
+          where: { id: answer.questionId },
+          select: { subject: true, skillKey: true, difficulty: true },
+        }),
+      ]);
+      const key = {
+        childId_subject_skillKey: {
+          childId: session.childId,
+          subject: question.subject,
+          skillKey: question.skillKey,
+        },
+      };
+      const existing = await transaction.learningRecord.findUnique({
+        where: key,
+      });
+      const attempts = (existing?.attempts ?? 0) + 1;
+      const averageAnswerTimeMs = Math.round(
+        ((existing?.averageAnswerTimeMs ?? 0) * (attempts - 1) +
+          answer.answerTimeMs) /
+          attempts
+      );
+      await transaction.learningRecord.upsert({
+        where: key,
+        update: {
+          attempts: { increment: 1 },
+          correctCount: { increment: answer.correct ? 1 : 0 },
+          averageAnswerTimeMs,
+          currentDifficulty: question.difficulty,
+        },
+        create: {
+          childId: session.childId,
+          subject: question.subject,
+          skillKey: question.skillKey,
+          attempts: 1,
+          correctCount: answer.correct ? 1 : 0,
+          averageAnswerTimeMs: answer.answerTimeMs,
+          currentDifficulty: question.difficulty,
+        },
+      });
     });
   }
 

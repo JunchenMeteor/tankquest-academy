@@ -68,4 +68,20 @@ describe('ApiClient', () => {
       expect.objectContaining({ method: 'POST' })
     );
   });
+
+  it('loads aggregate learning progress without answer data', async () => {
+    const request = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ data: [], error: null }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    );
+    const client = new ApiClient('http://api.test', request);
+
+    await expect(client.listLearningProgress('child_1')).resolves.toEqual([]);
+    expect(request).toHaveBeenCalledWith(
+      'http://api.test/api/children/child_1/progress',
+      expect.any(Object)
+    );
+  });
 });
