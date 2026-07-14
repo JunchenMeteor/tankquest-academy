@@ -47,7 +47,7 @@ test('completes the authoritative learning and upgrade journey', async ({
       );
     });
   await page
-    .getByRole('button', { name: 'Robot patrol · difficulty 2' })
+    .getByRole('button', { name: 'Robot patrol · difficulty 3' })
     .click();
   await startButton.click();
   await expect(page.getByText(/Robot patrol · Firepower 3/)).toBeVisible();

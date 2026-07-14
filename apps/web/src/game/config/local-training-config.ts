@@ -11,6 +11,7 @@ export const localTrainingConfig: RuntimeLevelConfig = {
   enemies: [
     {
       id: 'robot_alpha',
+      role: 'scout',
       x: 720,
       y: 150,
       maxHealth: 90,
@@ -18,9 +19,14 @@ export const localTrainingConfig: RuntimeLevelConfig = {
       mass: 75,
       speed: 45,
       detectionRange: 260,
+      attackRange: 190,
+      projectileDamage: 15,
+      projectileSpeed: 320,
+      fireCooldownMs: 1900,
     },
     {
       id: 'robot_bravo',
+      role: 'medium',
       x: 760,
       y: 390,
       maxHealth: 110,
@@ -28,6 +34,10 @@ export const localTrainingConfig: RuntimeLevelConfig = {
       mass: 85,
       speed: 55,
       detectionRange: 280,
+      attackRange: 220,
+      projectileDamage: 18,
+      projectileSpeed: 340,
+      fireCooldownMs: 1700,
     },
   ],
   obstacles: [
