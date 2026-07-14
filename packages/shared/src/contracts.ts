@@ -149,3 +149,14 @@ export interface UpgradeTankResponse {
   effectiveValue: number;
   remainingParts: number;
 }
+
+export interface LearningProgressDto {
+  subject: Subject;
+  skillKey: string;
+  attempts: number;
+  correctCount: number;
+  accuracy: number;
+  averageAnswerTimeMs: number;
+  currentDifficulty: number;
+  updatedAt: string;
+}
