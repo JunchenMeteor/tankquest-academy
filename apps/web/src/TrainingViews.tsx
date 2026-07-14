@@ -1,5 +1,6 @@
 import type {
   LevelDto,
+  OwnedTankDto,
   QuestionDto,
   StartSessionResponse,
   SubmitAnswerResponse,
@@ -48,14 +49,20 @@ export function MissionPicker({
   levels,
   preview,
   selectedLevelId,
-  onSelect,
+  selectedTankId,
+  tanks,
+  onSelectLevel,
+  onSelectTank,
   onStart,
 }: {
   busy: boolean;
   levels: LevelDto[];
   preview: RuntimeLevelConfig | undefined;
   selectedLevelId: string;
-  onSelect: (levelId: string) => void;
+  selectedTankId: string;
+  tanks: OwnedTankDto[];
+  onSelectLevel: (levelId: string) => void;
+  onSelectTank: (tankId: string) => void;
   onStart: () => void;
 }) {
   return (
@@ -68,9 +75,30 @@ export function MissionPicker({
             key={level.id}
             className={level.id === selectedLevelId ? 'selected' : ''}
             aria-pressed={level.id === selectedLevelId}
-            onClick={() => onSelect(level.id)}
+            onClick={() => onSelectLevel(level.id)}
           >
             {formatMissionName(level.code)} · difficulty {level.baseDifficulty}
+          </button>
+        ))}
+      </div>
+      <h3>Choose your tank</h3>
+      <div className="tank-picker" aria-label="Owned tanks">
+        {tanks.map((tank) => (
+          <button
+            key={tank.id}
+            className={tank.id === selectedTankId ? 'selected' : ''}
+            aria-pressed={tank.id === selectedTankId}
+            onClick={() => onSelectTank(tank.id)}
+          >
+            <strong>{formatTankName(tank.code)}</strong>
+            <span>
+              {tank.role} · level {tank.level}
+            </span>
+            <span>
+              Firepower {tank.stats.firepower} · Mobility {tank.stats.mobility}{' '}
+              · Armor {tank.stats.armor} · Stealth {tank.stats.stealth} · Vision{' '}
+              {tank.stats.vision}
+            </span>
           </button>
         ))}
       </div>
@@ -237,6 +265,13 @@ function LearningConsole({
 function formatMissionName(code: string) {
   const value = code.replaceAll('-', ' ');
   return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
+}
+
+function formatTankName(code: string) {
+  return code
+    .split('-')
+    .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
+    .join(' ');
 }
 
 function formatMapName(style: RuntimeLevelConfig['mapStyle']) {

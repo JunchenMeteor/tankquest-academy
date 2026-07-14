@@ -25,6 +25,10 @@ export interface TankDto {
   stats: TankStats;
 }
 
+export interface OwnedTankDto extends TankDto {
+  level: number;
+}
+
 export interface QuestionChoiceDto {
   id: string;
   text: string;

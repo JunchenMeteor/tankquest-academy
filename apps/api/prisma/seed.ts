@@ -32,6 +32,30 @@ const enemyPresets = {
   },
 } as const;
 
+const tankSeeds = [
+  {
+    id: 'tank_star_shield',
+    code: 'star-shield',
+    nameKey: 'tank.starShield.name',
+    role: 'medium',
+    stats: { firepower: 3, mobility: 3, armor: 3, stealth: 2, vision: 3 },
+  },
+  {
+    id: 'tank_swift_fox',
+    code: 'swift-fox',
+    nameKey: 'tank.swiftFox.name',
+    role: 'scout',
+    stats: { firepower: 2, mobility: 5, armor: 1, stealth: 4, vision: 4 },
+  },
+  {
+    id: 'tank_iron_mountain',
+    code: 'iron-mountain',
+    nameKey: 'tank.ironMountain.name',
+    role: 'heavy',
+    stats: { firepower: 4, mobility: 1, armor: 5, stealth: 1, vision: 2 },
+  },
+] as const;
+
 function enemyTank(
   id: string,
   role: keyof typeof enemyPresets,
@@ -165,25 +189,30 @@ async function seed() {
     create: { childId: child.id, maxDifficulty: 3 },
   });
 
-  const tank = await prisma.tank.upsert({
-    where: { code: 'star-shield' },
-    update: {},
-    create: {
-      id: 'tank_star_shield',
-      code: 'star-shield',
-      nameKey: 'tank.starShield.name',
-      role: 'medium',
-      stats: {
-        create: { firepower: 3, mobility: 3, armor: 3, stealth: 2, vision: 3 },
+  for (const item of tankSeeds) {
+    const tank = await prisma.tank.upsert({
+      where: { code: item.code },
+      update: {
+        nameKey: item.nameKey,
+        role: item.role,
+        isActive: true,
+        stats: { upsert: { update: item.stats, create: item.stats } },
       },
-    },
-  });
+      create: {
+        id: item.id,
+        code: item.code,
+        nameKey: item.nameKey,
+        role: item.role,
+        stats: { create: item.stats },
+      },
+    });
 
-  await prisma.childTank.upsert({
-    where: { childId_tankId: { childId: child.id, tankId: tank.id } },
-    update: {},
-    create: { childId: child.id, tankId: tank.id },
-  });
+    await prisma.childTank.upsert({
+      where: { childId_tankId: { childId: child.id, tankId: tank.id } },
+      update: {},
+      create: { childId: child.id, tankId: tank.id },
+    });
+  }
 
   const questions = [];
   for (const [index, item] of questionSeeds.entries()) {
