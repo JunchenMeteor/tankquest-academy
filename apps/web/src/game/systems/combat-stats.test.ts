@@ -15,6 +15,7 @@ describe('deriveCombatStats', () => {
       speed: 170,
       turnSpeed: 2.8,
       projectileDamage: 34,
+      projectilePenetration: 82,
       projectileSpeed: 460,
       fireCooldownMs: 350,
       detectionRange: 280,
@@ -26,6 +27,9 @@ describe('deriveCombatStats', () => {
     const high = deriveCombatStats(withStat('firepower', 5));
 
     expect(high.projectileDamage).toBeGreaterThan(low.projectileDamage);
+    expect(high.projectilePenetration).toBeGreaterThan(
+      low.projectilePenetration
+    );
     expect(high.projectileSpeed).toBeGreaterThan(low.projectileSpeed);
     expect(high.fireCooldownMs).toBeLessThan(low.fireCooldownMs);
   });
@@ -46,6 +50,9 @@ describe('deriveCombatStats', () => {
 
     expect(high.maxHealth).toBeGreaterThan(low.maxHealth);
     expect(high.armorReduction).toBeGreaterThan(low.armorReduction);
+    expect(high.armorProfile.front).toBeGreaterThan(low.armorProfile.front);
+    expect(high.armorProfile.front).toBeGreaterThan(high.armorProfile.side);
+    expect(high.armorProfile.side).toBeGreaterThan(high.armorProfile.rear);
     expect(high.mass).toBeGreaterThan(low.mass);
   });
 

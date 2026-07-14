@@ -67,6 +67,10 @@ describe('levelRuntimeConfig', () => {
       fireCooldownMs: 1400,
     });
     expect(config.enemies[0]?.projectileDamage).toBeGreaterThan(0);
+    expect(config.enemies[0]?.projectilePenetration).toBeGreaterThan(0);
+    expect(config.enemies[0]?.armorProfile.front).toBeGreaterThan(
+      config.enemies[0]?.armorProfile.rear ?? 0
+    );
   });
 
   it('maps effective upgrades into perceptible runtime values', () => {
@@ -75,6 +79,7 @@ describe('levelRuntimeConfig', () => {
     expect(config.player.speed).toBeGreaterThan(170);
     expect(config.player.acceleration).toBeGreaterThan(420);
     expect(config.player.projectileDamage).toBeGreaterThan(34);
+    expect(config.player.projectilePenetration).toBeGreaterThan(82);
     expect(config.player.projectileSpeed).toBeGreaterThan(460);
     expect(config.player.fireCooldownMs).toBeLessThan(350);
   });

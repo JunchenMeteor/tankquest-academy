@@ -1,12 +1,22 @@
+export type ArmorZone = 'front' | 'side' | 'rear';
+
+export interface ArmorProfile {
+  front: number;
+  side: number;
+  rear: number;
+}
+
 export interface PlayerRuntimeConfig {
   maxHealth: number;
   armorReduction: number;
+  armorProfile: ArmorProfile;
   mass: number;
   speed: number;
   reverseSpeed: number;
   acceleration: number;
   turnSpeed: number;
   projectileDamage: number;
+  projectilePenetration: number;
   projectileSpeed: number;
   fireCooldownMs: number;
   detectionRange: number;
@@ -20,11 +30,13 @@ export interface EnemyRuntimeConfig {
   y: number;
   maxHealth: number;
   armorReduction: number;
+  armorProfile: ArmorProfile;
   mass: number;
   speed: number;
   detectionRange: number;
   attackRange: number;
   projectileDamage: number;
+  projectilePenetration: number;
   projectileSpeed: number;
   fireCooldownMs: number;
 }
