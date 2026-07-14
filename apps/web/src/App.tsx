@@ -287,6 +287,7 @@ export function App() {
           tank={selectedTank}
           upgrade={upgrade}
           onContinue={continueWithUpgrade}
+          onReplay={() => void startTraining()}
           onUpgrade={() => void upgradeFirepower()}
         />
       )}
