@@ -1,5 +1,9 @@
 import type { LevelDto, TankDto } from '@tankquest/shared';
 
+import {
+  baselineTankStats,
+  deriveCombatStats,
+} from '../systems/combat-stats.js';
 import { localTrainingConfig } from './local-training-config.js';
 
 export function levelRuntimeConfig(level: LevelDto, tank?: TankDto) {
@@ -12,22 +16,9 @@ export function levelRuntimeConfig(level: LevelDto, tank?: TankDto) {
         )
       : localTrainingConfig.enemies.length;
 
-  const firepowerDelta = (tank?.stats.firepower ?? 3) - 3;
-  const mobilityDelta = (tank?.stats.mobility ?? 3) - 3;
-
   return {
     ...localTrainingConfig,
-    player: {
-      ...localTrainingConfig.player,
-      speed: localTrainingConfig.player.speed + mobilityDelta * 18,
-      turnSpeed: localTrainingConfig.player.turnSpeed + mobilityDelta * 0.15,
-      projectileSpeed:
-        localTrainingConfig.player.projectileSpeed + firepowerDelta * 40,
-      fireCooldownMs: Math.max(
-        150,
-        localTrainingConfig.player.fireCooldownMs - firepowerDelta * 35
-      ),
-    },
+    player: deriveCombatStats(tank?.stats ?? baselineTankStats),
     enemies: localTrainingConfig.enemies.slice(0, enemyCount),
   };
 }
