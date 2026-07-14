@@ -1,9 +1,20 @@
 import Phaser from 'phaser';
 
 import {
+  createTrainingTextures,
+  destroyEnemyVisual,
+  drawEnemyHealth,
+  showDamage,
+} from '../presentation/training-visuals.js';
+import {
   calculateArmoredDamage,
   healthAfterDamage,
 } from '../systems/combat-damage.js';
+import {
+  effectiveEnemyDetectionRange,
+  selectEnemyAction,
+} from '../systems/enemy-ai.js';
+import { fireEnemyProjectile } from '../systems/enemy-fire.js';
 import { calculateTankMotion } from '../systems/tank-motion.js';
 import {
   calculateRamDamage,
@@ -24,6 +35,7 @@ export class TrainingScene extends Phaser.Scene {
   private turret!: Phaser.GameObjects.Image;
   private enemies!: Phaser.Physics.Arcade.Group;
   private projectiles!: Phaser.Physics.Arcade.Group;
+  private enemyProjectiles!: Phaser.Physics.Arcade.Group;
   private controls!: ControlKeys;
   private lastShotAt = 0;
   private shotsFired = 0;
@@ -40,7 +52,7 @@ export class TrainingScene extends Phaser.Scene {
   }
 
   create() {
-    this.createTextures();
+    createTrainingTextures(this);
     this.physics.world.setBounds(
       0,
       0,
@@ -71,15 +83,28 @@ export class TrainingScene extends Phaser.Scene {
 
     this.enemies = this.physics.add.group();
     for (const enemy of this.levelConfig.enemies) {
-      const sprite = this.enemies.create(enemy.x, enemy.y, 'training-robot');
+      const sprite = this.enemies.create(
+        enemy.x,
+        enemy.y,
+        `enemy-${enemy.role}-body`
+      );
+      const turret = this.add
+        .image(enemy.x, enemy.y, `enemy-${enemy.role}-turret`)
+        .setDepth(2);
       sprite.setData({
         id: enemy.id,
+        turret,
         health: enemy.maxHealth,
         maxHealth: enemy.maxHealth,
         armorReduction: enemy.armorReduction,
         mass: enemy.mass,
         speed: enemy.speed,
         detectionRange: enemy.detectionRange,
+        attackRange: enemy.attackRange,
+        projectileDamage: enemy.projectileDamage,
+        projectileSpeed: enemy.projectileSpeed,
+        fireCooldownMs: enemy.fireCooldownMs,
+        lastShotAt: -enemy.fireCooldownMs,
         impactVelocityX: 0,
         impactVelocityY: 0,
         healthBar: this.add.graphics().setDepth(3),
@@ -89,6 +114,7 @@ export class TrainingScene extends Phaser.Scene {
     }
 
     this.projectiles = this.physics.add.group({ maxSize: 24 });
+    this.enemyProjectiles = this.physics.add.group({ maxSize: 48 });
     this.physics.add.collider(this.player, obstacles);
     this.physics.add.collider(this.enemies, obstacles);
     this.physics.add.collider(this.enemies, this.enemies);
@@ -97,6 +123,12 @@ export class TrainingScene extends Phaser.Scene {
     );
     this.physics.add.collider(this.projectiles, obstacles, (projectile) =>
       projectile.destroy()
+    );
+    this.physics.add.collider(this.enemyProjectiles, obstacles, (projectile) =>
+      projectile.destroy()
+    );
+    this.physics.add.overlap(this.enemyProjectiles, this.player, (projectile) =>
+      this.handleEnemyProjectileHit(projectile as Phaser.Physics.Arcade.Sprite)
     );
     this.physics.add.overlap(
       this.projectiles,
@@ -162,7 +194,7 @@ export class TrainingScene extends Phaser.Scene {
     ) {
       this.fire();
     }
-    this.updateEnemies();
+    this.updateEnemies(time);
   }
 
   private fire() {
@@ -185,36 +217,69 @@ export class TrainingScene extends Phaser.Scene {
       projectile.body.velocity
     );
     projectile.setRotation(this.turret.rotation);
+    this.time.delayedCall(1800, () => {
+      if (projectile.active) projectile.destroy();
+    });
     this.lastShotAt = now;
     this.shotsFired += 1;
     this.emitState();
   }
 
-  private updateEnemies() {
+  private updateEnemies(time: number) {
     for (const child of this.enemies.children) {
       const enemy = child as Phaser.Physics.Arcade.Sprite;
+      const turret = enemy.getData('turret') as Phaser.GameObjects.Image;
       const distance = Phaser.Math.Distance.Between(
         enemy.x,
         enemy.y,
         this.player.x,
         this.player.y
       );
-      const detectionRange = enemy.getData('detectionRange') as number;
-      if (distance <= detectionRange) {
+      const detectionRange = effectiveEnemyDetectionRange(
+        enemy.getData('detectionRange') as number,
+        this.levelConfig.player.visibilityMultiplier
+      );
+      const action = selectEnemyAction(
+        distance,
+        detectionRange,
+        enemy.getData('attackRange') as number
+      );
+      const angle = Phaser.Math.Angle.Between(
+        enemy.x,
+        enemy.y,
+        this.player.x,
+        this.player.y
+      );
+
+      if (action === 'chase') {
         this.physics.moveToObject(
           enemy,
           this.player,
           enemy.getData('speed') as number
         );
+        enemy.rotation = angle;
       } else {
         enemy.setVelocity(0, 0);
       }
+      turret.setPosition(enemy.x, enemy.y);
+      turret.rotation = action === 'idle' ? enemy.rotation : angle;
+      if (action === 'fire') {
+        fireEnemyProjectile(this, this.enemyProjectiles, enemy, turret, time);
+      }
+
+      const revealed = distance <= this.levelConfig.player.detectionRange;
+      enemy.setAlpha(revealed ? 1 : 0.24);
+      turret.setAlpha(revealed ? 1 : 0.24);
+      const healthBar = enemy.getData(
+        'healthBar'
+      ) as Phaser.GameObjects.Graphics;
+      healthBar.setVisible(revealed);
       const body = enemy.body as Phaser.Physics.Arcade.Body;
       enemy.setData({
         impactVelocityX: body.velocity.x,
         impactVelocityY: body.velocity.y,
       });
-      this.drawEnemyHealth(enemy);
+      drawEnemyHealth(enemy);
     }
   }
 
@@ -229,17 +294,35 @@ export class TrainingScene extends Phaser.Scene {
     );
     const health = healthAfterDamage(enemy.getData('health') as number, damage);
     enemy.setData('health', health);
-    this.showDamage(enemy.x, enemy.y, damage);
+    showDamage(this, enemy.x, enemy.y, damage);
 
     if (health === 0) {
-      this.destroyEnemy(enemy);
+      destroyEnemyVisual(enemy);
     } else {
       enemy.setTint(0xffffff);
       this.time.delayedCall(80, () => {
         if (enemy.active) enemy.clearTint();
       });
-      this.drawEnemyHealth(enemy);
+      drawEnemyHealth(enemy);
     }
+    this.emitState();
+  }
+
+  private handleEnemyProjectileHit(projectile: Phaser.Physics.Arcade.Sprite) {
+    const incomingDamage = projectile.getData('damage') as number;
+    projectile.destroy();
+    if (this.playerDestroyed) return;
+    const damage = calculateArmoredDamage(
+      incomingDamage,
+      this.levelConfig.player.armorReduction
+    );
+    this.playerHealth = healthAfterDamage(this.playerHealth, damage);
+    showDamage(this, this.player.x, this.player.y, damage);
+    this.player.setTint(0xffffff);
+    this.time.delayedCall(80, () => {
+      if (!this.playerDestroyed) this.player.clearTint();
+    });
+    if (this.playerHealth === 0) this.disablePlayer();
     this.emitState();
   }
 
@@ -278,55 +361,17 @@ export class TrainingScene extends Phaser.Scene {
       damage.damageToSecond
     );
     enemy.setData('health', enemyHealth);
-    this.showDamage(this.player.x, this.player.y, damage.damageToFirst);
-    this.showDamage(enemy.x, enemy.y, damage.damageToSecond);
-    if (enemyHealth === 0) this.destroyEnemy(enemy);
+    showDamage(this, this.player.x, this.player.y, damage.damageToFirst);
+    showDamage(this, enemy.x, enemy.y, damage.damageToSecond);
+    if (enemyHealth === 0) destroyEnemyVisual(enemy);
     if (this.playerHealth === 0) this.disablePlayer();
     this.emitState();
-  }
-
-  private drawEnemyHealth(enemy: Phaser.Physics.Arcade.Sprite) {
-    const bar = enemy.getData('healthBar') as Phaser.GameObjects.Graphics;
-    const health = enemy.getData('health') as number;
-    const maxHealth = enemy.getData('maxHealth') as number;
-    const ratio = Math.max(0, health / maxHealth);
-    bar.clear();
-    bar.fillStyle(0x111911, 0.9).fillRect(enemy.x - 20, enemy.y - 28, 40, 5);
-    bar
-      .fillStyle(ratio > 0.35 ? 0x7eb668 : 0xdb725e, 1)
-      .fillRect(enemy.x - 19, enemy.y - 27, 38 * ratio, 3);
-  }
-
-  private destroyEnemy(enemy: Phaser.Physics.Arcade.Sprite) {
-    const bar = enemy.getData('healthBar') as Phaser.GameObjects.Graphics;
-    bar.destroy();
-    enemy.destroy();
   }
 
   private disablePlayer() {
     this.playerDestroyed = true;
     this.player.setVelocity(0, 0).setTint(0xb95b4b);
     this.turret.setTint(0xb95b4b);
-  }
-
-  private showDamage(x: number, y: number, damage: number) {
-    if (damage <= 0) return;
-    const label = this.add
-      .text(x, y - 24, `-${damage}`, {
-        color: '#ffd7cf',
-        fontFamily: 'sans-serif',
-        fontSize: '16px',
-        fontStyle: 'bold',
-      })
-      .setDepth(5)
-      .setOrigin(0.5);
-    this.tweens.add({
-      targets: label,
-      y: label.y - 24,
-      alpha: 0,
-      duration: 500,
-      onComplete: () => label.destroy(),
-    });
   }
 
   private emitState() {
@@ -338,20 +383,5 @@ export class TrainingScene extends Phaser.Scene {
       playerMaxHealth: this.levelConfig.player.maxHealth,
       playerDestroyed: this.playerDestroyed,
     });
-  }
-
-  private createTextures() {
-    const graphics = this.add.graphics();
-    graphics.fillStyle(0x5d7d46).fillRoundedRect(0, 0, 52, 34, 8);
-    graphics.generateTexture('tank-body', 52, 34);
-    graphics.clear().fillStyle(0xe8c65a).fillRoundedRect(0, 0, 42, 10, 5);
-    graphics.generateTexture('tank-turret', 42, 10);
-    graphics.clear().fillStyle(0xd86a55).fillCircle(16, 16, 16);
-    graphics.generateTexture('training-robot', 32, 32);
-    graphics.clear().fillStyle(0xeadfbd).fillRect(0, 0, 12, 4);
-    graphics.generateTexture('projectile', 12, 4);
-    graphics.clear().fillStyle(0x74806b).fillRect(0, 0, 32, 32);
-    graphics.generateTexture('obstacle', 32, 32);
-    graphics.destroy();
   }
 }

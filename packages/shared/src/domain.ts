@@ -30,3 +30,6 @@ export interface TankStats {
 }
 
 export const tankStatMax = 5;
+
+export const enemyTankRoles = ['scout', 'medium', 'heavy'] as const;
+export type EnemyTankRole = (typeof enemyTankRoles)[number];

@@ -1,4 +1,4 @@
-import type { GameMode, Subject, TankStats } from './domain.js';
+import type { EnemyTankRole, GameMode, Subject, TankStats } from './domain.js';
 
 export interface ApiError {
   code: string;
@@ -39,6 +39,20 @@ export interface LevelDto {
   mode: GameMode;
   baseDifficulty: number;
   config: Record<string, unknown>;
+}
+
+export interface EnemyTankConfigDto {
+  id: string;
+  role: EnemyTankRole;
+  x: number;
+  y: number;
+  stats: TankStats;
+  ai: {
+    detectionRange: number;
+    attackRange: number;
+    fireCooldownMs: number;
+    speedMultiplier: number;
+  };
 }
 
 export interface StartSessionRequest {

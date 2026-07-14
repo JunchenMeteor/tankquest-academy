@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  levelEnemyConfigSchema,
   startSessionRequestSchema,
   submitAnswerRequestSchema,
   tankStatsSchema,
@@ -41,5 +42,33 @@ describe('shared contracts', () => {
         answerTimeMs: -1,
       })
     ).toThrow();
+  });
+
+  it('validates backend-owned enemy tank compositions', () => {
+    expect(
+      levelEnemyConfigSchema.parse({
+        enemyTanks: [
+          {
+            id: 'scout_1',
+            role: 'scout',
+            x: 720,
+            y: 150,
+            stats: {
+              firepower: 2,
+              mobility: 4,
+              armor: 1,
+              stealth: 4,
+              vision: 3,
+            },
+            ai: {
+              detectionRange: 300,
+              attackRange: 210,
+              fireCooldownMs: 1800,
+              speedMultiplier: 0.4,
+            },
+          },
+        ],
+      }).enemyTanks
+    ).toHaveLength(1);
   });
 });

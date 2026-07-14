@@ -15,6 +15,7 @@ export interface PlayerRuntimeConfig {
 
 export interface EnemyRuntimeConfig {
   id: string;
+  role: 'scout' | 'medium' | 'heavy';
   x: number;
   y: number;
   maxHealth: number;
@@ -22,6 +23,10 @@ export interface EnemyRuntimeConfig {
   mass: number;
   speed: number;
   detectionRange: number;
+  attackRange: number;
+  projectileDamage: number;
+  projectileSpeed: number;
+  fireCooldownMs: number;
 }
 
 export interface ObstacleRuntimeConfig {
