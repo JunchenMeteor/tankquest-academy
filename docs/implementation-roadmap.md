@@ -16,11 +16,14 @@
 | Phase 1.6 命中判定收口 | 已完成 | 确定性穿深、方向装甲、跳弹/未击穿/击穿反馈和双方统一规则 |
 | Phase 1 家庭试用 | 待验证 | 首次操作、3-5 分钟局长、重复游玩和家长理解度 |
 | Phase 2 养成与学习记录 | 已完成 | 三辆坦克、涂装、学习记录、独立家长报告、英语和方向任务已通过工程验收 |
-| Phase 3+ | 未开始 | AI 学习教练、2.5D/3D、资源管线和多平台继续按独立 Issue/PR 推进 |
+| Phase 3 AI 学习教练 | 实施中 | 结构化 AI 服务、错题解释、自适应难度、家长摘要和安全题目草稿 |
+| Phase 4+ | 未开始 | 2.5D/3D、资源管线和多平台继续按独立 Issue/PR 推进 |
 
 Phase 1 的逐项结论和非阻塞项见 `phase-one-mvp-acceptance.md`。家庭试用发现的问题进入独立 Issue，不回填到已冻结的工程 MVP 范围。
 
 Phase 2 的逐项结论和证据见 `phase-two-acceptance.md`。正式多家庭鉴权和真实家庭可用性验证仍属于后续工作，不阻塞 v0.2.0 工程发布。
+
+Phase 3 的交付边界见 `phase-three-scope.md`。AI 只提供建议、解释和草稿，主后端继续裁决正确性、奖励、升级、难度和内容发布。
 
 Phase 1.6 和 Phase 2 的交付边界分别见 `phase-one-six-combat-scope.md` 和 `phase-two-scope.md`。Phase 1.6 完成后不再追加新的 1.x 工程阶段。
 
