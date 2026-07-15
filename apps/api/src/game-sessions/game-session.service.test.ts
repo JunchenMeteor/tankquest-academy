@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AiGatewayService } from '../ai/ai-gateway.service.js';
 import type {
+  AdaptiveLearningContext,
   NewSession,
   RecordedAnswer,
   SessionSetup,
@@ -53,6 +54,8 @@ const setup: SessionSetup = {
 class MemoryRepository extends GameSessionRepository {
   session: SessionState | null = null;
   allowSetup = true;
+  adaptiveContext: AdaptiveLearningContext | null = null;
+  failAdaptiveContext = false;
 
   async listLevels(): Promise<LevelDto[]> {
     return [setup.level];
@@ -81,6 +84,13 @@ class MemoryRepository extends GameSessionRepository {
 
   async findSession(): Promise<SessionState | null> {
     return this.session;
+  }
+
+  async loadAdaptiveContext(): Promise<AdaptiveLearningContext | null> {
+    if (this.failAdaptiveContext) {
+      throw new Error('Adaptive context unavailable');
+    }
+    return this.adaptiveContext;
   }
 
   async recordAnswer(
@@ -113,6 +123,7 @@ describe('GameSessionService', () => {
   let repository: MemoryRepository;
   let aiGateway: {
     createWrongAnswerExplanation: ReturnType<typeof vi.fn>;
+    createPracticeRecommendation: ReturnType<typeof vi.fn>;
   };
   let service: GameSessionService;
 
@@ -125,6 +136,15 @@ describe('GameSessionService', () => {
         fallbackReason: null,
         correctAnswer: '15',
         explanation: 'Work through the addition one step at a time.',
+      }),
+      createPracticeRecommendation: vi.fn().mockResolvedValue({
+        requestId: 'e96e124f-98d5-44b9-9690-002f7a5a5454',
+        source: 'template',
+        fallbackReason: null,
+        subject: 'math',
+        skillKey: 'addition-within-20',
+        recommendedDifficulty: 2,
+        practiceIntent: 'challenge',
       }),
     };
     service = new GameSessionService(
@@ -353,5 +373,100 @@ describe('GameSessionService', () => {
     const second = await service.finish('session_1');
     expect(first).toEqual(second);
     expect(first.stars).toBe(3);
+  });
+
+  it('settles normally when optional adaptive context is unavailable', async () => {
+    repository.failAdaptiveContext = true;
+    await service.start({
+      childId: 'child_1',
+      levelId: 'level_1',
+      tankId: 'tank_1',
+    });
+    await service.submitAnswer('session_1', {
+      questionId: 'question_1',
+      selectedAnswerId: 'answer_b',
+      answerTimeMs: 1200,
+    });
+
+    await expect(service.finish('session_1')).resolves.toMatchObject({
+      stars: 3,
+    });
+    expect(repository.session?.settlement).not.toHaveProperty('nextPractice');
+    expect(aiGateway.createPracticeRecommendation).not.toHaveBeenCalled();
+  });
+
+  it('persists a backend-constrained next-practice recommendation', async () => {
+    repository.adaptiveContext = {
+      ageGroup: 'child_6_8',
+      maxDifficulty: 2,
+      completedSessions: 3,
+      records: [
+        {
+          subject: 'math',
+          skillKey: 'addition-within-20',
+          attempts: 5,
+          correctCount: 4,
+          averageAnswerTimeMs: 8_000,
+          currentDifficulty: 1,
+        },
+      ],
+      levels: [
+        {
+          id: 'level_1',
+          subject: 'math',
+          difficulty: 1,
+          skillKeys: ['addition-within-20'],
+        },
+        {
+          id: 'level_2',
+          subject: 'math',
+          difficulty: 2,
+          skillKeys: ['addition-within-20'],
+        },
+      ],
+    };
+    await service.start({
+      childId: 'child_1',
+      levelId: 'level_1',
+      tankId: 'tank_1',
+    });
+    await service.submitAnswer('session_1', {
+      questionId: 'question_1',
+      selectedAnswerId: 'answer_b',
+      answerTimeMs: 800,
+    });
+
+    const first = await service.finish('session_1');
+    const second = await service.finish('session_1');
+
+    expect(first).toEqual(second);
+    expect(first.nextPractice).toEqual({
+      levelId: 'level_2',
+      subject: 'math',
+      skillKey: 'addition-within-20',
+      difficulty: 2,
+      intent: 'challenge',
+      decision: 'adopted',
+      reason: 'within_policy',
+    });
+    expect(first.rewards).toEqual([
+      { type: 'part', key: 'cannon', amount: 3 },
+      { type: 'training_point', key: 'general', amount: 30 },
+    ]);
+    expect(aiGateway.createPracticeRecommendation).toHaveBeenCalledWith({
+      ageGroup: '6-8',
+      subject: 'math',
+      skillKey: 'addition-within-20',
+      currentDifficulty: 1,
+      attempts: 5,
+      accuracy: 80,
+      averageAnswerTimeMs: 8_000,
+      completedSessions: 4,
+      allowedDifficulty: { min: 1, max: 2 },
+    });
+    expect(
+      aiGateway.createPracticeRecommendation.mock.calls[0]?.[0]
+    ).not.toHaveProperty('childId');
+    expect(aiGateway.createPracticeRecommendation).toHaveBeenCalledTimes(1);
   });
 });

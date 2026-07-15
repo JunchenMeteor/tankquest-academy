@@ -74,7 +74,8 @@ POST /api/game-sessions/:sessionId/answers
 {
   "questionId": "q_001",
   "selectedAnswerId": "a",
-  "answerTimeMs": 4200
+  "answerTimeMs": 4200,
+  "locale": "zh-CN"
 }
 ```
 
@@ -126,9 +127,20 @@ POST /api/game-sessions/:sessionId/finish
   "learningSummary": {
     "correct": 4,
     "total": 5
+  },
+  "nextPractice": {
+    "levelId": "level_002",
+    "subject": "math",
+    "skillKey": "addition-within-20",
+    "difficulty": 2,
+    "intent": "challenge",
+    "decision": "adopted",
+    "reason": "within_policy"
   }
 }
 ```
+
+`nextPractice` 是可选字段。主后端根据聚合学习记录、家长上限和已发布内容确定最终推荐并随结算持久化；AI 只能在后端给定的难度范围内提供建议，不能返回或选择 `levelId`。客户端点击推荐时只预选任务，不自动开始对局。
 
 ## 3. 错误码示例
 

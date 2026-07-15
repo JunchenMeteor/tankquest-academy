@@ -62,4 +62,27 @@ describe('AiGatewayService', () => {
       })
     ).resolves.toBeNull();
   });
+
+  it('returns null when practice recommendation is unavailable', async () => {
+    const client = {
+      createPracticeRecommendation: vi
+        .fn()
+        .mockRejectedValue(new Error('unavailable')),
+    } as unknown as AiGatewayClient;
+    vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+
+    await expect(
+      new AiGatewayService(client).createPracticeRecommendation({
+        ageGroup: '6-8',
+        subject: 'math',
+        skillKey: 'addition-within-20',
+        currentDifficulty: 1,
+        attempts: 5,
+        accuracy: 80,
+        averageAnswerTimeMs: 8_000,
+        completedSessions: 4,
+        allowedDifficulty: { min: 1, max: 2 },
+      })
+    ).resolves.toBeNull();
+  });
 });

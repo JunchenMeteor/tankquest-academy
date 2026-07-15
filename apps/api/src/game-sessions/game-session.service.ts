@@ -3,12 +3,14 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import type {
   AgeGroup,
   FinishSessionResponse,
   GameEventRequest,
+  NextPracticeRecommendationDto,
   StartSessionRequest,
   StartSessionResponse,
   SubmitAnswerRequest,
@@ -17,12 +19,22 @@ import type {
 } from '@tankquest/shared';
 
 import { AiGatewayService } from '../ai/ai-gateway.service.js';
+import {
+  buildAdaptivePracticePolicy,
+  resolveNextPractice,
+} from './adaptive-learning.js';
 import { GameSessionRepository } from './game-session.repository.js';
-import type { InternalQuestion, SessionState } from './game-session.models.js';
+import type {
+  AdaptiveLearningContext,
+  InternalQuestion,
+  SessionState,
+} from './game-session.models.js';
 import { calculateSettlement } from './settlement.js';
 
 @Injectable()
 export class GameSessionService {
+  private readonly logger = new Logger(GameSessionService.name);
+
   constructor(
     @Inject(GameSessionRepository)
     private readonly repository: GameSessionRepository,
@@ -125,11 +137,35 @@ export class GameSessionService {
       return session.settlement;
     }
 
-    const settlement = calculateSettlement(
+    const baseSettlement = calculateSettlement(
       sessionId,
       session.answers,
       session.setup.questions.length
     );
+    const context = await this.loadAdaptiveContext(session.childId);
+    const policy = context ? buildAdaptivePracticePolicy(context) : null;
+    let nextPractice: NextPracticeRecommendationDto | null = null;
+    if (policy && context) {
+      const ageGroup = toAiAgeGroup(context.ageGroup);
+      const aiResponse =
+        policy.skipAi || !ageGroup || !isAiSubject(policy.focus.subject)
+          ? null
+          : await this.aiGateway.createPracticeRecommendation({
+              ageGroup,
+              subject: policy.focus.subject,
+              skillKey: policy.focus.skillKey,
+              currentDifficulty: policy.currentDifficulty,
+              attempts: policy.focus.attempts,
+              accuracy: policy.focus.accuracy,
+              averageAnswerTimeMs: policy.focus.averageAnswerTimeMs,
+              completedSessions: policy.completedSessions + 1,
+              allowedDifficulty: policy.allowedDifficulty,
+            });
+      nextPractice = resolveNextPractice(policy, aiResponse);
+    }
+    const settlement = nextPractice
+      ? { ...baseSettlement, nextPractice }
+      : baseSettlement;
     return this.repository.settleSession(sessionId, settlement);
   }
 
@@ -142,6 +178,19 @@ export class GameSessionService {
       throw new ConflictException('Session is not active');
     }
     return session;
+  }
+
+  private async loadAdaptiveContext(
+    childId: string
+  ): Promise<AdaptiveLearningContext | null> {
+    try {
+      return await this.repository.loadAdaptiveContext(childId);
+    } catch {
+      this.logger.warn(
+        'Adaptive practice context unavailable; settling without a recommendation'
+      );
+      return null;
+    }
   }
 
   private async explainWrongAnswer(

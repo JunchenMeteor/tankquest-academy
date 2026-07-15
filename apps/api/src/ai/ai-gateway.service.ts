@@ -5,6 +5,8 @@ import type {
   AiDependencyStatus,
   AiQuestionDraftRequest,
   AiQuestionDraftResponse,
+  AiPracticeRecommendationRequest,
+  AiPracticeRecommendationResponse,
   AiWrongAnswerExplanationRequest,
   AiWrongAnswerExplanationResponse,
 } from './ai-gateway.models.js';
@@ -45,6 +47,17 @@ export class AiGatewayService {
   ): Promise<AiWrongAnswerExplanationResponse | null> {
     try {
       return await this.client.createWrongAnswerExplanation(request);
+    } catch {
+      this.warnUnavailable();
+      return null;
+    }
+  }
+
+  async createPracticeRecommendation(
+    request: AiPracticeRecommendationRequest
+  ): Promise<AiPracticeRecommendationResponse | null> {
+    try {
+      return await this.client.createPracticeRecommendation(request);
     } catch {
       this.warnUnavailable();
       return null;

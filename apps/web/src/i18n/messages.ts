@@ -60,6 +60,10 @@ export const messages: Record<Locale, Record<string, string>> = {
     'result.parts': '{{count}} cannon parts remain.',
     'result.effect':
       'The new projectile speed and reload time apply next mission.',
+    'result.nextPractice': 'Recommended next practice',
+    'result.nextPracticeSummary':
+      '{{subject}} · {{skill}} · difficulty {{difficulty}}',
+    'result.selectNextPractice': 'Select recommended mission',
     'settings.language': 'Language',
     'settings.theme': 'Theme',
     'parent.area': 'Parent area',
@@ -166,6 +170,10 @@ export const messages: Record<Locale, Record<string, string>> = {
     'result.upgraded': '升级完成：火力 {{value}}/{{max}}',
     'result.parts': '剩余 {{count}} 个炮管零件。',
     'result.effect': '新的炮弹速度和装填时间将在下一局生效。',
+    'result.nextPractice': '下一次练习建议',
+    'result.nextPracticeSummary':
+      '{{subject}} · {{skill}} · 难度 {{difficulty}}',
+    'result.selectNextPractice': '选择推荐任务',
     'settings.language': '语言',
     'settings.theme': '主题',
     'parent.area': '家长专区',

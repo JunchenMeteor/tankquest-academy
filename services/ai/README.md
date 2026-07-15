@@ -24,10 +24,14 @@ The service exposes:
 - `GET /health`
 - `POST /v1/internal/question-drafts`
 - `POST /v1/internal/wrong-answer-explanations`
+- `POST /v1/internal/practice-recommendations`
 
-Both write endpoints are internal-only. Drafts are never published automatically. Wrong-answer
+All write endpoints are internal-only. Drafts are never published automatically. Wrong-answer
 requests contain no business identifiers or personal data; the service must echo the
 backend-supplied correct answer, and NestJS rejects a mismatch before using the explanation.
+Adaptive practice requests contain only bounded aggregate learning metrics. The service suggests a
+difficulty within `allowedDifficulty`; the NestJS backend remains responsible for the final choice,
+level, progression, and persistence.
 
 ## Optional external provider
 

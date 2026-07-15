@@ -113,3 +113,54 @@ def test_wrong_answer_explanation_rejects_extra_personal_data() -> None:
     )
 
     assert response.status_code == 422
+
+
+def test_adaptive_practice_recommendation_is_structured_and_bounded() -> None:
+    response = TestClient(create_app(settings=settings())).post(
+        "/v1/internal/practice-recommendations",
+        json={
+            "ageGroup": "9-12",
+            "subject": "english",
+            "skillKey": "opposites",
+            "currentDifficulty": 3,
+            "attempts": 8,
+            "accuracy": 90,
+            "averageAnswerTimeMs": 12_000,
+            "completedSessions": 2,
+            "allowedDifficulty": {"min": 2, "max": 3},
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body == {
+        "requestId": body["requestId"],
+        "source": "template",
+        "fallbackReason": None,
+        "subject": "english",
+        "skillKey": "opposites",
+        "recommendedDifficulty": 3,
+        "practiceIntent": "challenge",
+    }
+    assert body["requestId"]
+
+
+def test_adaptive_practice_recommendation_rejects_identifiers_and_personal_data() -> None:
+    response = TestClient(create_app(settings=settings())).post(
+        "/v1/internal/practice-recommendations",
+        json={
+            "ageGroup": "6-8",
+            "subject": "math",
+            "skillKey": "addition-within-20",
+            "currentDifficulty": 2,
+            "attempts": 4,
+            "accuracy": 75,
+            "averageAnswerTimeMs": 15_000,
+            "completedSessions": 1,
+            "allowedDifficulty": {"min": 1, "max": 3},
+            "childId": "not-allowed",
+            "childName": "not-allowed",
+        },
+    )
+
+    assert response.status_code == 422

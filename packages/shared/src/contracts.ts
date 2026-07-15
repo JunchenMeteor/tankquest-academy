@@ -137,6 +137,27 @@ export interface FinishSessionResponse {
     amount: number;
   }>;
   learningSummary: { correct: number; total: number };
+  nextPractice?: NextPracticeRecommendationDto;
+}
+
+export type PracticeIntent = 'review' | 'reinforce' | 'challenge';
+
+export interface NextPracticeRecommendationDto {
+  levelId: string;
+  subject: Subject;
+  skillKey: string;
+  difficulty: number;
+  intent: PracticeIntent;
+  decision: 'adopted' | 'adjusted' | 'rejected' | 'fallback';
+  reason:
+    | 'within_policy'
+    | 'insufficient_data'
+    | 'ai_unavailable'
+    | 'invalid_focus'
+    | 'outside_policy'
+    | 'parent_limit'
+    | 'content_unavailable'
+    | 'provider_fallback';
 }
 
 export interface UpgradeTankRequest {

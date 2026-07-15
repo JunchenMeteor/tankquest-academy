@@ -1,4 +1,7 @@
 from ..models import (
+    AdaptivePracticeRecommendationPayload,
+    AdaptivePracticeRecommendationRequest,
+    PracticeIntent,
     QuestionDraftPayload,
     QuestionDraftRequest,
     WrongAnswerExplanationPayload,
@@ -90,4 +93,36 @@ class TemplateWrongAnswerExplanationProvider:
         return WrongAnswerExplanationPayload(
             correctAnswer=request.correct_answer,
             explanation=explanation,
+        )
+
+
+class TemplateAdaptivePracticeRecommendationProvider:
+    def generate(
+        self, request: AdaptivePracticeRecommendationRequest
+    ) -> AdaptivePracticeRecommendationPayload:
+        allowed = request.allowed_difficulty
+        current = min(max(request.current_difficulty, allowed.minimum), allowed.maximum)
+
+        if request.attempts < 3 or request.completed_sessions < 1:
+            recommended = current
+            intent: PracticeIntent = "reinforce"
+        elif request.accuracy < 60 or request.average_answer_time_ms > 30_000:
+            recommended = current - 1
+            intent = "review"
+        elif (
+            request.accuracy >= 85
+            and request.attempts >= 5
+            and request.average_answer_time_ms <= 20_000
+        ):
+            recommended = current + 1
+            intent = "challenge"
+        else:
+            recommended = current
+            intent = "reinforce"
+
+        return AdaptivePracticeRecommendationPayload(
+            subject=request.subject,
+            skillKey=request.skill_key,
+            recommendedDifficulty=min(max(recommended, allowed.minimum), allowed.maximum),
+            practiceIntent=intent,
         )

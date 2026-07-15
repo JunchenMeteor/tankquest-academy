@@ -3,11 +3,15 @@ import {
   aiHealthSchema,
   aiQuestionDraftRequestSchema,
   aiQuestionDraftResponseSchema,
+  aiPracticeRecommendationRequestSchema,
+  aiPracticeRecommendationResponseSchema,
   aiWrongAnswerExplanationRequestSchema,
   aiWrongAnswerExplanationResponseSchema,
   type AiDependencyStatus,
   type AiQuestionDraftRequest,
   type AiQuestionDraftResponse,
+  type AiPracticeRecommendationRequest,
+  type AiPracticeRecommendationResponse,
   type AiWrongAnswerExplanationRequest,
   type AiWrongAnswerExplanationResponse,
 } from './ai-gateway.models.js';
@@ -63,6 +67,26 @@ export class AiGatewayClient {
       }
     );
     const result = aiWrongAnswerExplanationResponseSchema.safeParse(
+      await this.readJson(response)
+    );
+    if (!response.ok || !result.success) throw new AiGatewayError();
+    return result.data;
+  }
+
+  async createPracticeRecommendation(
+    request: AiPracticeRecommendationRequest
+  ): Promise<AiPracticeRecommendationResponse> {
+    const response = await this.request(
+      '/v1/internal/practice-recommendations',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(
+          aiPracticeRecommendationRequestSchema.parse(request)
+        ),
+      }
+    );
+    const result = aiPracticeRecommendationResponseSchema.safeParse(
       await this.readJson(response)
     );
     if (!response.ok || !result.success) throw new AiGatewayError();
