@@ -15,6 +15,7 @@ on:
       - packages/shared/**
       - package.json
       - package-lock.json
+      - scripts/release-manager.mjs
       - .github/workflows/deploy-tencent.yml
   push:
     branches:
