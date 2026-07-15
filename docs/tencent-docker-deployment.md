@@ -57,7 +57,7 @@ MeteorVoice、MeteorTest、既有 runner、Docker 和 containerd 通过 `/etc/fs
 - `ai`：FastAPI 仅监听 Compose 内网 8100，默认使用无需密钥的模板供应商，内存上限 256 MiB。
 - `db`：PostgreSQL 17，数据写入对应环境的 `postgres` 目录。
 
-`TankQuest Preview and Release` 在 PR 中验证 API/AI/Web 三个运行时镜像；合并到 `main` 或 `release` 后，Job 统一显示 `TankQuest / Deploy preview or release`，具体目标由 `Resolve target` 步骤记录为 `preview` 或 `release`。TankQuest self-hosted runner 构建带提交 SHA 的镜像并调用 `deploy/deploy-container.sh`。部署必须通过 Compose health check 和本机 `/api/health` 检查。
+`TankQuest Preview and Release` 在 PR 中验证 API/AI/Web 三个运行时镜像；合并到 `main` 或 `release` 后，Job 统一显示 `TankQuest / Deploy preview or release`，具体目标由 `Resolve target` 步骤记录为 `preview` 或 `release`。GitHub hosted runner 生成 Python 3.13 Linux wheelhouse，TankQuest self-hosted runner 下载经过验证的源码和 wheelhouse，在不访问 PyPI 的情况下构建带提交 SHA 的镜像并调用 `deploy/deploy-container.sh`。部署必须通过 Compose health check 和本机 `/api/health` 检查。
 
 AI 不映射主机端口，Web 客户端也不接触 AI 地址或供应商密钥。NestJS 通过 `http://ai:8100` 访问 AI Gateway；AI 超时、无效输出或不可用时，API 健康响应仍为 200，并把 AI 依赖标记为 `degraded`。
 

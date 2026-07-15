@@ -11,5 +11,6 @@ coverage/
 __pycache__/
 .pytest_cache/
 .venv/
+services/ai/wheelhouse/
 *.log
 *.tsbuildinfo
