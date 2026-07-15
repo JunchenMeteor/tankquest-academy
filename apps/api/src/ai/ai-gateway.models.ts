@@ -80,6 +80,50 @@ export type AiPracticeRecommendationRequest = z.infer<
   typeof aiPracticeRecommendationRequestSchema
 >;
 
+const aiParentReportSubjectMetricSchema = z
+  .object({
+    subject: z.enum(['math', 'english', 'direction', 'logic', 'physics']),
+    attempts: z.number().int().min(0).max(100_000),
+    accuracy: z.number().min(0).max(100),
+    averageAnswerTimeMs: z
+      .number()
+      .int()
+      .min(0)
+      .max(30 * 60 * 1000),
+  })
+  .strict();
+
+const aiParentReportSkillMetricSchema = aiParentReportSubjectMetricSchema
+  .extend({
+    skillKey: z
+      .string()
+      .min(1)
+      .max(64)
+      .regex(/^[a-z0-9-]+$/),
+    currentDifficulty: z.number().int().min(1).max(5).optional(),
+    trend: z.enum([
+      'improving',
+      'steady',
+      'needs-practice',
+      'insufficient-data',
+    ]),
+  })
+  .strict();
+
+export const aiParentReportSummaryRequestSchema = z
+  .object({
+    locale: z.enum(['en', 'zh-CN']),
+    completedSessions: z.number().int().min(0).max(100_000),
+    totalAnswers: z.number().int().min(0).max(100_000),
+    subjects: z.array(aiParentReportSubjectMetricSchema).max(5),
+    skills: z.array(aiParentReportSkillMetricSchema).max(5),
+  })
+  .strict();
+
+export type AiParentReportSummaryRequest = z.infer<
+  typeof aiParentReportSummaryRequestSchema
+>;
+
 const questionDraftSchema = z
   .object({
     question: z.string().min(1).max(240),
@@ -167,4 +211,33 @@ export const aiPracticeRecommendationResponseSchema = z
 
 export type AiPracticeRecommendationResponse = z.infer<
   typeof aiPracticeRecommendationResponseSchema
+>;
+
+const aiParentReportSummarySchema = z
+  .object({
+    practiceContent: z.string().trim().min(1).max(240),
+    progress: z.string().trim().min(1).max(240),
+    attention: z.string().trim().min(1).max(240),
+    nextStep: z.string().trim().min(1).max(240),
+  })
+  .strict();
+
+export const aiParentReportSummaryResponseSchema = z
+  .object({
+    requestId: z.string().uuid(),
+    source: z.enum(['template', 'model']),
+    fallbackReason: z
+      .enum([
+        'config_missing',
+        'provider_error',
+        'unsafe_output',
+        'invalid_output',
+      ])
+      .nullable(),
+    summary: aiParentReportSummarySchema,
+  })
+  .strict();
+
+export type AiParentReportSummaryResponse = z.infer<
+  typeof aiParentReportSummaryResponseSchema
 >;

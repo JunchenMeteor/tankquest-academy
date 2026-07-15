@@ -192,6 +192,18 @@ export interface ParentReportMetricDto {
   averageAnswerTimeMs: number;
   currentDifficulty?: number;
   lastPracticedAt?: string;
+  trend?: ParentReportTrend;
+}
+
+export type ParentReportTrend =
+  'improving' | 'steady' | 'needs-practice' | 'insufficient-data';
+
+export interface ParentReportSummaryDto {
+  source: 'deterministic' | 'model';
+  practiceContent: string;
+  progress: string;
+  attention: string;
+  nextStep: string;
 }
 
 export interface ParentReportDto {
@@ -201,4 +213,5 @@ export interface ParentReportDto {
   subjects: ParentReportMetricDto[];
   recentSkills: ParentReportMetricDto[];
   focusSkill: Pick<ParentReportMetricDto, 'subject' | 'skillKey'> | null;
+  summary?: ParentReportSummaryDto;
 }

@@ -5,9 +5,11 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 AgeGroup = Literal["6-8", "9-12"]
 Locale = Literal["en", "zh-CN"]
 Subject = Literal["math", "english", "direction"]
+ReportSubject = Literal["math", "english", "direction", "logic", "physics"]
 DraftSource = Literal["template", "model"]
 FallbackReason = Literal["config_missing", "provider_error", "unsafe_output", "invalid_output"]
 PracticeIntent = Literal["review", "reinforce", "challenge"]
+LearningTrend = Literal["improving", "steady", "needs-practice", "insufficient-data"]
 
 
 class StrictModel(BaseModel):
@@ -131,6 +133,46 @@ class AdaptivePracticeRecommendationResponse(AdaptivePracticeRecommendationPaylo
     request_id: str = Field(alias="requestId")
     source: DraftSource
     fallback_reason: FallbackReason | None = Field(default=None, alias="fallbackReason")
+
+
+class ParentReportSubjectMetric(StrictModel):
+    subject: ReportSubject
+    attempts: int = Field(ge=0, le=100_000)
+    accuracy: float = Field(ge=0, le=100)
+    average_answer_time_ms: int = Field(alias="averageAnswerTimeMs", ge=0, le=1_800_000)
+
+
+class ParentReportSkillMetric(ParentReportSubjectMetric):
+    skill_key: str = Field(alias="skillKey", min_length=1, max_length=64, pattern=r"^[a-z0-9-]+$")
+    current_difficulty: int | None = Field(default=None, alias="currentDifficulty", ge=1, le=5)
+    trend: LearningTrend
+
+
+class ParentReportSummaryRequest(StrictModel):
+    locale: Locale = "en"
+    completed_sessions: int = Field(alias="completedSessions", ge=0, le=100_000)
+    total_answers: int = Field(alias="totalAnswers", ge=0, le=100_000)
+    subjects: list[ParentReportSubjectMetric] = Field(max_length=5)
+    skills: list[ParentReportSkillMetric] = Field(max_length=5)
+
+
+class ParentReportSummaryPayload(StrictModel):
+    practice_content: str = Field(alias="practiceContent", min_length=1, max_length=240)
+    progress: str = Field(min_length=1, max_length=240)
+    attention: str = Field(min_length=1, max_length=240)
+    next_step: str = Field(alias="nextStep", min_length=1, max_length=240)
+
+    @field_validator("practice_content", "progress", "attention", "next_step")
+    @classmethod
+    def strip_summary_text(cls, value: str) -> str:
+        return value.strip()
+
+
+class ParentReportSummaryResponse(StrictModel):
+    request_id: str = Field(alias="requestId")
+    source: DraftSource
+    fallback_reason: FallbackReason | None = Field(default=None, alias="fallbackReason")
+    summary: ParentReportSummaryPayload
 
 
 class HealthResponse(StrictModel):

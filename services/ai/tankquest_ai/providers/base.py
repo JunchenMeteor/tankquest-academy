@@ -3,6 +3,8 @@ from typing import Protocol
 from ..models import (
     AdaptivePracticeRecommendationPayload,
     AdaptivePracticeRecommendationRequest,
+    ParentReportSummaryPayload,
+    ParentReportSummaryRequest,
     QuestionDraftPayload,
     QuestionDraftRequest,
     WrongAnswerExplanationPayload,
@@ -22,3 +24,7 @@ class AdaptivePracticeRecommendationProvider(Protocol):
     def generate(
         self, request: AdaptivePracticeRecommendationRequest
     ) -> AdaptivePracticeRecommendationPayload: ...
+
+
+class ParentReportSummaryProvider(Protocol):
+    def generate(self, request: ParentReportSummaryRequest) -> ParentReportSummaryPayload: ...

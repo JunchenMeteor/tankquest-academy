@@ -1,5 +1,6 @@
 from .models import (
     AdaptivePracticeRecommendationRequest,
+    ParentReportSummaryRequest,
     QuestionDraftRequest,
     WrongAnswerExplanationRequest,
 )
@@ -22,6 +23,14 @@ exactly. recommendedDifficulty must remain inside allowedDifficulty, and practic
 review, reinforce, or challenge. Never request or infer identity or personal information.
 You only make a recommendation; the authoritative backend decides the final difficulty and all
 levels, rewards, progression, and persistence."""
+
+PARENT_REPORT_SYSTEM_PROMPT = """You summarize aggregate learning metrics for a parent.
+Return only the four requested structured text fields: practiceContent, progress, attention,
+and nextStep. Use one short, factual, calm sentence per field. Only describe supplied metrics
+and backend-provided trend signals. Never claim improvement without an improving signal.
+Never diagnose, assign ability or personality labels, use alarming or pressuring language,
+request personal information, or include links. You do not decide correctness, difficulty,
+rewards, progression, or persistence."""
 
 
 def question_draft_prompt(request: QuestionDraftRequest) -> str:
@@ -66,4 +75,34 @@ def adaptive_practice_recommendation_prompt(
         f"{request.allowed_difficulty.maximum}\n"
         "Suggest one bounded next practice difficulty and intent. Do not decide a level or "
         "progression outcome."
+    )
+
+
+def parent_report_summary_prompt(request: ParentReportSummaryRequest) -> str:
+    subject_lines = [
+        (
+            f"- {metric.subject}: attempts={metric.attempts}, accuracy={metric.accuracy}, "
+            f"averageAnswerTimeMs={metric.average_answer_time_ms}"
+        )
+        for metric in request.subjects
+    ]
+    skill_lines = [
+        (
+            f"- {metric.subject}/{metric.skill_key}: attempts={metric.attempts}, "
+            f"accuracy={metric.accuracy}, averageAnswerTimeMs={metric.average_answer_time_ms}, "
+            f"currentDifficulty={metric.current_difficulty}, trend={metric.trend}"
+        )
+        for metric in request.skills
+    ]
+    return "\n".join(
+        [
+            f"Locale: {request.locale}",
+            f"Completed sessions: {request.completed_sessions}",
+            f"Total answers: {request.total_answers}",
+            "Aggregate subject metrics:",
+            *(subject_lines or ["- none"]),
+            "Aggregate skill metrics:",
+            *(skill_lines or ["- none"]),
+            "Write a parent-facing summary without adding facts or unsupported progress claims.",
+        ]
     )

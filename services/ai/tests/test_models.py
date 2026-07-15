@@ -3,6 +3,8 @@ from pydantic import ValidationError
 
 from tankquest_ai.models import (
     AdaptivePracticeRecommendationRequest,
+    ParentReportSummaryPayload,
+    ParentReportSummaryRequest,
     QuestionDraftPayload,
     WrongAnswerExplanationRequest,
 )
@@ -54,4 +56,65 @@ def test_adaptive_practice_request_rejects_reversed_allowed_range() -> None:
             averageAnswerTimeMs=15_000,
             completedSessions=1,
             allowedDifficulty={"min": 4, "max": 2},
+        )
+
+
+def test_parent_report_summary_request_rejects_extra_nested_data() -> None:
+    with pytest.raises(ValidationError):
+        ParentReportSummaryRequest.model_validate(
+            {
+                "locale": "en",
+                "completedSessions": 2,
+                "totalAnswers": 5,
+                "subjects": [
+                    {
+                        "subject": "math",
+                        "attempts": 5,
+                        "accuracy": 80,
+                        "averageAnswerTimeMs": 7_000,
+                        "selectedAnswer": "private raw answer",
+                    }
+                ],
+                "skills": [],
+            }
+        )
+
+
+def test_parent_report_summary_request_limits_prompt_cardinality() -> None:
+    skill = {
+        "subject": "math",
+        "skillKey": "addition-within-20",
+        "attempts": 5,
+        "accuracy": 80,
+        "averageAnswerTimeMs": 7_000,
+        "trend": "steady",
+    }
+
+    with pytest.raises(ValidationError):
+        ParentReportSummaryRequest.model_validate(
+            {
+                "locale": "en",
+                "completedSessions": 2,
+                "totalAnswers": 5,
+                "subjects": [],
+                "skills": [skill] * 6,
+            }
+        )
+
+
+def test_parent_report_summary_payload_strips_and_limits_each_section() -> None:
+    payload = ParentReportSummaryPayload(
+        practiceContent="  Practiced math.  ",
+        progress="Progress was steady.",
+        attention="Continue watching addition.",
+        nextStep="Use a short practice next.",
+    )
+
+    assert payload.practice_content == "Practiced math."
+    with pytest.raises(ValidationError):
+        ParentReportSummaryPayload(
+            practiceContent="x" * 241,
+            progress="Progress was steady.",
+            attention="Continue watching addition.",
+            nextStep="Use a short practice next.",
         )

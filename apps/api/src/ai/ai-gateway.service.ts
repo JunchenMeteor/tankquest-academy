@@ -3,6 +3,8 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { AiGatewayClient } from './ai-gateway.client.js';
 import type {
   AiDependencyStatus,
+  AiParentReportSummaryRequest,
+  AiParentReportSummaryResponse,
   AiQuestionDraftRequest,
   AiQuestionDraftResponse,
   AiPracticeRecommendationRequest,
@@ -58,6 +60,17 @@ export class AiGatewayService {
   ): Promise<AiPracticeRecommendationResponse | null> {
     try {
       return await this.client.createPracticeRecommendation(request);
+    } catch {
+      this.warnUnavailable();
+      return null;
+    }
+  }
+
+  async createParentReportSummary(
+    request: AiParentReportSummaryRequest
+  ): Promise<AiParentReportSummaryResponse | null> {
+    try {
+      return await this.client.createParentReportSummary(request);
     } catch {
       this.warnUnavailable();
       return null;

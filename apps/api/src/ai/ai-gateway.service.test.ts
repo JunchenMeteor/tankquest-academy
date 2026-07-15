@@ -85,4 +85,23 @@ describe('AiGatewayService', () => {
       })
     ).resolves.toBeNull();
   });
+
+  it('returns null when parent summary generation is unavailable', async () => {
+    const client = {
+      createParentReportSummary: vi
+        .fn()
+        .mockRejectedValue(new Error('unavailable')),
+    } as unknown as AiGatewayClient;
+    vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+
+    await expect(
+      new AiGatewayService(client).createParentReportSummary({
+        locale: 'en',
+        completedSessions: 1,
+        totalAnswers: 3,
+        subjects: [],
+        skills: [],
+      })
+    ).resolves.toBeNull();
+  });
 });

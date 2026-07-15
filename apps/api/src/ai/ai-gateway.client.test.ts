@@ -192,6 +192,100 @@ describe('AiGatewayClient', () => {
     expect(fetchImplementation).not.toHaveBeenCalled();
   });
 
+  it('sends only aggregate parent report fields', async () => {
+    const fetchImplementation = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({
+        requestId: 'e96e124f-98d5-44b9-9690-002f7a5a5454',
+        source: 'model',
+        fallbackReason: null,
+        summary: {
+          practiceContent: 'Practice covered math.',
+          progress: 'Accuracy improved in one skill.',
+          attention: 'Continue supporting addition practice.',
+          nextStep: 'Try one short addition mission.',
+        },
+      })
+    );
+    const request = {
+      locale: 'en' as const,
+      completedSessions: 4,
+      totalAnswers: 12,
+      subjects: [
+        {
+          subject: 'math' as const,
+          attempts: 12,
+          accuracy: 75,
+          averageAnswerTimeMs: 4_000,
+        },
+      ],
+      skills: [
+        {
+          subject: 'math' as const,
+          skillKey: 'addition-within-20',
+          attempts: 6,
+          accuracy: 83,
+          averageAnswerTimeMs: 3_000,
+          currentDifficulty: 2,
+          trend: 'improving' as const,
+        },
+      ],
+    };
+
+    await expect(
+      new AiGatewayClient(
+        config,
+        fetchImplementation
+      ).createParentReportSummary(request)
+    ).resolves.toMatchObject({ source: 'model' });
+    const [url, init] = fetchImplementation.mock.calls[0] ?? [];
+    expect(url).toBe('http://ai:8100/v1/internal/parent-report-summaries');
+    const body = JSON.parse(String(init?.body));
+    expect(body).toEqual(request);
+    for (const field of [
+      'childId',
+      'name',
+      'birthYear',
+      'answers',
+      'questions',
+      'sessions',
+      'events',
+      'from',
+      'to',
+    ]) {
+      expect(body).not.toHaveProperty(field);
+    }
+  });
+
+  it('rejects parent summaries with extra provider fields', async () => {
+    const client = new AiGatewayClient(
+      config,
+      vi.fn<typeof fetch>().mockResolvedValue(
+        Response.json({
+          requestId: 'e96e124f-98d5-44b9-9690-002f7a5a5454',
+          source: 'model',
+          fallbackReason: null,
+          summary: {
+            practiceContent: 'Practice covered math.',
+            progress: 'Progress is steady.',
+            attention: 'Continue supporting addition.',
+            nextStep: 'Try another short session.',
+            childName: 'not-allowed',
+          },
+        })
+      )
+    );
+
+    await expect(
+      client.createParentReportSummary({
+        locale: 'en',
+        completedSessions: 1,
+        totalAnswers: 3,
+        subjects: [],
+        skills: [],
+      })
+    ).rejects.toBeInstanceOf(AiGatewayError);
+  });
+
   it.each([
     Response.json({ status: 'ok' }, { status: 200 }),
     Response.json(

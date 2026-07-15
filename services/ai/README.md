@@ -25,6 +25,7 @@ The service exposes:
 - `POST /v1/internal/question-drafts`
 - `POST /v1/internal/wrong-answer-explanations`
 - `POST /v1/internal/practice-recommendations`
+- `POST /v1/internal/parent-report-summaries`
 
 All write endpoints are internal-only. Drafts are never published automatically. Wrong-answer
 requests contain no business identifiers or personal data; the service must echo the
@@ -32,6 +33,13 @@ backend-supplied correct answer, and NestJS rejects a mismatch before using the 
 Adaptive practice requests contain only bounded aggregate learning metrics. The service suggests a
 difficulty within `allowedDifficulty`; the NestJS backend remains responsible for the final choice,
 level, progression, and persistence.
+
+Parent-report summary requests contain only locale plus bounded aggregate subject and skill
+metrics. They never contain child identifiers, profile fields, raw answers, questions, sessions,
+or gameplay events. Responses contain four short parent-facing sections and pass strict schema and
+`SafetyGuard` checks. Diagnostic claims, ability or personality labels, alarming language, links,
+and privacy requests trigger a deterministic template fallback. The NestJS backend remains
+authoritative for the report metrics and trend signals.
 
 ## Optional external provider
 

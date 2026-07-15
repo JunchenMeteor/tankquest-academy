@@ -1,6 +1,8 @@
 import type { AiGatewayConfig } from './ai-gateway.config.js';
 import {
   aiHealthSchema,
+  aiParentReportSummaryRequestSchema,
+  aiParentReportSummaryResponseSchema,
   aiQuestionDraftRequestSchema,
   aiQuestionDraftResponseSchema,
   aiPracticeRecommendationRequestSchema,
@@ -8,6 +10,8 @@ import {
   aiWrongAnswerExplanationRequestSchema,
   aiWrongAnswerExplanationResponseSchema,
   type AiDependencyStatus,
+  type AiParentReportSummaryRequest,
+  type AiParentReportSummaryResponse,
   type AiQuestionDraftRequest,
   type AiQuestionDraftResponse,
   type AiPracticeRecommendationRequest,
@@ -87,6 +91,24 @@ export class AiGatewayClient {
       }
     );
     const result = aiPracticeRecommendationResponseSchema.safeParse(
+      await this.readJson(response)
+    );
+    if (!response.ok || !result.success) throw new AiGatewayError();
+    return result.data;
+  }
+
+  async createParentReportSummary(
+    request: AiParentReportSummaryRequest
+  ): Promise<AiParentReportSummaryResponse> {
+    const response = await this.request(
+      '/v1/internal/parent-report-summaries',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(aiParentReportSummaryRequestSchema.parse(request)),
+      }
+    );
+    const result = aiParentReportSummaryResponseSchema.safeParse(
       await this.readJson(response)
     );
     if (!response.ok || !result.success) throw new AiGatewayError();
