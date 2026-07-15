@@ -11,7 +11,7 @@ The current v0.2 milestone is a Web learning-game vertical slice:
 - English-default multilingual UI and persistent training themes.
 - Backend-authoritative rewards and progression.
 - Config-driven tanks, levels, questions, themes, and assets.
-- AI service reserved for question drafts, explanations, and reports.
+- Optional child-safe AI service with deterministic fallback and a private backend gateway.
 
 ## Repository Layout
 

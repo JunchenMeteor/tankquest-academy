@@ -11,6 +11,7 @@ on:
       - deploy/**
       - apps/api/**
       - apps/web/**
+      - services/ai/**
       - packages/shared/**
       - package.json
       - package-lock.json
@@ -31,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: [api-runtime, web-runtime]
+        target: [api-runtime, web-runtime, ai-runtime]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -93,11 +94,13 @@ jobs:
       - name: Build deployment images
         run: |
           docker build --target api-runtime --tag "tankquest-api:${GITHUB_SHA}" --file source/Dockerfile source
+          docker build --target ai-runtime --tag "tankquest-ai:${GITHUB_SHA}" --file source/Dockerfile source
           docker build --target web-runtime --tag "tankquest-web:${GITHUB_SHA}" --file source/Dockerfile source
 
       - name: Deploy
         env:
           API_IMAGE: tankquest-api:${{ github.sha }}
+          AI_IMAGE: tankquest-ai:${{ github.sha }}
           APP_NAME: tankquest
           DATA_ROOT: /data/projects
           ENVIRONMENT: ${{ steps.target.outputs.environment }}
