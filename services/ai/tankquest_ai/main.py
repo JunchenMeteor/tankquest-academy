@@ -7,6 +7,8 @@ from .models import (
     AdaptivePracticeRecommendationRequest,
     AdaptivePracticeRecommendationResponse,
     HealthResponse,
+    ParentReportSummaryRequest,
+    ParentReportSummaryResponse,
     QuestionDraftRequest,
     QuestionDraftResponse,
     WrongAnswerExplanationRequest,
@@ -14,9 +16,11 @@ from .models import (
 )
 from .service import (
     AdaptivePracticeRecommendationService,
+    ParentReportSummaryService,
     QuestionDraftService,
     WrongAnswerExplanationService,
     build_adaptive_practice_recommendation_service,
+    build_parent_report_summary_service,
     build_question_draft_service,
     build_wrong_answer_explanation_service,
     health_response,
@@ -30,6 +34,7 @@ def create_app(
     draft_service: QuestionDraftService | None = None,
     explanation_service: WrongAnswerExplanationService | None = None,
     recommendation_service: AdaptivePracticeRecommendationService | None = None,
+    parent_report_service: ParentReportSummaryService | None = None,
 ) -> FastAPI:
     resolved_settings = settings or Settings.from_environment()
     resolved_draft_service = draft_service or build_question_draft_service(resolved_settings)
@@ -39,12 +44,16 @@ def create_app(
     resolved_recommendation_service = (
         recommendation_service or build_adaptive_practice_recommendation_service(resolved_settings)
     )
+    resolved_parent_report_service = parent_report_service or build_parent_report_summary_service(
+        resolved_settings
+    )
 
     app = FastAPI(title="TankQuest AI", version="0.1.0", docs_url=None, redoc_url=None)
     app.state.settings = resolved_settings
     app.state.draft_service = resolved_draft_service
     app.state.explanation_service = resolved_explanation_service
     app.state.recommendation_service = resolved_recommendation_service
+    app.state.parent_report_service = resolved_parent_report_service
 
     @app.get("/health", response_model=HealthResponse, response_model_by_alias=True)
     def health(request: Request) -> HealthResponse:
@@ -56,11 +65,15 @@ def create_app(
         current_recommendation_service = cast(
             AdaptivePracticeRecommendationService, request.app.state.recommendation_service
         )
+        current_parent_report_service = cast(
+            ParentReportSummaryService, request.app.state.parent_report_service
+        )
         return health_response(
             current_settings,
             current_draft_service,
             current_explanation_service,
             current_recommendation_service,
+            current_parent_report_service,
         )
 
     @app.post(
@@ -118,6 +131,23 @@ def create_app(
             skillKey=result.payload.skill_key,
             recommendedDifficulty=result.payload.recommended_difficulty,
             practiceIntent=result.payload.practice_intent,
+        )
+
+    @app.post(
+        "/v1/internal/parent-report-summaries",
+        response_model=ParentReportSummaryResponse,
+        response_model_by_alias=True,
+    )
+    def create_parent_report_summary(
+        payload: ParentReportSummaryRequest, request: Request
+    ) -> ParentReportSummaryResponse:
+        service = cast(ParentReportSummaryService, request.app.state.parent_report_service)
+        result = service.generate(payload)
+        return ParentReportSummaryResponse(
+            requestId=str(uuid4()),
+            source=result.source,
+            fallbackReason=result.fallback_reason,
+            summary=result.payload,
         )
 
     return app

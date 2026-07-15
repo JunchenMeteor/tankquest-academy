@@ -94,11 +94,11 @@ describe('ApiClient', () => {
     );
     const client = new ApiClient('http://api.test', request);
 
-    await expect(client.getParentReport('child_1')).resolves.toEqual({
+    await expect(client.getParentReport('child_1', 'zh-CN')).resolves.toEqual({
       subjects: [],
     });
     expect(request).toHaveBeenCalledWith(
-      'http://api.test/api/children/child_1/report',
+      'http://api.test/api/children/child_1/report?locale=zh-CN',
       expect.any(Object)
     );
   });

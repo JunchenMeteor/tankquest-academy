@@ -5,6 +5,8 @@ from pydantic import SecretStr
 from ..models import (
     AdaptivePracticeRecommendationPayload,
     AdaptivePracticeRecommendationRequest,
+    ParentReportSummaryPayload,
+    ParentReportSummaryRequest,
     QuestionDraftPayload,
     QuestionDraftRequest,
     WrongAnswerExplanationPayload,
@@ -12,9 +14,11 @@ from ..models import (
 )
 from ..prompts import (
     ADAPTIVE_PRACTICE_SYSTEM_PROMPT,
+    PARENT_REPORT_SYSTEM_PROMPT,
     SYSTEM_PROMPT,
     WRONG_ANSWER_SYSTEM_PROMPT,
     adaptive_practice_recommendation_prompt,
+    parent_report_summary_prompt,
     question_draft_prompt,
     wrong_answer_explanation_prompt,
 )
@@ -98,3 +102,30 @@ class LangChainOpenAIAdaptivePracticeRecommendationProvider:
         if isinstance(result, AdaptivePracticeRecommendationPayload):
             return result
         return AdaptivePracticeRecommendationPayload.model_validate(result)
+
+
+class LangChainOpenAIParentReportSummaryProvider:
+    def __init__(self, *, api_key: str, model: str, timeout_seconds: float) -> None:
+        chat_model = ChatOpenAI(
+            api_key=SecretStr(api_key),
+            model=model,
+            temperature=0,
+            timeout=timeout_seconds,
+            max_retries=0,
+        )
+        self._structured_model = chat_model.with_structured_output(
+            ParentReportSummaryPayload,
+            method="json_schema",
+            strict=True,
+        )
+
+    def generate(self, request: ParentReportSummaryRequest) -> ParentReportSummaryPayload:
+        result = self._structured_model.invoke(
+            [
+                SystemMessage(PARENT_REPORT_SYSTEM_PROMPT),
+                HumanMessage(parent_report_summary_prompt(request)),
+            ]
+        )
+        if isinstance(result, ParentReportSummaryPayload):
+            return result
+        return ParentReportSummaryPayload.model_validate(result)

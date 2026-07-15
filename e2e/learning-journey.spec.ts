@@ -153,12 +153,31 @@ test('completes the authoritative learning and upgrade journey', async ({
     page.getByRole('heading', { name: '30-day learning report' })
   ).toBeVisible();
   await expect(page.getByText('Completed missions')).toBeVisible();
-  await expect(page.getByText('Math')).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Math', exact: true })
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Learning coach summary' })
+  ).toBeVisible();
+  await expect(page.getByText('Practice content')).toBeVisible();
+  await expect(page.getByText('Progress evidence')).toBeVisible();
   await expect(
     page.getByRole('heading', { name: 'Addition within 20', exact: true })
   ).toBeVisible();
   await expect(
     page.getByText('Spend the next practice session on', { exact: false })
+  ).toBeVisible();
+  await Promise.all([
+    page.waitForResponse((response) =>
+      response.url().includes('/report?locale=zh-CN')
+    ),
+    page.getByLabel('Language').selectOption('zh-CN'),
+  ]);
+  await expect(
+    page.getByRole('heading', { name: '近 30 天学习报告' })
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: '学习教练摘要' })
   ).toBeVisible();
   expect(consoleErrors).toEqual([]);
 });

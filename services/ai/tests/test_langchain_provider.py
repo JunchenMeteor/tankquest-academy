@@ -3,6 +3,8 @@ from unittest.mock import MagicMock, patch
 from tankquest_ai.models import (
     AdaptivePracticeRecommendationPayload,
     AdaptivePracticeRecommendationRequest,
+    ParentReportSummaryPayload,
+    ParentReportSummaryRequest,
     QuestionDraftPayload,
     QuestionDraftRequest,
     WrongAnswerExplanationPayload,
@@ -10,6 +12,7 @@ from tankquest_ai.models import (
 )
 from tankquest_ai.providers.langchain_openai import (
     LangChainOpenAIAdaptivePracticeRecommendationProvider,
+    LangChainOpenAIParentReportSummaryProvider,
     LangChainOpenAIQuestionDraftProvider,
     LangChainOpenAIWrongAnswerExplanationProvider,
 )
@@ -134,3 +137,60 @@ def test_langchain_adaptive_practice_provider_uses_bounded_structured_output() -
     assert "authoritative backend decides" in messages[0].content
     assert "Allowed difficulty inclusive: 2 to 4" in messages[1].content
     assert "Do not decide a level" in messages[1].content
+
+
+def test_langchain_parent_report_provider_uses_aggregate_structured_output() -> None:
+    expected = ParentReportSummaryPayload(
+        practiceContent="Practiced math across three sessions.",
+        progress="Addition has an improving signal.",
+        attention="Subtraction needs more practice.",
+        nextStep="Use a short subtraction practice next.",
+    )
+    structured_model = MagicMock()
+    structured_model.invoke.return_value = expected
+
+    with patch("tankquest_ai.providers.langchain_openai.ChatOpenAI") as chat_model_class:
+        chat_model_class.return_value.with_structured_output.return_value = structured_model
+        provider = LangChainOpenAIParentReportSummaryProvider(
+            api_key="test-only-key",
+            model="configured-model",
+            timeout_seconds=8,
+        )
+        result = provider.generate(
+            ParentReportSummaryRequest(
+                locale="en",
+                completedSessions=3,
+                totalAnswers=10,
+                subjects=[
+                    {
+                        "subject": "math",
+                        "attempts": 10,
+                        "accuracy": 80,
+                        "averageAnswerTimeMs": 8_000,
+                    }
+                ],
+                skills=[
+                    {
+                        "subject": "math",
+                        "skillKey": "addition-within-20",
+                        "attempts": 6,
+                        "accuracy": 90,
+                        "averageAnswerTimeMs": 7_000,
+                        "currentDifficulty": 2,
+                        "trend": "improving",
+                    }
+                ],
+            )
+        )
+
+    assert result == expected
+    chat_model_class.return_value.with_structured_output.assert_called_once_with(
+        ParentReportSummaryPayload,
+        method="json_schema",
+        strict=True,
+    )
+    messages = structured_model.invoke.call_args.args[0]
+    assert "Never diagnose" in messages[0].content
+    assert "Aggregate subject metrics" in messages[1].content
+    assert "addition-within-20" in messages[1].content
+    assert "childId" not in messages[1].content

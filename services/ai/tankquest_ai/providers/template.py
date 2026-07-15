@@ -1,6 +1,9 @@
 from ..models import (
     AdaptivePracticeRecommendationPayload,
     AdaptivePracticeRecommendationRequest,
+    ParentReportSkillMetric,
+    ParentReportSummaryPayload,
+    ParentReportSummaryRequest,
     PracticeIntent,
     QuestionDraftPayload,
     QuestionDraftRequest,
@@ -126,3 +129,123 @@ class TemplateAdaptivePracticeRecommendationProvider:
             recommendedDifficulty=min(max(recommended, allowed.minimum), allowed.maximum),
             practiceIntent=intent,
         )
+
+
+class TemplateParentReportSummaryProvider:
+    def generate(self, request: ParentReportSummaryRequest) -> ParentReportSummaryPayload:
+        if request.locale == "zh-CN":
+            return self._chinese_summary(request)
+        return self._english_summary(request)
+
+    def _english_summary(self, request: ParentReportSummaryRequest) -> ParentReportSummaryPayload:
+        subjects = ", ".join(
+            self._subject_name(metric.subject, "en") for metric in request.subjects
+        )
+        improving = self._select_skill(request, "improving")
+        attention = self._select_skill(request, "needs-practice")
+        focus = attention or self._lowest_accuracy_skill(request)
+
+        practice_content = (
+            f"Completed {request.completed_sessions} sessions and {request.total_answers} answers"
+            + (f" across {subjects}." if subjects else ".")
+        )
+        progress = (
+            f"A clear improvement signal appears in {self._skill_name(improving)}."
+            if improving
+            else "There is not enough evidence yet to identify a clear improvement trend."
+        )
+        attention_text = (
+            f"More practice may help with {self._skill_name(attention)}."
+            if attention
+            else "No skill currently has a strong needs-practice signal."
+        )
+        next_step = (
+            f"Use a short, focused practice on {self._skill_name(focus)} next."
+            if focus
+            else "Complete a few more practice questions before choosing a focus skill."
+        )
+        return ParentReportSummaryPayload(
+            practiceContent=practice_content,
+            progress=progress,
+            attention=attention_text,
+            nextStep=next_step,
+        )
+
+    def _chinese_summary(self, request: ParentReportSummaryRequest) -> ParentReportSummaryPayload:
+        subjects = "、".join(
+            self._subject_name(metric.subject, "zh-CN") for metric in request.subjects
+        )
+        improving = self._select_skill(request, "improving")
+        attention = self._select_skill(request, "needs-practice")
+        focus = attention or self._lowest_accuracy_skill(request)
+
+        practice_content = (
+            f"共完成 {request.completed_sessions} 局、{request.total_answers} 道题"
+            + (f"，练习内容包括{subjects}。" if subjects else "。")
+        )
+        progress = (
+            f"{self._skill_name(improving)}呈现出明确的进步信号。"
+            if improving
+            else "目前还没有足够证据判断明确的进步趋势。"
+        )
+        attention_text = (
+            f"可以继续练习{self._skill_name(attention)}。"
+            if attention
+            else "目前没有技能呈现明显的需要加强信号。"
+        )
+        next_step = (
+            f"下一步可以安排一次简短的{self._skill_name(focus)}专项练习。"
+            if focus
+            else "再完成几道练习题后，再确定下一项重点。"
+        )
+        return ParentReportSummaryPayload(
+            practiceContent=practice_content,
+            progress=progress,
+            attention=attention_text,
+            nextStep=next_step,
+        )
+
+    @staticmethod
+    def _select_skill(
+        request: ParentReportSummaryRequest, trend: str
+    ) -> ParentReportSkillMetric | None:
+        candidates = [skill for skill in request.skills if skill.trend == trend]
+        return (
+            min(candidates, key=lambda skill: (skill.accuracy, skill.subject, skill.skill_key))
+            if candidates
+            else None
+        )
+
+    @staticmethod
+    def _lowest_accuracy_skill(
+        request: ParentReportSummaryRequest,
+    ) -> ParentReportSkillMetric | None:
+        return min(
+            request.skills,
+            key=lambda skill: (skill.accuracy, skill.subject, skill.skill_key),
+            default=None,
+        )
+
+    @staticmethod
+    def _skill_name(skill: ParentReportSkillMetric) -> str:
+        return skill.skill_key.replace("-", " ")
+
+    @staticmethod
+    def _subject_name(subject: str, locale: str) -> str:
+        names = {
+            "en": {
+                "math": "math",
+                "english": "English",
+                "direction": "directions",
+                "logic": "logic",
+                "physics": "physics",
+            },
+            "zh-CN": {
+                "math": "数学",
+                "english": "英语",
+                "direction": "方向",
+                "logic": "逻辑",
+                "physics": "物理",
+            },
+        }
+        return names[locale][subject]
