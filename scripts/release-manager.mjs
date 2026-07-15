@@ -14,13 +14,13 @@ const config = {
   issueLabel: 'chore',
   versionFiles: ['package.json', 'package-lock.json'],
   releaseDoc: (version) => `docs/releases/v${version}.md`,
-  releaseUrls: [
-    'https://tankquest.jcmeteor.com/',
+  pageUrls: ['https://tankquest.jcmeteor.com/', 'https://tq-pre.jcmeteor.com/'],
+  healthUrls: [
     'https://tankquest.jcmeteor.com/api/health',
-    'https://tq-pre.jcmeteor.com/',
     'https://tq-pre.jcmeteor.com/api/health',
   ],
-  deployWorkflow: 'Deploy Tencent Docker',
+  deployWorkflow: 'deploy-tencent.yml',
+  deployTimeoutMs: 30 * 60 * 1000,
 };
 
 const args = process.argv.slice(2);
@@ -58,7 +58,6 @@ switch (command) {
 async function fullRelease() {
   await prepareRelease();
   await promoteRelease();
-  await verifyRelease();
 }
 
 async function prepareRelease() {
@@ -123,13 +122,14 @@ async function promoteRelease() {
   waitForPrChecks(pr.number);
   const mergeCommit = mergePr(pr.number, false);
   waitForDeploy('release', mergeCommit);
+  await verifyRelease();
   createGithubRelease(tag, mergeCommit);
   closeIssue(issue.number);
   log(`Released ${tag}: https://github.com/${config.repo}/releases/tag/${tag}`);
 }
 
 async function verifyRelease() {
-  for (const url of config.releaseUrls) {
+  for (const url of config.pageUrls) {
     run('curl', [
       '--fail',
       '--show-error',
@@ -141,6 +141,27 @@ async function verifyRelease() {
       '/dev/null',
       url,
     ]);
+  }
+
+  for (const url of config.healthUrls) {
+    const response = capture('curl', [
+      '--fail',
+      '--show-error',
+      '--silent',
+      '--location',
+      '--max-time',
+      '15',
+      url,
+    ]);
+    let health;
+    try {
+      health = JSON.parse(response);
+    } catch {
+      fail(`Health endpoint did not return valid JSON: ${url}`);
+    }
+    if (health.status !== 'ok' || health.dependencies?.ai !== 'ok') {
+      fail(`Health endpoint or AI dependency is not healthy: ${url}`);
+    }
   }
 }
 
@@ -403,7 +424,7 @@ function waitForDeploy(branch, headSha) {
       }
       return;
     }
-    if (Date.now() - startedAt > 20 * 60 * 1000) {
+    if (Date.now() - startedAt > config.deployTimeoutMs) {
       fail(`Timed out waiting for ${config.deployWorkflow}`);
     }
     log(`Waiting for ${config.deployWorkflow} on ${branch}...`);

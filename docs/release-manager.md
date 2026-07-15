@@ -16,8 +16,8 @@ Inputs:
 - `action`:
   - `full`: prepare version files, promote `main` to `release`, wait for Tencent deployment, verify endpoints, and create the GitHub Release.
   - `prepare`: only create and merge the version/release-note PR into `main`.
-  - `promote`: only create and merge the `main` to `release` PR, deploy, and create the GitHub Release.
-  - `verify`: only check production and preview Web/API endpoints.
+  - `promote`: create and merge the `main` to `release` PR, deploy, verify production and preview health, and then create the GitHub Release.
+  - `verify`: check production and preview pages, API health, and the private AI dependency reported by each API.
 
 ## Required Secret
 
@@ -33,9 +33,9 @@ The workflow falls back to `GITHUB_TOKEN` if the secret is missing. GitHub may n
 4. Update root package versions and create `docs/releases/v<version>.md`.
 5. Open a PR into `main`, wait for checks, and squash merge it.
 6. Open a PR from `main` into `release`, wait for checks, and squash merge it.
-7. Wait for the Tencent release deployment workflow.
-8. Create GitHub Release `v<version>`.
-9. Verify the public Web and API endpoints.
+7. Wait up to 30 minutes for the Tencent release deployment workflow.
+8. Verify both pages return successfully and both health payloads report `status=ok` with `dependencies.ai=ok`.
+9. Create GitHub Release `v<version>` only after verification succeeds.
 
 The workflow never pushes directly to `main` or `release`.
 
