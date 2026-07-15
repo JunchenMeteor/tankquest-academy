@@ -1,0 +1,1 @@
+"""TankQuest AI assistance service."""
