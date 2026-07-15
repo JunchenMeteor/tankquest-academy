@@ -53,3 +53,25 @@ HEALTHCHECK --interval=10s --timeout=5s --retries=12 --start-period=20s \
   CMD node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 
 CMD ["sh", "-c", "npm run db:migrate && npm run db:seed && node apps/api/dist/main.js"]
+
+FROM python:3.13-slim AS ai-runtime
+
+ENV AI_PROVIDER=template \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+COPY services/ai/pyproject.toml services/ai/README.md ./
+COPY services/ai/tankquest_ai ./tankquest_ai
+
+RUN pip install --no-cache-dir . \
+    && useradd --create-home --uid 10001 tankquest
+
+USER tankquest
+EXPOSE 8100
+
+HEALTHCHECK --interval=10s --timeout=5s --retries=12 --start-period=20s \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8100/health', timeout=3)" || exit 1
+
+CMD ["uvicorn", "tankquest_ai.main:app", "--host", "0.0.0.0", "--port", "8100"]

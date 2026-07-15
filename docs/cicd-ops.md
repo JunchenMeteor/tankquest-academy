@@ -20,16 +20,28 @@
 
 ## 3. 运行配置
 
-第一阶段服务运行时只依赖实际使用的配置：
+主 API 运行时使用：
 
 ```text
 DATABASE_URL
 HOST
 NODE_ENV
 PORT
+AI_SERVICE_URL
+AI_SERVICE_TIMEOUT_MS
 ```
 
-部署层另使用 `API_IMAGE`、`WEB_IMAGE`、`HOST_PORT`、`POSTGRES_PASSWORD` 和 `POSTGRES_DATA_PATH`。真实密钥只保存在 GitHub Secret 或服务器权限为 `0600` 的 `deployment.env`，禁止提交。
+AI 服务运行时使用：
+
+```text
+AI_PROVIDER
+AI_MODEL
+OPENAI_API_KEY
+```
+
+`AI_PROVIDER` 默认是无需密钥的 `template`。只有切换到 `openai` 时才需要在服务器权限为 `0600` 的 `deployment.env` 写入模型标识和密钥；部署脚本会保留这些值，但不会输出它们。
+
+部署层另使用 `API_IMAGE`、`AI_IMAGE`、`WEB_IMAGE`、`HOST_PORT`、`POSTGRES_PASSWORD` 和 `POSTGRES_DATA_PATH`。真实密钥只保存在 GitHub Secret 或服务器 `deployment.env`，禁止提交。
 
 新增 Redis、JWT、AI 服务、对象存储或 CDN 后，必须先在代码中接入并校验，再把对应环境变量加入部署文档，不能提前把未使用变量当成生产依赖。
 
@@ -52,7 +64,7 @@ PORT
 -> GitHub Release
 ```
 
-部署失败时恢复上一组已验证 API/Web 镜像。每个环境只保留当前镜像和最近一个回滚镜像，清理必须精确到标签，不做全局 prune。
+部署失败时恢复上一组已验证 API/AI/Web 镜像和 Compose 配置。每个环境只保留当前镜像和最近一个回滚镜像，清理必须精确到标签，不做全局 prune。
 
 ## 6. 备份
 
@@ -72,7 +84,7 @@ PORT
 - Compose 容器 running/healthy 状态。
 - self-hosted runner online/idle 状态。
 - 系统盘和 `/data` 容量、inode 使用率。
-- API 错误、响应时间和数据库连接。
+- API 错误、响应时间、数据库连接和 AI `degraded` 比例。
 - Nginx 证书有效期和代理错误。
 
-后续接入 AI、对象存储和登录后，再增加 AI 失败率、资源加载失败和登录失败监控。
+后续接入对象存储和登录后，再增加资源加载失败和登录失败监控。
