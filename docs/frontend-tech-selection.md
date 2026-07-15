@@ -31,14 +31,16 @@ React stack: React Three Fiber
 Vue stack: TresJS
 ```
 
-## 3. 多端路线
+## 3. 多端包装顺序
+
+以下是包装能力的演进顺序，不对应产品 Phase 编号；具体纳入哪个产品阶段以阶段范围文档为准。
 
 ```text
-Phase 1: Web MVP
-Phase 2: Web + PWA
-Phase 3: Tauri 打包 Windows
-Phase 4: Capacitor 打包 Android/iOS
-Phase 5: 如果 3D 重度化，再评估 Unity/Godot
+Web MVP
+-> Web + PWA
+-> Tauri 打包 Windows
+-> Capacitor 打包 Android/iOS
+-> 如果 3D 重度化，再评估 Unity/Godot
 ```
 
 ## 4. 不建议第一版做的事

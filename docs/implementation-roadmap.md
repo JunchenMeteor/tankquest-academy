@@ -17,13 +17,16 @@
 | Phase 1 家庭试用 | 待验证 | 首次操作、3-5 分钟局长、重复游玩和家长理解度 |
 | Phase 2 养成与学习记录 | 已完成 | 三辆坦克、涂装、学习记录、独立家长报告、英语和方向任务已通过工程验收 |
 | Phase 3 AI 学习教练 | 已完成 | 结构化 AI 服务、错题解释、自适应难度、家长摘要和安全题目草稿已通过工程验收 |
-| Phase 4+ | 未开始 | 2.5D/3D、资源管线和多平台继续按独立 Issue/PR 推进 |
+| Phase 4 2.5D Web 升级 | 实施中 | Phaser 2.5D、资源清单、高识别度坦克、主题场景、触控和 PWA 壳按独立 Issue/PR 推进 |
+| Phase 5+ | 未开始 | 原生客户端、完整 low-poly 3D 和多人玩法继续独立评估 |
 
 Phase 1 的逐项结论和非阻塞项见 `phase-one-mvp-acceptance.md`。家庭试用发现的问题进入独立 Issue，不回填到已冻结的工程 MVP 范围。
 
 Phase 2 的逐项结论和证据见 `phase-two-acceptance.md`。正式多家庭鉴权和真实家庭可用性验证仍属于后续工作，不阻塞 v0.2.0 工程发布。
 
 Phase 3 的交付边界见 `phase-three-scope.md`，验收证据见 `phase-three-acceptance.md`，工程版本为 v0.3.0。AI 只提供建议、解释和草稿，主后端继续裁决正确性、奖励、升级、难度和内容发布。
+
+Phase 4 的交付边界见 `phase-four-scope.md`。本阶段选择 Phaser 2.5D 等距表现并保留现有 Arcade Physics，以 PWA 作为客户端包装基础；完整 3D 和原生客户端不进入 v0.4.0。
 
 Phase 1.6 和 Phase 2 的交付边界分别见 `phase-one-six-combat-scope.md` 和 `phase-two-scope.md`。Phase 1.6 完成后不再追加新的 1.x 工程阶段。
 
