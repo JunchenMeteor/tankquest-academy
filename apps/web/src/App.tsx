@@ -183,6 +183,7 @@ export function App() {
         await api.submitAnswer(session.sessionId, {
           questionId: currentQuestion.id,
           selectedAnswerId,
+          locale,
           answerTimeMs: Math.max(
             0,
             Math.round(performance.now() - questionStartedAt.current)
@@ -276,6 +277,14 @@ export function App() {
     setRuntime(emptyRuntimeState());
   };
 
+  const selectNextPractice = () => {
+    const levelId = settlement?.nextPractice?.levelId;
+    continueWithUpgrade();
+    if (levelId && levels.some((level) => level.id === levelId)) {
+      setSelectedLevelId(levelId);
+    }
+  };
+
   return (
     <main className="app-shell">
       <AppHud active={phase === 'active'} runtime={runtime} />
@@ -323,6 +332,7 @@ export function App() {
           tank={selectedTank}
           upgrade={upgrade}
           onContinue={continueWithUpgrade}
+          onNextPractice={selectNextPractice}
           onReplay={() => void startTraining()}
           onUpgrade={() => void upgradeFirepower()}
         />

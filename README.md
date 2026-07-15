@@ -2,16 +2,17 @@
 
 TankQuest Academy is a family-friendly tank training game that combines tank driving, tactical challenges, learning tasks, progression, and safe AI-assisted education.
 
-The current v0.2 milestone is a Web learning-game vertical slice:
+The current v0.3 milestone is a Web learning-game vertical slice with bounded AI learning assistance:
 
 - 2D top-down tank gameplay.
 - Math, English, and direction training objectives.
 - Three child-owned tanks with persistent visual skins and upgrades.
-- Durable learning records and a separate deterministic parent report.
+- Durable learning records and a separate aggregate-only parent report with safe coaching summaries.
 - English-default multilingual UI and persistent training themes.
 - Backend-authoritative rewards and progression.
 - Config-driven tanks, levels, questions, themes, and assets.
-- AI service reserved for question drafts, explanations, and reports.
+- Optional child-safe AI service for question drafts, wrong-answer explanations, adaptive practice suggestions, and parent summaries.
+- Strict backend validation and deterministic fallback: AI never decides correctness, rewards, upgrades, final difficulty, or published content.
 
 ## Repository Layout
 
@@ -20,7 +21,7 @@ apps/
   web/      Web game client
   api/      Main backend API
 services/
-  ai/       AI service placeholder
+  ai/       Optional FastAPI learning-assistance service
 packages/
   shared/   Shared DTOs and domain types
 docs/       Product and engineering specs
@@ -44,12 +45,16 @@ Do not hardcode production questions, level data, tank stats, reward rules, or u
 Requirements:
 
 - Node.js 24 or newer.
+- Python 3.11 or newer.
 - PostgreSQL 15 or newer on `127.0.0.1:5432`.
 
 Install dependencies and initialize the development database:
 
 ```bash
 npm ci
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e './services/ai[dev]'
 export DATABASE_URL=postgresql://tankquest:tankquest@127.0.0.1:5432/tankquest
 npm run db:migrate
 npm run db:seed

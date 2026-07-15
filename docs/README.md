@@ -101,6 +101,12 @@ AI 开始开发前，按这个顺序阅读，不要一上来读所有文件。
 29. `phase-two-acceptance.md`
     - Phase 2 工程验收证据、发布验证和已知非阻塞项。
 
+30. `phase-three-scope.md`
+    - Phase 3 AI 学习教练、结构化输出、安全降级和隐私边界。
+
+31. `phase-three-acceptance.md`
+    - Phase 3 工程验收证据、v0.3.0 发布门禁和已知非阻塞项。
+
 ## 2. 第一阶段开发顺序
 
 第一阶段不要做全量功能，只做 MVP。

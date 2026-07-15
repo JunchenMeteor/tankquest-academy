@@ -7,6 +7,7 @@ import type {
 } from '@tankquest/shared';
 
 import type {
+  AdaptiveLearningContext,
   NewSession,
   RecordedAnswer,
   SessionSetup,
@@ -21,6 +22,9 @@ export abstract class GameSessionRepository {
   ): Promise<SessionSetup | null>;
   abstract createSession(session: NewSession): Promise<string>;
   abstract findSession(sessionId: string): Promise<SessionState | null>;
+  abstract loadAdaptiveContext(
+    childId: string
+  ): Promise<AdaptiveLearningContext | null>;
   abstract recordAnswer(
     sessionId: string,
     answer: RecordedAnswer
