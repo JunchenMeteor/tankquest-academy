@@ -1,4 +1,9 @@
-from ..models import QuestionDraftPayload, QuestionDraftRequest
+from ..models import (
+    QuestionDraftPayload,
+    QuestionDraftRequest,
+    WrongAnswerExplanationPayload,
+    WrongAnswerExplanationRequest,
+)
 
 
 class TemplateQuestionDraftProvider:
@@ -57,4 +62,32 @@ class TemplateQuestionDraftProvider:
             choices=[str(answer), str(answer + 1), str(answer - 1)],
             correctAnswer=str(answer),
             explanation=f"把 {left} 和 {right} 相加，得到 {answer}。",
+        )
+
+
+class TemplateWrongAnswerExplanationProvider:
+    def generate(self, request: WrongAnswerExplanationRequest) -> WrongAnswerExplanationPayload:
+        if request.locale == "zh-CN":
+            strategy = {
+                "math": "把计算拆成一步一步来做",
+                "english": "比较两个词的含义",
+                "direction": "先想象面向的方向，再跟着转动",
+            }[request.subject]
+            explanation = (
+                f"我们来检查一下：正确答案是“{request.correct_answer}”。"
+                f"{strategy}，再试一道同类题。"
+            )
+        else:
+            strategy = {
+                "math": "Work through the calculation one step at a time",
+                "english": "Compare the meanings of the two words",
+                "direction": "Picture the starting direction, then follow the turn",
+            }[request.subject]
+            explanation = (
+                f'Let\'s check it: the correct answer is "{request.correct_answer}". '
+                f"{strategy}, then try a similar question."
+            )
+        return WrongAnswerExplanationPayload(
+            correctAnswer=request.correct_answer,
+            explanation=explanation,
         )

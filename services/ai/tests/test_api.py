@@ -70,3 +70,46 @@ def test_question_draft_rejects_extra_personal_data() -> None:
     )
 
     assert response.status_code == 422
+
+
+def test_wrong_answer_explanation_is_localized_and_structured() -> None:
+    response = TestClient(create_app(settings=settings())).post(
+        "/v1/internal/wrong-answer-explanations",
+        json={
+            "ageGroup": "6-8",
+            "locale": "zh-CN",
+            "subject": "math",
+            "skillKey": "addition-within-20",
+            "difficulty": 1,
+            "question": "8 + 7 = ?",
+            "selectedAnswer": "12",
+            "correctAnswer": "15",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["source"] == "template"
+    assert body["fallbackReason"] is None
+    assert body["correctAnswer"] == "15"
+    assert "正确答案" in body["explanation"]
+    assert body["requestId"]
+
+
+def test_wrong_answer_explanation_rejects_extra_personal_data() -> None:
+    response = TestClient(create_app(settings=settings())).post(
+        "/v1/internal/wrong-answer-explanations",
+        json={
+            "ageGroup": "6-8",
+            "locale": "en",
+            "subject": "math",
+            "skillKey": "addition-within-20",
+            "difficulty": 1,
+            "question": "8 + 7 = ?",
+            "selectedAnswer": "12",
+            "correctAnswer": "15",
+            "childId": "not-allowed",
+        },
+    )
+
+    assert response.status_code == 422

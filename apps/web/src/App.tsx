@@ -183,6 +183,7 @@ export function App() {
         await api.submitAnswer(session.sessionId, {
           questionId: currentQuestion.id,
           selectedAnswerId,
+          locale,
           answerTimeMs: Math.max(
             0,
             Math.round(performance.now() - questionStartedAt.current)

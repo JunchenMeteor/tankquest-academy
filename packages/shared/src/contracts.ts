@@ -107,6 +107,7 @@ export interface SubmitAnswerRequest {
   questionId: string;
   selectedAnswerId: string;
   answerTimeMs: number;
+  locale?: 'en' | 'zh-CN';
 }
 
 export interface SubmitAnswerResponse {

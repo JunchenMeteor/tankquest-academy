@@ -40,4 +40,26 @@ describe('AiGatewayService', () => {
       })
     ).resolves.toBeNull();
   });
+
+  it('returns null when explanation generation is unavailable', async () => {
+    const client = {
+      createWrongAnswerExplanation: vi
+        .fn()
+        .mockRejectedValue(new Error('unavailable')),
+    } as unknown as AiGatewayClient;
+    vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+
+    await expect(
+      new AiGatewayService(client).createWrongAnswerExplanation({
+        ageGroup: '6-8',
+        locale: 'en',
+        subject: 'math',
+        skillKey: 'addition-within-20',
+        difficulty: 1,
+        question: '8 + 7 = ?',
+        selectedAnswer: '12',
+        correctAnswer: '15',
+      })
+    ).resolves.toBeNull();
+  });
 });

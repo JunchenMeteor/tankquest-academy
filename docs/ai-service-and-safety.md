@@ -98,3 +98,9 @@ AI 服务失败时，游戏不能中断。
 - 跳过 AI 报告生成
 - 后台稍后异步生成报告
 - 返回友好提示
+
+## 8. 错题解释契约
+
+`POST /v1/internal/wrong-answer-explanations` 只接收年龄段、语言、学科、技能、难度、题干、孩子本次选择和主后端已经确定的正确答案。请求不得包含 child、session、question、answer 或学习记录 ID。
+
+主后端必须先完成判题和学习记录写入，再按家长开关调用 AI。AI 响应回显的 `correctAnswer` 必须与主后端输入完全一致；否则使用题库正式解释。AI 不能修改 `correct`、弹药、奖励或进度。

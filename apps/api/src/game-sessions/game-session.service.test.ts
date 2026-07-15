@@ -4,8 +4,9 @@ import type {
   LevelDto,
   TankDto,
 } from '@tankquest/shared';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { AiGatewayService } from '../ai/ai-gateway.service.js';
 import type {
   NewSession,
   RecordedAnswer,
@@ -31,11 +32,13 @@ const setup: SessionSetup = {
     role: 'medium',
     stats: { firepower: 3, mobility: 3, armor: 3, stealth: 2, vision: 3 },
   },
+  learner: { ageGroup: 'child_6_8', aiExplanationEnabled: true },
   questions: [
     {
       id: 'question_1',
       subject: 'math',
       difficulty: 1,
+      skillKey: 'addition-within-20',
       prompt: '8 + 7 = ?',
       choices: [
         { id: 'answer_a', text: '12' },
@@ -64,11 +67,12 @@ class MemoryRepository extends GameSessionRepository {
   }
 
   async createSession(session: NewSession): Promise<string> {
+    const sessionSetup = structuredClone(setup);
     this.session = {
       id: 'session_1',
       childId: session.childId,
       status: 'active',
-      setup,
+      setup: sessionSetup,
       answers: [],
       settlement: null,
     };
@@ -107,11 +111,26 @@ class MemoryRepository extends GameSessionRepository {
 
 describe('GameSessionService', () => {
   let repository: MemoryRepository;
+  let aiGateway: {
+    createWrongAnswerExplanation: ReturnType<typeof vi.fn>;
+  };
   let service: GameSessionService;
 
   beforeEach(() => {
     repository = new MemoryRepository();
-    service = new GameSessionService(repository);
+    aiGateway = {
+      createWrongAnswerExplanation: vi.fn().mockResolvedValue({
+        requestId: 'e96e124f-98d5-44b9-9690-002f7a5a5454',
+        source: 'template',
+        fallbackReason: null,
+        correctAnswer: '15',
+        explanation: 'Work through the addition one step at a time.',
+      }),
+    };
+    service = new GameSessionService(
+      repository,
+      aiGateway as unknown as AiGatewayService
+    );
   });
 
   it('starts an allowed session without exposing correct answers', async () => {
@@ -155,9 +174,167 @@ describe('GameSessionService', () => {
       correct: true,
       resourceReward: { amount: 1 },
     });
+    expect(aiGateway.createWrongAnswerExplanation).not.toHaveBeenCalled();
     await expect(
       service.submitAnswer('session_1', answer)
     ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('uses a minimal AI payload only after an incorrect answer', async () => {
+    await service.start({
+      childId: 'child_1',
+      levelId: 'level_1',
+      tankId: 'tank_1',
+    });
+
+    await expect(
+      service.submitAnswer('session_1', {
+        questionId: 'question_1',
+        selectedAnswerId: 'answer_a',
+        answerTimeMs: 900,
+        locale: 'en',
+      })
+    ).resolves.toEqual({
+      correct: false,
+      explanation: 'Work through the addition one step at a time.',
+      resourceReward: { type: 'ammo', amount: 0 },
+    });
+    expect(repository.session?.answers[0]?.correct).toBe(false);
+    expect(aiGateway.createWrongAnswerExplanation).toHaveBeenCalledWith({
+      ageGroup: '6-8',
+      locale: 'en',
+      subject: 'math',
+      skillKey: 'addition-within-20',
+      difficulty: 1,
+      question: '8 + 7 = ?',
+      selectedAnswer: '12',
+      correctAnswer: '15',
+    });
+    expect(
+      aiGateway.createWrongAnswerExplanation.mock.calls[0]?.[0]
+    ).not.toHaveProperty('childId');
+  });
+
+  it('falls back when AI changes the authoritative correct answer', async () => {
+    aiGateway.createWrongAnswerExplanation.mockResolvedValueOnce({
+      requestId: 'e96e124f-98d5-44b9-9690-002f7a5a5454',
+      source: 'model',
+      fallbackReason: null,
+      correctAnswer: '12',
+      explanation: 'Unsafe mismatch.',
+    });
+    await service.start({
+      childId: 'child_1',
+      levelId: 'level_1',
+      tankId: 'tank_1',
+    });
+
+    await expect(
+      service.submitAnswer('session_1', {
+        questionId: 'question_1',
+        selectedAnswerId: 'answer_a',
+        answerTimeMs: 900,
+      })
+    ).resolves.toMatchObject({ explanation: '8 + 7 = 15' });
+  });
+
+  it('rejects an answer that is not part of the question before recording it', async () => {
+    await service.start({
+      childId: 'child_1',
+      levelId: 'level_1',
+      tankId: 'tank_1',
+    });
+
+    await expect(
+      service.submitAnswer('session_1', {
+        questionId: 'question_1',
+        selectedAnswerId: 'answer_unknown',
+        answerTimeMs: 900,
+      })
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(repository.session?.answers).toEqual([]);
+    expect(aiGateway.createWrongAnswerExplanation).not.toHaveBeenCalled();
+  });
+
+  it('keeps the official explanation when parent controls disable AI', async () => {
+    await service.start({
+      childId: 'child_1',
+      levelId: 'level_1',
+      tankId: 'tank_1',
+    });
+    if (!repository.session) throw new Error('Session was not created');
+    repository.session.setup.learner.aiExplanationEnabled = false;
+
+    await expect(
+      service.submitAnswer('session_1', {
+        questionId: 'question_1',
+        selectedAnswerId: 'answer_a',
+        answerTimeMs: 900,
+        locale: 'zh-CN',
+      })
+    ).resolves.toMatchObject({ explanation: '8 + 7 = 15' });
+    expect(aiGateway.createWrongAnswerExplanation).not.toHaveBeenCalled();
+  });
+
+  it.each(['teen', 'adult'] as const)(
+    'keeps the official explanation for the %s age group',
+    async (ageGroup) => {
+      await service.start({
+        childId: 'child_1',
+        levelId: 'level_1',
+        tankId: 'tank_1',
+      });
+      if (!repository.session) throw new Error('Session was not created');
+      repository.session.setup.learner.ageGroup = ageGroup;
+
+      await expect(
+        service.submitAnswer('session_1', {
+          questionId: 'question_1',
+          selectedAnswerId: 'answer_a',
+          answerTimeMs: 900,
+        })
+      ).resolves.toMatchObject({ explanation: '8 + 7 = 15' });
+      expect(aiGateway.createWrongAnswerExplanation).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each(['logic', 'physics'] as const)(
+    'keeps the official explanation for the %s subject',
+    async (subject) => {
+      await service.start({
+        childId: 'child_1',
+        levelId: 'level_1',
+        tankId: 'tank_1',
+      });
+      if (!repository.session) throw new Error('Session was not created');
+      repository.session.setup.questions[0]!.subject = subject;
+
+      await expect(
+        service.submitAnswer('session_1', {
+          questionId: 'question_1',
+          selectedAnswerId: 'answer_a',
+          answerTimeMs: 900,
+        })
+      ).resolves.toMatchObject({ explanation: '8 + 7 = 15' });
+      expect(aiGateway.createWrongAnswerExplanation).not.toHaveBeenCalled();
+    }
+  );
+
+  it('keeps the official explanation when the AI gateway is unavailable', async () => {
+    aiGateway.createWrongAnswerExplanation.mockResolvedValueOnce(null);
+    await service.start({
+      childId: 'child_1',
+      levelId: 'level_1',
+      tankId: 'tank_1',
+    });
+
+    await expect(
+      service.submitAnswer('session_1', {
+        questionId: 'question_1',
+        selectedAnswerId: 'answer_a',
+        answerTimeMs: 900,
+      })
+    ).resolves.toMatchObject({ explanation: '8 + 7 = 15' });
   });
 
   it('returns the same settlement for repeated finish requests', async () => {

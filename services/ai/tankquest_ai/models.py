@@ -6,7 +6,7 @@ AgeGroup = Literal["6-8", "9-12"]
 Locale = Literal["en", "zh-CN"]
 Subject = Literal["math", "english", "direction"]
 DraftSource = Literal["template", "model"]
-FallbackReason = Literal["config_missing", "provider_error", "unsafe_output"]
+FallbackReason = Literal["config_missing", "provider_error", "unsafe_output", "invalid_output"]
 
 
 class StrictModel(BaseModel):
@@ -54,6 +54,46 @@ class QuestionDraftResponse(StrictModel):
     source: DraftSource
     fallback_reason: FallbackReason | None = Field(default=None, alias="fallbackReason")
     draft: QuestionDraftPayload
+
+
+class WrongAnswerExplanationRequest(StrictModel):
+    age_group: AgeGroup = Field(alias="ageGroup")
+    locale: Locale = "en"
+    subject: Subject
+    skill_key: str = Field(alias="skillKey", min_length=1, max_length=64, pattern=r"^[a-z0-9-]+$")
+    difficulty: int = Field(ge=1, le=5)
+    question: str = Field(min_length=1, max_length=240)
+    selected_answer: str = Field(alias="selectedAnswer", min_length=1, max_length=80)
+    correct_answer: str = Field(alias="correctAnswer", min_length=1, max_length=80)
+
+    @field_validator("question", "selected_answer", "correct_answer")
+    @classmethod
+    def strip_input_text(cls, value: str) -> str:
+        return value.strip()
+
+    @model_validator(mode="after")
+    def selected_answer_is_incorrect(self) -> "WrongAnswerExplanationRequest":
+        if self.selected_answer == self.correct_answer:
+            raise ValueError("selectedAnswer must differ from correctAnswer")
+        return self
+
+
+class WrongAnswerExplanationPayload(StrictModel):
+    correct_answer: str = Field(alias="correctAnswer", min_length=1, max_length=80)
+    explanation: str = Field(min_length=1, max_length=320)
+
+    @field_validator("correct_answer", "explanation")
+    @classmethod
+    def strip_output_text(cls, value: str) -> str:
+        return value.strip()
+
+
+class WrongAnswerExplanationResponse(StrictModel):
+    request_id: str = Field(alias="requestId")
+    source: DraftSource
+    fallback_reason: FallbackReason | None = Field(default=None, alias="fallbackReason")
+    correct_answer: str = Field(alias="correctAnswer", min_length=1, max_length=80)
+    explanation: str = Field(min_length=1, max_length=320)
 
 
 class HealthResponse(StrictModel):
