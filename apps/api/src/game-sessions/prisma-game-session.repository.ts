@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import {
+  ageGroupSchema,
   gameModeSchema,
   subjectSchema,
   type FinishSessionResponse,
@@ -22,6 +23,7 @@ import { GameSessionRepository } from './game-session.repository.js';
 import { applyTankUpgrades } from './tank-upgrades.js';
 
 const setupInclude = {
+  child: { include: { controls: true } },
   level: {
     include: {
       questions: {
@@ -120,6 +122,10 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
       questions: level.questions.map(({ question }) =>
         this.toInternalQuestion(question)
       ),
+      learner: {
+        ageGroup: ageGroupSchema.parse(child.ageGroup),
+        aiExplanationEnabled: controls.aiExplanationEnabled,
+      },
     };
   }
 
@@ -156,6 +162,11 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
         questions: session.level.questions.map(({ question }) =>
           this.toInternalQuestion(question)
         ),
+        learner: {
+          ageGroup: ageGroupSchema.parse(session.child.ageGroup),
+          aiExplanationEnabled:
+            session.child.controls?.aiExplanationEnabled ?? false,
+        },
       },
       answers: session.answers.map((answer) => ({
         questionId: answer.questionId,
@@ -361,6 +372,7 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
     id: string;
     subject: string;
     difficulty: number;
+    skillKey: string;
     prompt: string;
     explanation: string;
     answers: Array<{ id: string; text: string; isCorrect: boolean }>;
@@ -375,6 +387,7 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
       id: question.id,
       subject: subjectSchema.parse(question.subject),
       difficulty: question.difficulty,
+      skillKey: question.skillKey,
       prompt: question.prompt,
       choices: question.answers.map((answer) => ({
         id: answer.id,

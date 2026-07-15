@@ -74,6 +74,7 @@ export const startSessionRequestSchema = z.object({
 export const submitAnswerRequestSchema = z.object({
   questionId: identifierSchema,
   selectedAnswerId: identifierSchema,
+  locale: z.enum(['en', 'zh-CN']).default('en'),
   answerTimeMs: z
     .number()
     .int()

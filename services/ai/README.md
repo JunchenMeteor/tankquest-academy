@@ -23,8 +23,11 @@ The service exposes:
 
 - `GET /health`
 - `POST /v1/internal/question-drafts`
+- `POST /v1/internal/wrong-answer-explanations`
 
-The draft endpoint is internal-only. Drafts are never published automatically.
+Both write endpoints are internal-only. Drafts are never published automatically. Wrong-answer
+requests contain no business identifiers or personal data; the service must echo the
+backend-supplied correct answer, and NestJS rejects a mismatch before using the explanation.
 
 ## Optional external provider
 

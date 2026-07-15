@@ -7,10 +7,18 @@ from .models import (
     HealthResponse,
     QuestionDraftPayload,
     QuestionDraftRequest,
+    WrongAnswerExplanationPayload,
+    WrongAnswerExplanationRequest,
 )
-from .providers.base import QuestionDraftProvider
-from .providers.langchain_openai import LangChainOpenAIQuestionDraftProvider
-from .providers.template import TemplateQuestionDraftProvider
+from .providers.base import QuestionDraftProvider, WrongAnswerExplanationProvider
+from .providers.langchain_openai import (
+    LangChainOpenAIQuestionDraftProvider,
+    LangChainOpenAIWrongAnswerExplanationProvider,
+)
+from .providers.template import (
+    TemplateQuestionDraftProvider,
+    TemplateWrongAnswerExplanationProvider,
+)
 from .safety import SafetyGuard, UnsafeDraftError
 from .settings import Settings
 
@@ -20,6 +28,13 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True)
 class DraftResult:
     draft: QuestionDraftPayload
+    source: DraftSource
+    fallback_reason: FallbackReason | None = None
+
+
+@dataclass(frozen=True)
+class ExplanationResult:
+    payload: WrongAnswerExplanationPayload
     source: DraftSource
     fallback_reason: FallbackReason | None = None
 
@@ -76,6 +91,66 @@ class QuestionDraftService:
         return draft
 
 
+class WrongAnswerExplanationService:
+    def __init__(
+        self,
+        *,
+        fallback: WrongAnswerExplanationProvider,
+        safety_guard: SafetyGuard,
+        primary: WrongAnswerExplanationProvider | None = None,
+        unavailable_reason: FallbackReason | None = None,
+    ) -> None:
+        self._fallback = fallback
+        self._safety_guard = safety_guard
+        self._primary = primary
+        self._unavailable_reason = unavailable_reason
+
+    @property
+    def uses_primary_provider(self) -> bool:
+        return self._primary is not None
+
+    def generate(self, request: WrongAnswerExplanationRequest) -> ExplanationResult:
+        if self._primary is None:
+            return ExplanationResult(
+                payload=self._safe_fallback(request),
+                source="template",
+                fallback_reason=self._unavailable_reason,
+            )
+
+        try:
+            payload = self._primary.generate(request)
+            if payload.correct_answer != request.correct_answer:
+                logger.warning("ai_provider_fallback reason=invalid_output")
+                return ExplanationResult(
+                    payload=self._safe_fallback(request),
+                    source="template",
+                    fallback_reason="invalid_output",
+                )
+            self._safety_guard.validate_explanation(payload)
+            return ExplanationResult(payload=payload, source="model")
+        except UnsafeDraftError:
+            logger.warning("ai_provider_fallback reason=unsafe_output")
+            return ExplanationResult(
+                payload=self._safe_fallback(request),
+                source="template",
+                fallback_reason="unsafe_output",
+            )
+        except Exception:
+            logger.warning("ai_provider_fallback reason=provider_error")
+            return ExplanationResult(
+                payload=self._safe_fallback(request),
+                source="template",
+                fallback_reason="provider_error",
+            )
+
+    def _safe_fallback(
+        self, request: WrongAnswerExplanationRequest
+    ) -> WrongAnswerExplanationPayload:
+        payload = self._fallback.generate(request)
+        self._safety_guard.validate_explanation(payload)
+        return payload
+
+
 def build_question_draft_service(settings: Settings) -> QuestionDraftService:
     fallback = TemplateQuestionDraftProvider()
     safety_guard = SafetyGuard()
@@ -107,8 +182,52 @@ def build_question_draft_service(settings: Settings) -> QuestionDraftService:
     return QuestionDraftService(fallback=fallback, safety_guard=safety_guard, primary=primary)
 
 
-def health_response(settings: Settings, service: QuestionDraftService) -> HealthResponse:
-    if settings.provider == "openai" and not service.uses_primary_provider:
+def build_wrong_answer_explanation_service(
+    settings: Settings,
+) -> WrongAnswerExplanationService:
+    fallback = TemplateWrongAnswerExplanationProvider()
+    safety_guard = SafetyGuard()
+
+    if settings.provider == "template":
+        return WrongAnswerExplanationService(fallback=fallback, safety_guard=safety_guard)
+
+    if not settings.openai_api_key or not settings.model:
+        logger.warning("ai_provider_unavailable reason=config_missing")
+        return WrongAnswerExplanationService(
+            fallback=fallback,
+            safety_guard=safety_guard,
+            unavailable_reason="config_missing",
+        )
+
+    try:
+        primary = LangChainOpenAIWrongAnswerExplanationProvider(
+            api_key=settings.openai_api_key,
+            model=settings.model,
+            timeout_seconds=settings.provider_timeout_seconds,
+        )
+    except Exception:
+        logger.warning("ai_provider_unavailable reason=provider_error")
+        return WrongAnswerExplanationService(
+            fallback=fallback,
+            safety_guard=safety_guard,
+            unavailable_reason="provider_error",
+        )
+    return WrongAnswerExplanationService(
+        fallback=fallback,
+        safety_guard=safety_guard,
+        primary=primary,
+    )
+
+
+def health_response(
+    settings: Settings,
+    service: QuestionDraftService,
+    explanation_service: WrongAnswerExplanationService | None = None,
+) -> HealthResponse:
+    if settings.provider == "openai" and (
+        not service.uses_primary_provider
+        or (explanation_service is not None and not explanation_service.uses_primary_provider)
+    ):
         return HealthResponse(
             status="degraded",
             requestedProvider=settings.provider,

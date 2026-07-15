@@ -3,9 +3,13 @@ import {
   aiHealthSchema,
   aiQuestionDraftRequestSchema,
   aiQuestionDraftResponseSchema,
+  aiWrongAnswerExplanationRequestSchema,
+  aiWrongAnswerExplanationResponseSchema,
   type AiDependencyStatus,
   type AiQuestionDraftRequest,
   type AiQuestionDraftResponse,
+  type AiWrongAnswerExplanationRequest,
+  type AiWrongAnswerExplanationResponse,
 } from './ai-gateway.models.js';
 
 type FetchImplementation = typeof fetch;
@@ -39,6 +43,26 @@ export class AiGatewayClient {
       body: JSON.stringify(aiQuestionDraftRequestSchema.parse(request)),
     });
     const result = aiQuestionDraftResponseSchema.safeParse(
+      await this.readJson(response)
+    );
+    if (!response.ok || !result.success) throw new AiGatewayError();
+    return result.data;
+  }
+
+  async createWrongAnswerExplanation(
+    request: AiWrongAnswerExplanationRequest
+  ): Promise<AiWrongAnswerExplanationResponse> {
+    const response = await this.request(
+      '/v1/internal/wrong-answer-explanations',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(
+          aiWrongAnswerExplanationRequestSchema.parse(request)
+        ),
+      }
+    );
+    const result = aiWrongAnswerExplanationResponseSchema.safeParse(
       await this.readJson(response)
     );
     if (!response.ok || !result.success) throw new AiGatewayError();

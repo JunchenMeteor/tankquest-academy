@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from tankquest_ai.models import QuestionDraftPayload
+from tankquest_ai.models import QuestionDraftPayload, WrongAnswerExplanationRequest
 
 
 def test_correct_answer_must_match_one_unique_choice() -> None:
@@ -21,4 +21,18 @@ def test_choices_must_be_unique() -> None:
             choices=["2", "2", "3"],
             correctAnswer="2",
             explanation="Add the two numbers.",
+        )
+
+
+def test_wrong_answer_request_rejects_a_correct_selection() -> None:
+    with pytest.raises(ValidationError):
+        WrongAnswerExplanationRequest(
+            ageGroup="6-8",
+            locale="en",
+            subject="math",
+            skillKey="addition-within-20",
+            difficulty=1,
+            question="8 + 7 = ?",
+            selectedAnswer="15",
+            correctAnswer="15",
         )

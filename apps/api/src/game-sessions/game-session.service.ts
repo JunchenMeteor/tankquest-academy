@@ -6,22 +6,28 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type {
+  AgeGroup,
   FinishSessionResponse,
   GameEventRequest,
   StartSessionRequest,
   StartSessionResponse,
   SubmitAnswerRequest,
   SubmitAnswerResponse,
+  Subject,
 } from '@tankquest/shared';
 
+import { AiGatewayService } from '../ai/ai-gateway.service.js';
 import { GameSessionRepository } from './game-session.repository.js';
+import type { InternalQuestion, SessionState } from './game-session.models.js';
 import { calculateSettlement } from './settlement.js';
 
 @Injectable()
 export class GameSessionService {
   constructor(
     @Inject(GameSessionRepository)
-    private readonly repository: GameSessionRepository
+    private readonly repository: GameSessionRepository,
+    @Inject(AiGatewayService)
+    private readonly aiGateway: AiGatewayService
   ) {}
 
   async start(request: StartSessionRequest): Promise<StartSessionResponse> {
@@ -67,15 +73,40 @@ export class GameSessionService {
       throw new ConflictException('Question has already been answered');
     }
 
+    const selectedChoice = question.choices.find(
+      (choice) => choice.id === request.selectedAnswerId
+    );
+    if (!selectedChoice) {
+      throw new ForbiddenException('Answer is not part of this question');
+    }
+    const correctChoice = question.choices.find(
+      (choice) => choice.id === question.correctAnswerId
+    );
+    if (!correctChoice) {
+      throw new Error('Question has no matching correct answer');
+    }
+
     const correct = question.correctAnswerId === request.selectedAnswerId;
     await this.repository.recordAnswer(sessionId, {
-      ...request,
+      questionId: request.questionId,
+      selectedAnswerId: request.selectedAnswerId,
+      answerTimeMs: request.answerTimeMs,
       correct,
     });
 
+    const explanation = correct
+      ? question.explanation
+      : await this.explainWrongAnswer(
+          session,
+          question,
+          selectedChoice.text,
+          correctChoice.text,
+          request.locale ?? 'en'
+        );
+
     return {
       correct,
-      explanation: question.explanation,
+      explanation,
       resourceReward: { type: 'ammo', amount: correct ? 1 : 0 },
     };
   }
@@ -112,4 +143,47 @@ export class GameSessionService {
     }
     return session;
   }
+
+  private async explainWrongAnswer(
+    session: SessionState,
+    question: InternalQuestion,
+    selectedAnswer: string,
+    correctAnswer: string,
+    locale: 'en' | 'zh-CN'
+  ): Promise<string> {
+    const ageGroup = toAiAgeGroup(session.setup.learner.ageGroup);
+    if (
+      !session.setup.learner.aiExplanationEnabled ||
+      !ageGroup ||
+      !isAiSubject(question.subject)
+    ) {
+      return question.explanation;
+    }
+
+    const result = await this.aiGateway.createWrongAnswerExplanation({
+      ageGroup,
+      locale,
+      subject: question.subject,
+      skillKey: question.skillKey,
+      difficulty: question.difficulty,
+      question: question.prompt,
+      selectedAnswer,
+      correctAnswer,
+    });
+    return result?.correctAnswer === correctAnswer
+      ? result.explanation
+      : question.explanation;
+  }
+}
+
+function toAiAgeGroup(ageGroup: AgeGroup): '6-8' | '9-12' | null {
+  if (ageGroup === 'child_6_8') return '6-8';
+  if (ageGroup === 'child_9_12') return '9-12';
+  return null;
+}
+
+function isAiSubject(
+  subject: Subject
+): subject is 'math' | 'english' | 'direction' {
+  return subject === 'math' || subject === 'english' || subject === 'direction';
 }

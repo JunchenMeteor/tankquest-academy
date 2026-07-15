@@ -5,6 +5,8 @@ import type {
   AiDependencyStatus,
   AiQuestionDraftRequest,
   AiQuestionDraftResponse,
+  AiWrongAnswerExplanationRequest,
+  AiWrongAnswerExplanationResponse,
 } from './ai-gateway.models.js';
 
 const WARNING_INTERVAL_MS = 60_000;
@@ -32,6 +34,17 @@ export class AiGatewayService {
   ): Promise<AiQuestionDraftResponse | null> {
     try {
       return await this.client.createQuestionDraft(request);
+    } catch {
+      this.warnUnavailable();
+      return null;
+    }
+  }
+
+  async createWrongAnswerExplanation(
+    request: AiWrongAnswerExplanationRequest
+  ): Promise<AiWrongAnswerExplanationResponse | null> {
+    try {
+      return await this.client.createWrongAnswerExplanation(request);
     } catch {
       this.warnUnavailable();
       return null;

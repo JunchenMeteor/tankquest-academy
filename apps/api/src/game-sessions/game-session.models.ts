@@ -1,4 +1,5 @@
 import type {
+  AgeGroup,
   FinishSessionResponse,
   LevelDto,
   QuestionDto,
@@ -7,14 +8,21 @@ import type {
 } from '@tankquest/shared';
 
 export interface InternalQuestion extends QuestionDto {
+  skillKey: string;
   correctAnswerId: string;
   explanation: string;
+}
+
+export interface SessionLearnerContext {
+  ageGroup: AgeGroup;
+  aiExplanationEnabled: boolean;
 }
 
 export interface SessionSetup {
   level: LevelDto;
   tank: TankDto;
   questions: InternalQuestion[];
+  learner: SessionLearnerContext;
 }
 
 export interface RecordedAnswer {

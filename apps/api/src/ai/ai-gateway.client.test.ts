@@ -60,6 +60,71 @@ describe('AiGatewayClient', () => {
     expect(body).not.toHaveProperty('childId');
   });
 
+  it('sends only the explicit wrong-answer explanation contract', async () => {
+    const fetchImplementation = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({
+        requestId: 'e96e124f-98d5-44b9-9690-002f7a5a5454',
+        source: 'template',
+        fallbackReason: null,
+        correctAnswer: '15',
+        explanation: 'Add the two numbers one step at a time.',
+      })
+    );
+    const request = {
+      ageGroup: '6-8' as const,
+      locale: 'zh-CN' as const,
+      subject: 'math' as const,
+      skillKey: 'addition-within-20',
+      difficulty: 1,
+      question: '8 + 7 = ?',
+      selectedAnswer: '12',
+      correctAnswer: '15',
+    };
+
+    await expect(
+      new AiGatewayClient(
+        config,
+        fetchImplementation
+      ).createWrongAnswerExplanation(request)
+    ).resolves.toMatchObject({ correctAnswer: '15' });
+    const [url, init] = fetchImplementation.mock.calls[0] ?? [];
+    expect(url).toBe('http://ai:8100/v1/internal/wrong-answer-explanations');
+    const body = JSON.parse(String(init?.body));
+    expect(body).toEqual(request);
+    expect(body).not.toHaveProperty('childId');
+    expect(body).not.toHaveProperty('questionId');
+    expect(body).not.toHaveProperty('sessionId');
+  });
+
+  it('rejects malformed explanation responses', async () => {
+    const client = new AiGatewayClient(
+      config,
+      vi.fn<typeof fetch>().mockResolvedValue(
+        Response.json({
+          requestId: 'e96e124f-98d5-44b9-9690-002f7a5a5454',
+          source: 'model',
+          fallbackReason: null,
+          correctAnswer: '15',
+          explanation: 'Valid text.',
+          childId: 'not-allowed',
+        })
+      )
+    );
+
+    await expect(
+      client.createWrongAnswerExplanation({
+        ageGroup: '6-8',
+        locale: 'en',
+        subject: 'math',
+        skillKey: 'addition-within-20',
+        difficulty: 1,
+        question: '8 + 7 = ?',
+        selectedAnswer: '12',
+        correctAnswer: '15',
+      })
+    ).rejects.toBeInstanceOf(AiGatewayError);
+  });
+
   it.each([
     Response.json({ status: 'ok' }, { status: 200 }),
     Response.json(
