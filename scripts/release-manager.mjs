@@ -14,13 +14,35 @@ const config = {
   issueLabel: 'chore',
   versionFiles: ['package.json', 'package-lock.json'],
   releaseDoc: (version) => `docs/releases/v${version}.md`,
-  pageUrls: ['https://tankquest.jcmeteor.com/', 'https://tq-pre.jcmeteor.com/'],
+  pageUrls: [
+    'https://tankquest.jcmeteor.com/',
+    'https://tankquest.jcmeteor.com/parent',
+    'https://tq-pre.jcmeteor.com/',
+    'https://tq-pre.jcmeteor.com/parent',
+  ],
   healthUrls: [
     'https://tankquest.jcmeteor.com/api/health',
     'https://tq-pre.jcmeteor.com/api/health',
   ],
+  parentReportUrls: [
+    {
+      en: 'https://tankquest.jcmeteor.com/api/children/child_demo/report?locale=en',
+      zh: 'https://tankquest.jcmeteor.com/api/children/child_demo/report?locale=zh-CN',
+    },
+    {
+      en: 'https://tq-pre.jcmeteor.com/api/children/child_demo/report?locale=en',
+      zh: 'https://tq-pre.jcmeteor.com/api/children/child_demo/report?locale=zh-CN',
+    },
+  ],
+  requiredPrChecks: [
+    'Verify',
+    'TankQuest / Container image (api-runtime)',
+    'TankQuest / Container image (web-runtime)',
+    'TankQuest / Container image (ai-runtime)',
+  ],
   deployWorkflow: 'deploy-tencent.yml',
   deployTimeoutMs: 30 * 60 * 1000,
+  checkRegistrationTimeoutMs: 5 * 60 * 1000,
 };
 
 const args = process.argv.slice(2);
@@ -144,24 +166,56 @@ async function verifyRelease() {
   }
 
   for (const url of config.healthUrls) {
-    const response = capture('curl', [
-      '--fail',
-      '--show-error',
-      '--silent',
-      '--location',
-      '--max-time',
-      '15',
-      url,
-    ]);
-    let health;
-    try {
-      health = JSON.parse(response);
-    } catch {
-      fail(`Health endpoint did not return valid JSON: ${url}`);
-    }
+    const health = fetchJson(url, 'Health endpoint');
     if (health.status !== 'ok' || health.dependencies?.ai !== 'ok') {
       fail(`Health endpoint or AI dependency is not healthy: ${url}`);
     }
+  }
+
+  for (const urls of config.parentReportUrls) {
+    const english = fetchJson(urls.en, 'Parent report endpoint');
+    const chinese = fetchJson(urls.zh, 'Parent report endpoint');
+    validateParentReport(english, urls.en);
+    validateParentReport(chinese, urls.zh);
+    const fields = ['practiceContent', 'progress', 'attention', 'nextStep'];
+    if (
+      fields.every(
+        (field) => english.data.summary[field] === chinese.data.summary[field]
+      )
+    ) {
+      fail(`English and Chinese parent summaries are identical: ${urls.en}`);
+    }
+  }
+}
+
+function fetchJson(url, label) {
+  const response = capture('curl', [
+    '--fail',
+    '--show-error',
+    '--silent',
+    '--location',
+    '--max-time',
+    '15',
+    url,
+  ]);
+  try {
+    return JSON.parse(response);
+  } catch {
+    fail(`${label} did not return valid JSON: ${url}`);
+  }
+}
+
+function validateParentReport(report, url) {
+  const summary = report.data?.summary;
+  const fields = ['practiceContent', 'progress', 'attention', 'nextStep'];
+  if (
+    !summary ||
+    !fields.every(
+      (field) =>
+        typeof summary[field] === 'string' && summary[field].trim().length > 0
+    )
+  ) {
+    fail(`Parent report summary contract is invalid: ${url}`);
   }
 }
 
@@ -358,6 +412,34 @@ function createOrFindPr(title, head, base, body) {
 
 function waitForPrChecks(number) {
   if (dryRun) return;
+  const startedAt = Date.now();
+  for (;;) {
+    const pr = JSON.parse(
+      capture('gh', [
+        'pr',
+        'view',
+        String(number),
+        '--repo',
+        config.repo,
+        '--json',
+        'statusCheckRollup',
+      ])
+    );
+    const registered = new Set(
+      (pr.statusCheckRollup ?? []).map((check) => check.name)
+    );
+    const missing = config.requiredPrChecks.filter(
+      (check) => !registered.has(check)
+    );
+    if (missing.length === 0) break;
+    if (Date.now() - startedAt > config.checkRegistrationTimeoutMs) {
+      fail(
+        `Timed out waiting for PR checks to register: ${missing.join(', ')}`
+      );
+    }
+    log(`Waiting for PR checks to register: ${missing.join(', ')}`);
+    sleep(5_000);
+  }
   run('gh', [
     'pr',
     'checks',
