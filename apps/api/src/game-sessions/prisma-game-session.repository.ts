@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import {
+  ageGroupSchema,
   gameModeSchema,
   subjectSchema,
   type FinishSessionResponse,
@@ -12,6 +13,7 @@ import {
 
 import { PrismaService } from '../prisma.service.js';
 import type {
+  AdaptiveLearningContext,
   InternalQuestion,
   NewSession,
   RecordedAnswer,
@@ -22,6 +24,7 @@ import { GameSessionRepository } from './game-session.repository.js';
 import { applyTankUpgrades } from './tank-upgrades.js';
 
 const setupInclude = {
+  child: { include: { controls: true } },
   level: {
     include: {
       questions: {
@@ -120,6 +123,10 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
       questions: level.questions.map(({ question }) =>
         this.toInternalQuestion(question)
       ),
+      learner: {
+        ageGroup: ageGroupSchema.parse(child.ageGroup),
+        aiExplanationEnabled: controls.aiExplanationEnabled,
+      },
     };
   }
 
@@ -156,6 +163,11 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
         questions: session.level.questions.map(({ question }) =>
           this.toInternalQuestion(question)
         ),
+        learner: {
+          ageGroup: ageGroupSchema.parse(session.child.ageGroup),
+          aiExplanationEnabled:
+            session.child.controls?.aiExplanationEnabled ?? false,
+        },
       },
       answers: session.answers.map((answer) => ({
         questionId: answer.questionId,
@@ -166,6 +178,59 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
       settlement: session.rewardSummary
         ? (session.rewardSummary as unknown as FinishSessionResponse)
         : null,
+    };
+  }
+
+  async loadAdaptiveContext(
+    childId: string
+  ): Promise<AdaptiveLearningContext | null> {
+    const child = await this.prisma.child.findUnique({
+      where: { id: childId },
+      include: { controls: true, learningRecords: true },
+    });
+    if (!child?.controls) return null;
+
+    const [completedSessions, levels] = await Promise.all([
+      this.prisma.gameSession.count({
+        where: { childId, status: 'finished' },
+      }),
+      this.prisma.level.findMany({
+        where: {
+          status: 'published',
+          mode: { in: child.controls.allowedModes },
+          subjectFocus: { in: child.controls.allowedSubjects },
+          baseDifficulty: { lte: child.controls.maxDifficulty },
+        },
+        include: {
+          questions: {
+            include: {
+              question: { select: { skillKey: true } },
+            },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      ageGroup: ageGroupSchema.parse(child.ageGroup),
+      maxDifficulty: child.controls.maxDifficulty,
+      completedSessions,
+      records: child.learningRecords.map((record) => ({
+        subject: subjectSchema.parse(record.subject),
+        skillKey: record.skillKey,
+        attempts: record.attempts,
+        correctCount: record.correctCount,
+        averageAnswerTimeMs: record.averageAnswerTimeMs,
+        currentDifficulty: record.currentDifficulty,
+      })),
+      levels: levels.map((level) => ({
+        id: level.id,
+        subject: subjectSchema.parse(level.subjectFocus),
+        difficulty: level.baseDifficulty,
+        skillKeys: [
+          ...new Set(level.questions.map(({ question }) => question.skillKey)),
+        ],
+      })),
     };
   }
 
@@ -361,6 +426,7 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
     id: string;
     subject: string;
     difficulty: number;
+    skillKey: string;
     prompt: string;
     explanation: string;
     answers: Array<{ id: string; text: string; isCorrect: boolean }>;
@@ -375,6 +441,7 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
       id: question.id,
       subject: subjectSchema.parse(question.subject),
       difficulty: question.difficulty,
+      skillKey: question.skillKey,
       prompt: question.prompt,
       choices: question.answers.map((answer) => ({
         id: answer.id,

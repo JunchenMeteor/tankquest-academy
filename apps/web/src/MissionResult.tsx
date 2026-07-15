@@ -13,6 +13,7 @@ interface MissionResultProps {
   tank: TankDto;
   upgrade: UpgradeTankResponse | null;
   onContinue: () => void;
+  onNextPractice: () => void;
   onReplay: () => void;
   onUpgrade: () => void;
 }
@@ -23,6 +24,7 @@ export function MissionResult({
   tank,
   upgrade,
   onContinue,
+  onNextPractice,
   onReplay,
   onUpgrade,
 }: MissionResultProps) {
@@ -70,6 +72,21 @@ export function MissionResult({
           </strong>
           <span>{t('result.parts', { count: upgrade.remainingParts })}</span>
           <p>{t('result.effect')}</p>
+        </div>
+      )}
+      {settlement.nextPractice && (
+        <div className="next-practice" role="status">
+          <strong>{t('result.nextPractice')}</strong>
+          <p>
+            {t('result.nextPracticeSummary', {
+              subject: t(`subject.${settlement.nextPractice.subject}`),
+              skill: settlement.nextPractice.skillKey,
+              difficulty: settlement.nextPractice.difficulty,
+            })}
+          </p>
+          <button disabled={busy} onClick={onNextPractice}>
+            {t('result.selectNextPractice')}
+          </button>
         </div>
       )}
       <div className="result-actions">

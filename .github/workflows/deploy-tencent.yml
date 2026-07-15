@@ -11,9 +11,11 @@ on:
       - deploy/**
       - apps/api/**
       - apps/web/**
+      - services/ai/**
       - packages/shared/**
       - package.json
       - package-lock.json
+      - scripts/release-manager.mjs
       - .github/workflows/deploy-tencent.yml
   push:
     branches:
@@ -31,10 +33,27 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: [api-runtime, web-runtime]
+        target: [api-runtime, web-runtime, ai-runtime]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Python
+        if: matrix.target == 'ai-runtime'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: services/ai/pyproject.toml
+
+      - name: Prepare AI wheelhouse
+        if: matrix.target == 'ai-runtime'
+        run: |
+          mkdir -p services/ai/wheelhouse
+          python -m pip download \
+            --dest services/ai/wheelhouse \
+            'hatchling>=1.27,<2' \
+            './services/ai'
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -66,6 +85,15 @@ jobs:
             !packages/**/dist
           retention-days: 7
 
+      - name: Upload AI wheelhouse artifact
+        if: github.event_name != 'pull_request' && matrix.target == 'ai-runtime'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tankquest-ai-wheelhouse-${{ github.sha }}
+          path: services/ai/wheelhouse
+          if-no-files-found: error
+          retention-days: 7
+
   deploy:
     name: TankQuest / Deploy preview or release
     if: github.event_name != 'pull_request'
@@ -77,6 +105,12 @@ jobs:
         with:
           name: tankquest-source-${{ github.sha }}
           path: source
+
+      - name: Download validated AI wheelhouse
+        uses: actions/download-artifact@v4
+        with:
+          name: tankquest-ai-wheelhouse-${{ github.sha }}
+          path: source/services/ai/wheelhouse
 
       - name: Resolve target
         id: target
@@ -93,11 +127,13 @@ jobs:
       - name: Build deployment images
         run: |
           docker build --target api-runtime --tag "tankquest-api:${GITHUB_SHA}" --file source/Dockerfile source
+          docker build --target ai-runtime --tag "tankquest-ai:${GITHUB_SHA}" --file source/Dockerfile source
           docker build --target web-runtime --tag "tankquest-web:${GITHUB_SHA}" --file source/Dockerfile source
 
       - name: Deploy
         env:
           API_IMAGE: tankquest-api:${{ github.sha }}
+          AI_IMAGE: tankquest-ai:${{ github.sha }}
           APP_NAME: tankquest
           DATA_ROOT: /data/projects
           ENVIRONMENT: ${{ steps.target.outputs.environment }}

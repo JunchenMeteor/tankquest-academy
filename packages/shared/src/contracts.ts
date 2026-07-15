@@ -107,6 +107,7 @@ export interface SubmitAnswerRequest {
   questionId: string;
   selectedAnswerId: string;
   answerTimeMs: number;
+  locale?: 'en' | 'zh-CN';
 }
 
 export interface SubmitAnswerResponse {
@@ -136,6 +137,27 @@ export interface FinishSessionResponse {
     amount: number;
   }>;
   learningSummary: { correct: number; total: number };
+  nextPractice?: NextPracticeRecommendationDto;
+}
+
+export type PracticeIntent = 'review' | 'reinforce' | 'challenge';
+
+export interface NextPracticeRecommendationDto {
+  levelId: string;
+  subject: Subject;
+  skillKey: string;
+  difficulty: number;
+  intent: PracticeIntent;
+  decision: 'adopted' | 'adjusted' | 'rejected' | 'fallback';
+  reason:
+    | 'within_policy'
+    | 'insufficient_data'
+    | 'ai_unavailable'
+    | 'invalid_focus'
+    | 'outside_policy'
+    | 'parent_limit'
+    | 'content_unavailable'
+    | 'provider_fallback';
 }
 
 export interface UpgradeTankRequest {
@@ -170,6 +192,18 @@ export interface ParentReportMetricDto {
   averageAnswerTimeMs: number;
   currentDifficulty?: number;
   lastPracticedAt?: string;
+  trend?: ParentReportTrend;
+}
+
+export type ParentReportTrend =
+  'improving' | 'steady' | 'needs-practice' | 'insufficient-data';
+
+export interface ParentReportSummaryDto {
+  source: 'deterministic' | 'model';
+  practiceContent: string;
+  progress: string;
+  attention: string;
+  nextStep: string;
 }
 
 export interface ParentReportDto {
@@ -179,4 +213,5 @@ export interface ParentReportDto {
   subjects: ParentReportMetricDto[];
   recentSkills: ParentReportMetricDto[];
   focusSkill: Pick<ParentReportMetricDto, 'subject' | 'skillKey'> | null;
+  summary?: ParentReportSummaryDto;
 }

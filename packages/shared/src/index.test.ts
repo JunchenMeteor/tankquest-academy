@@ -45,6 +45,16 @@ describe('shared contracts', () => {
     ).toThrow();
   });
 
+  it('defaults legacy answer requests to English', () => {
+    expect(
+      submitAnswerRequestSchema.parse({
+        questionId: 'q_001',
+        selectedAnswerId: 'a',
+        answerTimeMs: 500,
+      }).locale
+    ).toBe('en');
+  });
+
   it('validates backend-owned enemy tank compositions', () => {
     expect(
       levelEnemyConfigSchema.parse({

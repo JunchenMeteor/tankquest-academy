@@ -53,8 +53,10 @@ export class ApiClient {
     );
   }
 
-  getParentReport(childId: string) {
-    return this.send<ParentReportDto>(`/api/children/${childId}/report`);
+  getParentReport(childId: string, locale: 'en' | 'zh-CN' = 'en') {
+    return this.send<ParentReportDto>(
+      `/api/children/${childId}/report?locale=${encodeURIComponent(locale)}`
+    );
   }
 
   listTankSkins(childId: string, tankId: string) {

@@ -1,4 +1,8 @@
-import type { ParentReportDto, ParentReportMetricDto } from '@tankquest/shared';
+import type {
+  ParentReportDto,
+  ParentReportMetricDto,
+  ParentReportSummaryDto,
+} from '@tankquest/shared';
 import { useEffect, useState } from 'react';
 
 import { readError } from './app-state.js';
@@ -16,8 +20,10 @@ export function ParentReport() {
 
   useEffect(() => {
     let active = true;
+    setReport(null);
+    setError(null);
     void api
-      .getParentReport(clientConfig.demoChildId)
+      .getParentReport(clientConfig.demoChildId, locale)
       .then((data) => {
         if (active) setReport(data);
       })
@@ -27,7 +33,7 @@ export function ParentReport() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [locale]);
 
   return (
     <main className="app-shell parent-shell">
@@ -60,6 +66,11 @@ export function ParentReport() {
               <strong>{report.totalAnswers}</strong>
             </div>
           </section>
+          {report.summary && (
+            <ReportSection title={t('parent.summary')}>
+              <ParentReportSummary summary={report.summary} />
+            </ReportSection>
+          )}
           <ReportSection title={t('parent.subjects')}>
             {report.subjects.length ? (
               <div className="report-grid">
@@ -110,6 +121,40 @@ export function ParentReport() {
         </p>
       )}
     </main>
+  );
+}
+
+export function ParentReportSummary({
+  summary,
+}: {
+  summary: ParentReportSummaryDto;
+}) {
+  const { t } = useI18n();
+  return (
+    <div className="summary-grid">
+      <SummaryItem
+        title={t('parent.summaryPractice')}
+        value={summary.practiceContent}
+      />
+      <SummaryItem
+        title={t('parent.summaryProgress')}
+        value={summary.progress}
+      />
+      <SummaryItem
+        title={t('parent.summaryAttention')}
+        value={summary.attention}
+      />
+      <SummaryItem title={t('parent.summaryNext')} value={summary.nextStep} />
+    </div>
+  );
+}
+
+function SummaryItem({ title, value }: { title: string; value: string }) {
+  return (
+    <article className="summary-item">
+      <h3>{title}</h3>
+      <p>{value}</p>
+    </article>
   );
 }
 
