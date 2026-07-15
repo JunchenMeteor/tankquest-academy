@@ -18,6 +18,8 @@
 
 发布操作见 `release-manager.md`，主机拓扑和数据路径见 `tencent-docker-deployment.md`。
 
+AI 运行时的 Linux wheelhouse 由 GitHub hosted runner 使用 Python 3.13 生成并作为提交 SHA 专属 artifact 传给部署 Job。目标服务器从 wheelhouse 离线组装 AI 镜像，不在部署期间访问 PyPI。
+
 ## 3. 运行配置
 
 主 API 运行时使用：

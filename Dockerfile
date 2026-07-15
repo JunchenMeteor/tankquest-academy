@@ -56,8 +56,6 @@ CMD ["sh", "-c", "npm run db:migrate && npm run db:seed && node apps/api/dist/ma
 
 FROM python:3.13-slim AS ai-runtime
 
-ARG PYPI_INDEX_URL=https://pypi.org/simple
-
 ENV AI_PROVIDER=template \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
@@ -66,15 +64,11 @@ WORKDIR /app
 
 COPY services/ai/pyproject.toml services/ai/README.md ./
 COPY services/ai/tankquest_ai ./tankquest_ai
+COPY services/ai/wheelhouse /wheelhouse
 
 RUN set -eu; \
-    for attempt in 1 2 3; do \
-      if pip install --no-cache-dir --index-url "${PYPI_INDEX_URL}" --retries 10 --timeout 60 .; then \
-        break; \
-      fi; \
-      if [ "${attempt}" -eq 3 ]; then exit 1; fi; \
-      sleep "$((attempt * 5))"; \
-    done; \
+    pip install --no-cache-dir --no-index --find-links=/wheelhouse "hatchling>=1.27,<2"; \
+    pip install --no-cache-dir --no-index --find-links=/wheelhouse --no-build-isolation .; \
     useradd --create-home --uid 10001 tankquest
 
 USER tankquest
