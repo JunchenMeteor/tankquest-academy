@@ -1,7 +1,11 @@
 import pytest
 from pydantic import ValidationError
 
-from tankquest_ai.models import QuestionDraftPayload, WrongAnswerExplanationRequest
+from tankquest_ai.models import (
+    AdaptivePracticeRecommendationRequest,
+    QuestionDraftPayload,
+    WrongAnswerExplanationRequest,
+)
 
 
 def test_correct_answer_must_match_one_unique_choice() -> None:
@@ -35,4 +39,19 @@ def test_wrong_answer_request_rejects_a_correct_selection() -> None:
             question="8 + 7 = ?",
             selectedAnswer="15",
             correctAnswer="15",
+        )
+
+
+def test_adaptive_practice_request_rejects_reversed_allowed_range() -> None:
+    with pytest.raises(ValidationError):
+        AdaptivePracticeRecommendationRequest(
+            ageGroup="6-8",
+            subject="math",
+            skillKey="addition-within-20",
+            currentDifficulty=2,
+            attempts=4,
+            accuracy=75,
+            averageAnswerTimeMs=15_000,
+            completedSessions=1,
+            allowedDifficulty={"min": 4, "max": 2},
         )

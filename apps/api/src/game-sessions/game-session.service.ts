@@ -9,6 +9,7 @@ import type {
   AgeGroup,
   FinishSessionResponse,
   GameEventRequest,
+  NextPracticeRecommendationDto,
   StartSessionRequest,
   StartSessionResponse,
   SubmitAnswerRequest,
@@ -17,6 +18,10 @@ import type {
 } from '@tankquest/shared';
 
 import { AiGatewayService } from '../ai/ai-gateway.service.js';
+import {
+  buildAdaptivePracticePolicy,
+  resolveNextPractice,
+} from './adaptive-learning.js';
 import { GameSessionRepository } from './game-session.repository.js';
 import type { InternalQuestion, SessionState } from './game-session.models.js';
 import { calculateSettlement } from './settlement.js';
@@ -125,11 +130,35 @@ export class GameSessionService {
       return session.settlement;
     }
 
-    const settlement = calculateSettlement(
+    const baseSettlement = calculateSettlement(
       sessionId,
       session.answers,
       session.setup.questions.length
     );
+    const context = await this.repository.loadAdaptiveContext(session.childId);
+    const policy = context ? buildAdaptivePracticePolicy(context) : null;
+    let nextPractice: NextPracticeRecommendationDto | null = null;
+    if (policy && context) {
+      const ageGroup = toAiAgeGroup(context.ageGroup);
+      const aiResponse =
+        policy.skipAi || !ageGroup || !isAiSubject(policy.focus.subject)
+          ? null
+          : await this.aiGateway.createPracticeRecommendation({
+              ageGroup,
+              subject: policy.focus.subject,
+              skillKey: policy.focus.skillKey,
+              currentDifficulty: policy.currentDifficulty,
+              attempts: policy.focus.attempts,
+              accuracy: policy.focus.accuracy,
+              averageAnswerTimeMs: policy.focus.averageAnswerTimeMs,
+              completedSessions: policy.completedSessions + 1,
+              allowedDifficulty: policy.allowedDifficulty,
+            });
+      nextPractice = resolveNextPractice(policy, aiResponse);
+    }
+    const settlement = nextPractice
+      ? { ...baseSettlement, nextPractice }
+      : baseSettlement;
     return this.repository.settleSession(sessionId, settlement);
   }
 

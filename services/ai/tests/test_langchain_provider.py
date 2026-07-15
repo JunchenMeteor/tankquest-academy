@@ -1,12 +1,15 @@
 from unittest.mock import MagicMock, patch
 
 from tankquest_ai.models import (
+    AdaptivePracticeRecommendationPayload,
+    AdaptivePracticeRecommendationRequest,
     QuestionDraftPayload,
     QuestionDraftRequest,
     WrongAnswerExplanationPayload,
     WrongAnswerExplanationRequest,
 )
 from tankquest_ai.providers.langchain_openai import (
+    LangChainOpenAIAdaptivePracticeRecommendationProvider,
     LangChainOpenAIQuestionDraftProvider,
     LangChainOpenAIWrongAnswerExplanationProvider,
 )
@@ -88,3 +91,46 @@ def test_langchain_explanation_echoes_the_authoritative_answer() -> None:
     messages = structured_model.invoke.call_args.args[0]
     assert "never change" in messages[0].content
     assert "Authoritative correct answer: 15" in messages[1].content
+
+
+def test_langchain_adaptive_practice_provider_uses_bounded_structured_output() -> None:
+    expected = AdaptivePracticeRecommendationPayload(
+        subject="math",
+        skillKey="addition-within-20",
+        recommendedDifficulty=3,
+        practiceIntent="reinforce",
+    )
+    structured_model = MagicMock()
+    structured_model.invoke.return_value = expected
+
+    with patch("tankquest_ai.providers.langchain_openai.ChatOpenAI") as chat_model_class:
+        chat_model_class.return_value.with_structured_output.return_value = structured_model
+        provider = LangChainOpenAIAdaptivePracticeRecommendationProvider(
+            api_key="test-only-key",
+            model="configured-model",
+            timeout_seconds=8,
+        )
+        result = provider.generate(
+            AdaptivePracticeRecommendationRequest(
+                ageGroup="6-8",
+                subject="math",
+                skillKey="addition-within-20",
+                currentDifficulty=3,
+                attempts=8,
+                accuracy=75,
+                averageAnswerTimeMs=15_000,
+                completedSessions=2,
+                allowedDifficulty={"min": 2, "max": 4},
+            )
+        )
+
+    assert result == expected
+    chat_model_class.return_value.with_structured_output.assert_called_once_with(
+        AdaptivePracticeRecommendationPayload,
+        method="json_schema",
+        strict=True,
+    )
+    messages = structured_model.invoke.call_args.args[0]
+    assert "authoritative backend decides" in messages[0].content
+    assert "Allowed difficulty inclusive: 2 to 4" in messages[1].content
+    assert "Do not decide a level" in messages[1].content

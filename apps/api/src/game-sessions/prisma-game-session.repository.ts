@@ -13,6 +13,7 @@ import {
 
 import { PrismaService } from '../prisma.service.js';
 import type {
+  AdaptiveLearningContext,
   InternalQuestion,
   NewSession,
   RecordedAnswer,
@@ -177,6 +178,59 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
       settlement: session.rewardSummary
         ? (session.rewardSummary as unknown as FinishSessionResponse)
         : null,
+    };
+  }
+
+  async loadAdaptiveContext(
+    childId: string
+  ): Promise<AdaptiveLearningContext | null> {
+    const child = await this.prisma.child.findUnique({
+      where: { id: childId },
+      include: { controls: true, learningRecords: true },
+    });
+    if (!child?.controls) return null;
+
+    const [completedSessions, levels] = await Promise.all([
+      this.prisma.gameSession.count({
+        where: { childId, status: 'finished' },
+      }),
+      this.prisma.level.findMany({
+        where: {
+          status: 'published',
+          mode: { in: child.controls.allowedModes },
+          subjectFocus: { in: child.controls.allowedSubjects },
+          baseDifficulty: { lte: child.controls.maxDifficulty },
+        },
+        include: {
+          questions: {
+            include: {
+              question: { select: { skillKey: true } },
+            },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      ageGroup: ageGroupSchema.parse(child.ageGroup),
+      maxDifficulty: child.controls.maxDifficulty,
+      completedSessions,
+      records: child.learningRecords.map((record) => ({
+        subject: subjectSchema.parse(record.subject),
+        skillKey: record.skillKey,
+        attempts: record.attempts,
+        correctCount: record.correctCount,
+        averageAnswerTimeMs: record.averageAnswerTimeMs,
+        currentDifficulty: record.currentDifficulty,
+      })),
+      levels: levels.map((level) => ({
+        id: level.id,
+        subject: subjectSchema.parse(level.subjectFocus),
+        difficulty: level.baseDifficulty,
+        skillKeys: [
+          ...new Set(level.questions.map(({ question }) => question.skillKey)),
+        ],
+      })),
     };
   }
 

@@ -5,6 +5,7 @@ import type {
   QuestionDto,
   StartSessionRequest,
   TankDto,
+  Subject,
 } from '@tankquest/shared';
 
 export interface InternalQuestion extends QuestionDto {
@@ -39,6 +40,30 @@ export interface SessionState {
   setup: SessionSetup;
   answers: RecordedAnswer[];
   settlement: FinishSessionResponse | null;
+}
+
+export interface AdaptiveLearningRecord {
+  subject: Subject;
+  skillKey: string;
+  attempts: number;
+  correctCount: number;
+  averageAnswerTimeMs: number;
+  currentDifficulty: number;
+}
+
+export interface EligiblePracticeLevel {
+  id: string;
+  subject: Subject;
+  difficulty: number;
+  skillKeys: string[];
+}
+
+export interface AdaptiveLearningContext {
+  ageGroup: AgeGroup;
+  maxDifficulty: number;
+  completedSessions: number;
+  records: AdaptiveLearningRecord[];
+  levels: EligiblePracticeLevel[];
 }
 
 export interface NewSession extends StartSessionRequest {

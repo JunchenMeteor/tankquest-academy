@@ -125,6 +125,73 @@ describe('AiGatewayClient', () => {
     ).rejects.toBeInstanceOf(AiGatewayError);
   });
 
+  it('sends only aggregate practice recommendation fields', async () => {
+    const fetchImplementation = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({
+        requestId: 'e96e124f-98d5-44b9-9690-002f7a5a5454',
+        source: 'template',
+        fallbackReason: null,
+        subject: 'math',
+        skillKey: 'addition-within-20',
+        recommendedDifficulty: 2,
+        practiceIntent: 'challenge',
+      })
+    );
+    const request = {
+      ageGroup: '6-8' as const,
+      subject: 'math' as const,
+      skillKey: 'addition-within-20',
+      currentDifficulty: 1,
+      attempts: 5,
+      accuracy: 80,
+      averageAnswerTimeMs: 8_000,
+      completedSessions: 4,
+      allowedDifficulty: { min: 1, max: 2 },
+    };
+
+    await expect(
+      new AiGatewayClient(
+        config,
+        fetchImplementation
+      ).createPracticeRecommendation(request)
+    ).resolves.toMatchObject({ recommendedDifficulty: 2 });
+    const [url, init] = fetchImplementation.mock.calls[0] ?? [];
+    expect(url).toBe('http://ai:8100/v1/internal/practice-recommendations');
+    const body = JSON.parse(String(init?.body));
+    expect(body).toEqual(request);
+    for (const field of [
+      'childId',
+      'sessionId',
+      'levelId',
+      'answers',
+      'events',
+    ]) {
+      expect(body).not.toHaveProperty(field);
+    }
+  });
+
+  it('rejects an invalid allowed difficulty range before sending it', async () => {
+    const fetchImplementation = vi.fn<typeof fetch>();
+
+    await expect(
+      new AiGatewayClient(
+        config,
+        fetchImplementation
+      ).createPracticeRecommendation({
+        ageGroup: '6-8',
+        subject: 'math',
+        skillKey: 'addition-within-20',
+        currentDifficulty: 1,
+        attempts: 5,
+        accuracy: 80,
+        averageAnswerTimeMs: 8_000,
+        completedSessions: 4,
+        allowedDifficulty: { min: 2, max: 1 },
+      })
+    ).rejects.toThrow();
+    expect(fetchImplementation).not.toHaveBeenCalled();
+  });
+
   it.each([
     Response.json({ status: 'ok' }, { status: 200 }),
     Response.json(

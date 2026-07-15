@@ -7,6 +7,7 @@ Locale = Literal["en", "zh-CN"]
 Subject = Literal["math", "english", "direction"]
 DraftSource = Literal["template", "model"]
 FallbackReason = Literal["config_missing", "provider_error", "unsafe_output", "invalid_output"]
+PracticeIntent = Literal["review", "reinforce", "challenge"]
 
 
 class StrictModel(BaseModel):
@@ -94,6 +95,42 @@ class WrongAnswerExplanationResponse(StrictModel):
     fallback_reason: FallbackReason | None = Field(default=None, alias="fallbackReason")
     correct_answer: str = Field(alias="correctAnswer", min_length=1, max_length=80)
     explanation: str = Field(min_length=1, max_length=320)
+
+
+class AllowedDifficulty(StrictModel):
+    minimum: int = Field(alias="min", ge=1, le=5)
+    maximum: int = Field(alias="max", ge=1, le=5)
+
+    @model_validator(mode="after")
+    def minimum_does_not_exceed_maximum(self) -> "AllowedDifficulty":
+        if self.minimum > self.maximum:
+            raise ValueError("allowedDifficulty.min must not exceed allowedDifficulty.max")
+        return self
+
+
+class AdaptivePracticeRecommendationRequest(StrictModel):
+    age_group: AgeGroup = Field(alias="ageGroup")
+    subject: Subject
+    skill_key: str = Field(alias="skillKey", min_length=1, max_length=64, pattern=r"^[a-z0-9-]+$")
+    current_difficulty: int = Field(alias="currentDifficulty", ge=1, le=5)
+    attempts: int = Field(ge=0, le=100_000)
+    accuracy: float = Field(ge=0, le=100)
+    average_answer_time_ms: int = Field(alias="averageAnswerTimeMs", ge=0, le=1_800_000)
+    completed_sessions: int = Field(alias="completedSessions", ge=0, le=100_000)
+    allowed_difficulty: AllowedDifficulty = Field(alias="allowedDifficulty")
+
+
+class AdaptivePracticeRecommendationPayload(StrictModel):
+    subject: Subject
+    skill_key: str = Field(alias="skillKey", min_length=1, max_length=64, pattern=r"^[a-z0-9-]+$")
+    recommended_difficulty: int = Field(alias="recommendedDifficulty", ge=1, le=5)
+    practice_intent: PracticeIntent = Field(alias="practiceIntent")
+
+
+class AdaptivePracticeRecommendationResponse(AdaptivePracticeRecommendationPayload):
+    request_id: str = Field(alias="requestId")
+    source: DraftSource
+    fallback_reason: FallbackReason | None = Field(default=None, alias="fallbackReason")
 
 
 class HealthResponse(StrictModel):

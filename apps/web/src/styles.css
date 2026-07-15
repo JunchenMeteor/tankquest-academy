@@ -449,6 +449,20 @@ button:disabled {
   font-size: 1.1rem;
 }
 
+.next-practice {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: color-mix(in srgb, var(--accent) 10%, var(--panel));
+}
+
+.next-practice p {
+  margin: 0;
+}
+
 .upgrade-max {
   max-width: 34rem;
   color: #c8d2c0;

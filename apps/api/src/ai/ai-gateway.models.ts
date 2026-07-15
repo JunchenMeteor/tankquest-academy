@@ -45,6 +45,41 @@ export type AiWrongAnswerExplanationRequest = z.infer<
   typeof aiWrongAnswerExplanationRequestSchema
 >;
 
+export const aiPracticeRecommendationRequestSchema = z
+  .object({
+    ageGroup: z.enum(['6-8', '9-12']),
+    subject: z.enum(['math', 'english', 'direction']),
+    skillKey: z
+      .string()
+      .min(1)
+      .max(64)
+      .regex(/^[a-z0-9-]+$/),
+    currentDifficulty: z.number().int().min(1).max(5),
+    attempts: z.number().int().min(0).max(100_000),
+    accuracy: z.number().min(0).max(100),
+    averageAnswerTimeMs: z
+      .number()
+      .int()
+      .min(0)
+      .max(30 * 60 * 1000),
+    completedSessions: z.number().int().min(0).max(100_000),
+    allowedDifficulty: z
+      .object({
+        min: z.number().int().min(1).max(5),
+        max: z.number().int().min(1).max(5),
+      })
+      .strict(),
+  })
+  .strict()
+  .refine(
+    ({ allowedDifficulty }) => allowedDifficulty.min <= allowedDifficulty.max,
+    'allowedDifficulty min must not exceed max'
+  );
+
+export type AiPracticeRecommendationRequest = z.infer<
+  typeof aiPracticeRecommendationRequestSchema
+>;
+
 const questionDraftSchema = z
   .object({
     question: z.string().min(1).max(240),
@@ -109,4 +144,27 @@ export const aiWrongAnswerExplanationResponseSchema = z
 
 export type AiWrongAnswerExplanationResponse = z.infer<
   typeof aiWrongAnswerExplanationResponseSchema
+>;
+
+export const aiPracticeRecommendationResponseSchema = z
+  .object({
+    requestId: z.string().uuid(),
+    source: z.enum(['template', 'model']),
+    fallbackReason: z
+      .enum([
+        'config_missing',
+        'provider_error',
+        'unsafe_output',
+        'invalid_output',
+      ])
+      .nullable(),
+    subject: z.enum(['math', 'english', 'direction']),
+    skillKey: z.string().min(1).max(64),
+    recommendedDifficulty: z.number().int().min(1).max(5),
+    practiceIntent: z.enum(['review', 'reinforce', 'challenge']),
+  })
+  .strict();
+
+export type AiPracticeRecommendationResponse = z.infer<
+  typeof aiPracticeRecommendationResponseSchema
 >;
