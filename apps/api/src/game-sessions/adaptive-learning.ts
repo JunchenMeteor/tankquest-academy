@@ -139,7 +139,12 @@ export function resolveNextPractice(
     }
   }
 
-  const level = nearestLevel(policy.levels, proposedDifficulty);
+  const allowedLevels = policy.levels.filter(
+    (level) =>
+      level.difficulty >= policy.allowedDifficulty.min &&
+      level.difficulty <= policy.allowedDifficulty.max
+  );
+  const level = nearestLevel(allowedLevels, proposedDifficulty);
   if (!level) return null;
   if (level.difficulty !== proposedDifficulty) {
     decision = 'adjusted';

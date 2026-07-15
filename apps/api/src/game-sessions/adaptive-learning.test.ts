@@ -192,4 +192,42 @@ describe('adaptive learning policy', () => {
       reason: 'invalid_focus',
     });
   });
+
+  it.each([
+    {
+      name: 'above',
+      currentDifficulty: 3,
+      correctCount: 5,
+      levelDifficulty: 5,
+    },
+    {
+      name: 'below',
+      currentDifficulty: 3,
+      correctCount: 2,
+      levelDifficulty: 1,
+    },
+  ])(
+    'does not map to content $name the backend-owned range',
+    ({ currentDifficulty, correctCount, levelDifficulty }) => {
+      const result = policy({
+        ...baseContext,
+        maxDifficulty: 5,
+        records: [
+          {
+            ...baseContext.records[0]!,
+            currentDifficulty,
+            correctCount,
+          },
+        ],
+        levels: [
+          {
+            ...baseContext.levels[0]!,
+            difficulty: levelDifficulty,
+          },
+        ],
+      });
+
+      expect(resolveNextPractice(result, null)).toBeNull();
+    }
+  );
 });

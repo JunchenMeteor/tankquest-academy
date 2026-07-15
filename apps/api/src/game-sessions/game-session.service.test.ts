@@ -55,6 +55,7 @@ class MemoryRepository extends GameSessionRepository {
   session: SessionState | null = null;
   allowSetup = true;
   adaptiveContext: AdaptiveLearningContext | null = null;
+  failAdaptiveContext = false;
 
   async listLevels(): Promise<LevelDto[]> {
     return [setup.level];
@@ -86,6 +87,9 @@ class MemoryRepository extends GameSessionRepository {
   }
 
   async loadAdaptiveContext(): Promise<AdaptiveLearningContext | null> {
+    if (this.failAdaptiveContext) {
+      throw new Error('Adaptive context unavailable');
+    }
     return this.adaptiveContext;
   }
 
@@ -369,6 +373,26 @@ describe('GameSessionService', () => {
     const second = await service.finish('session_1');
     expect(first).toEqual(second);
     expect(first.stars).toBe(3);
+  });
+
+  it('settles normally when optional adaptive context is unavailable', async () => {
+    repository.failAdaptiveContext = true;
+    await service.start({
+      childId: 'child_1',
+      levelId: 'level_1',
+      tankId: 'tank_1',
+    });
+    await service.submitAnswer('session_1', {
+      questionId: 'question_1',
+      selectedAnswerId: 'answer_b',
+      answerTimeMs: 1200,
+    });
+
+    await expect(service.finish('session_1')).resolves.toMatchObject({
+      stars: 3,
+    });
+    expect(repository.session?.settlement).not.toHaveProperty('nextPractice');
+    expect(aiGateway.createPracticeRecommendation).not.toHaveBeenCalled();
   });
 
   it('persists a backend-constrained next-practice recommendation', async () => {
