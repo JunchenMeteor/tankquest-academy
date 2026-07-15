@@ -10,6 +10,8 @@ const config = {
   repo: 'JunchenMeteor/tankquest-academy',
   projectName: 'TankQuest Academy',
   branchPrefix: 'dev/chore/release-',
+  promotionBranch: (version) =>
+    `dev/chore/release-v${version.replaceAll('.', '')}-promotion`,
   issuePrefix: '[Chore]',
   issueLabel: 'chore',
   versionFiles: ['package.json', 'package-lock.json'],
@@ -124,6 +126,7 @@ async function prepareRelease() {
 
 async function promoteRelease() {
   ensureTooling();
+  ensureCleanWorktree();
   fetchBase();
   ensureTagDoesNotExist(tag);
 
@@ -131,9 +134,10 @@ async function promoteRelease() {
     releaseTitle,
     issueBody('Promote main to release and publish the GitHub Release.')
   );
+  const promotionBranch = createPromotionBranch();
   const pr = createOrFindPr(
     releaseTitle,
-    'main',
+    promotionBranch,
     'release',
     prBody(
       issue.number,
@@ -142,12 +146,34 @@ async function promoteRelease() {
   );
 
   waitForPrChecks(pr.number);
-  const mergeCommit = mergePr(pr.number, false);
+  const mergeCommit = mergePr(pr.number, true);
   waitForDeploy('release', mergeCommit);
   await verifyRelease();
   createGithubRelease(tag, mergeCommit);
   closeIssue(issue.number);
   log(`Released ${tag}: https://github.com/${config.repo}/releases/tag/${tag}`);
+}
+
+function createPromotionBranch() {
+  const branch = config.promotionBranch(version);
+  const mainTree = capture('git', ['rev-parse', 'origin/main^{tree}']).trim();
+  const commit = capture('git', [
+    'commit-tree',
+    mainTree,
+    '-p',
+    'origin/release',
+    '-p',
+    'origin/main',
+    '-m',
+    `Promote ${tag} from accepted main`,
+  ]).trim();
+
+  run('git', ['checkout', '-B', branch, commit]);
+  run('git', ['diff', '--exit-code', 'origin/main', 'HEAD']);
+  run('git', ['merge-base', '--is-ancestor', 'origin/release', 'HEAD']);
+  run('git', ['merge-base', '--is-ancestor', 'origin/main', 'HEAD']);
+  run('git', ['push', '--force-with-lease', '-u', 'origin', branch]);
+  return branch;
 }
 
 async function verifyRelease() {

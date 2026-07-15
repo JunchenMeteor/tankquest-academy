@@ -32,12 +32,13 @@ The workflow falls back to `GITHUB_TOKEN` if the secret is missing. GitHub may n
 3. Create a preparation branch from `origin/main`.
 4. Update root package versions and create `docs/releases/v<version>.md`.
 5. Open a PR into `main`, wait for checks, and squash merge it.
-6. Open a PR from `main` into `release`, wait for Verify and all three runtime container checks to register and pass, and squash merge it.
-7. Wait up to 30 minutes for the Tencent release deployment workflow.
-8. Verify both home/parent pages return successfully, both health payloads report `status=ok` with `dependencies.ai=ok`, and both environments return non-empty English/Chinese parent summaries.
-9. Create GitHub Release `v<version>` only after verification succeeds.
+6. Create a dedicated promotion branch whose parents include the current `release` and accepted `main`, while its file tree exactly matches `main`.
+7. Open a PR from the promotion branch into `release`, wait for fresh Verify and all three runtime container checks to register and pass, and squash merge it.
+8. Wait up to 30 minutes for the Tencent release deployment workflow.
+9. Verify both home/parent pages return successfully, both health payloads report `status=ok` with `dependencies.ai=ok`, and both environments return non-empty English/Chinese parent summaries.
+10. Create GitHub Release `v<version>` only after verification succeeds.
 
-The workflow never pushes directly to `main` or `release`.
+The workflow never pushes directly to `main` or `release`. The dedicated promotion branch prevents squash-history conflicts while the exact-tree check ensures production receives the accepted `main` contents.
 
 ## Local Recovery
 
