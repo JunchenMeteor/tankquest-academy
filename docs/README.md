@@ -107,6 +107,9 @@ AI 开始开发前，按这个顺序阅读，不要一上来读所有文件。
 31. `phase-three-acceptance.md`
     - Phase 3 工程验收证据、v0.3.0 发布门禁和已知非阻塞项。
 
+32. `phase-four-scope.md`
+    - Phase 4 Phaser 2.5D、资源清单、坦克识别度、主题场景和降级边界。
+
 ## 2. 第一阶段开发顺序
 
 第一阶段不要做全量功能，只做 MVP。
