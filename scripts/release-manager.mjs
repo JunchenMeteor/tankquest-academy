@@ -26,6 +26,10 @@ const config = {
     'https://tankquest.jcmeteor.com/api/health',
     'https://tq-pre.jcmeteor.com/api/health',
   ],
+  publicOrigins: [
+    'https://tankquest.jcmeteor.com',
+    'https://tq-pre.jcmeteor.com',
+  ],
   parentReportUrls: [
     {
       en: 'https://tankquest.jcmeteor.com/api/children/child_demo/report?locale=en',
@@ -212,6 +216,11 @@ async function verifyRelease() {
       fail(`English and Chinese parent summaries are identical: ${urls.en}`);
     }
   }
+
+  run('node', [
+    'scripts/verify-public-deployment.mjs',
+    ...config.publicOrigins,
+  ]);
 }
 
 function fetchJson(url, label) {
