@@ -14,7 +14,15 @@ const config = {
     `dev/chore/release-v${version.replaceAll('.', '')}-promotion`,
   issuePrefix: '[Chore]',
   issueLabel: 'chore',
-  versionFiles: ['package.json', 'package-lock.json'],
+  versionFiles: [
+    'package.json',
+    'package-lock.json',
+    'apps/desktop/package.json',
+    'apps/desktop/src-tauri/tauri.conf.json',
+  ],
+  cargoManifest: 'apps/desktop/src-tauri/Cargo.toml',
+  cargoLock: 'apps/desktop/src-tauri/Cargo.lock',
+  serviceWorker: 'apps/web/public/sw.js',
   releaseDoc: (version) => `docs/releases/v${version}.md`,
   pageUrls: [
     'https://tankquest.jcmeteor.com/',
@@ -60,7 +68,12 @@ if (command === 'help' || options.help) {
   process.exit(command === 'help' ? 0 : 1);
 }
 
-const version = normalizeVersion(options.version);
+const version = normalizeVersion(
+  options.version ??
+    (command === 'verify-version'
+      ? readJson('package.json').version
+      : undefined)
+);
 const tag = `v${version}`;
 const prepareTitle = `${config.issuePrefix} Prepare ${tag} release`;
 const releaseTitle = `${config.issuePrefix} Release ${tag}`;
@@ -78,6 +91,10 @@ switch (command) {
     break;
   case 'verify':
     await verifyRelease();
+    break;
+  case 'verify-version':
+    verifyVersionSurfaces(version);
+    log(`Verified all release version surfaces at v${version}`);
     break;
   default:
     fail(`Unknown command: ${command}`);
@@ -112,6 +129,9 @@ async function prepareRelease() {
   run('git', [
     'add',
     ...config.versionFiles.filter(exists),
+    config.cargoManifest,
+    config.cargoLock,
+    config.serviceWorker,
     config.releaseDoc(version),
   ]);
   run('git', ['commit', '-m', `Prepare ${tag} release`]);
@@ -313,7 +333,7 @@ function ensureTagDoesNotExist(tagName) {
 function mainAlreadyPrepared(targetVersion) {
   run('git', ['checkout', 'origin/main']);
   return (
-    readJson('package.json').version === targetVersion &&
+    versionSurfacesMatch(targetVersion) &&
     existsSync(config.releaseDoc(targetVersion))
   );
 }
@@ -325,9 +345,72 @@ function updateVersionFiles(targetVersion) {
     json.version = targetVersion;
     if (file.endsWith('package-lock.json') && json.packages?.['']) {
       json.packages[''].version = targetVersion;
+      if (json.packages['apps/desktop']) {
+        json.packages['apps/desktop'].version = targetVersion;
+      }
     }
     writeJson(file, json);
   }
+
+  replaceRequired(
+    config.cargoManifest,
+    /^version = "\d+\.\d+\.\d+"$/m,
+    `version = "${targetVersion}"`
+  );
+  replaceRequired(
+    config.cargoLock,
+    /(\[\[package\]\]\nname = "tankquest-academy"\nversion = ")[^"]+("\n)/,
+    `$1${targetVersion}$2`
+  );
+  replaceRequired(
+    config.serviceWorker,
+    /(const CACHE_NAME = `\$\{CACHE_PREFIX\}v)[^`]+(`;)/,
+    `$1${targetVersion}$2`
+  );
+}
+
+function verifyVersionSurfaces(targetVersion) {
+  if (!versionSurfacesMatch(targetVersion)) {
+    fail(`Release version surfaces are not all aligned to v${targetVersion}.`);
+  }
+}
+
+function versionSurfacesMatch(targetVersion) {
+  const root = readJson('package.json');
+  const lock = readJson('package-lock.json');
+  const desktop = readJson('apps/desktop/package.json');
+  const tauri = readJson('apps/desktop/src-tauri/tauri.conf.json');
+  const cargoManifest = readFileSync(config.cargoManifest, 'utf8');
+  const cargoLock = readFileSync(config.cargoLock, 'utf8');
+  const serviceWorker = readFileSync(config.serviceWorker, 'utf8');
+
+  return (
+    root.version === targetVersion &&
+    lock.version === targetVersion &&
+    lock.packages?.['']?.version === targetVersion &&
+    desktop.version === targetVersion &&
+    lock.packages?.['apps/desktop']?.version === targetVersion &&
+    tauri.version === targetVersion &&
+    new RegExp(`^version = "${escapeRegex(targetVersion)}"$`, 'm').test(
+      cargoManifest
+    ) &&
+    cargoLock.includes(
+      `[[package]]\nname = "tankquest-academy"\nversion = "${targetVersion}"\n`
+    ) &&
+    serviceWorker.includes(
+      `const CACHE_NAME = \`\${CACHE_PREFIX}v${targetVersion}\`;`
+    )
+  );
+}
+
+function replaceRequired(file, pattern, replacement) {
+  const source = readFileSync(file, 'utf8');
+  if (!pattern.test(source)) fail(`Could not update version surface: ${file}`);
+  writeFileSync(file, source.replace(pattern, replacement));
+}
+
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 }
 
 function writeReleaseDoc(targetVersion) {
@@ -704,5 +787,6 @@ function printHelp() {
   node scripts/release-manager.mjs full --version 0.1.1
   node scripts/release-manager.mjs prepare --version 0.1.1
   node scripts/release-manager.mjs promote --version 0.1.1
-  node scripts/release-manager.mjs verify --version 0.1.1`);
+  node scripts/release-manager.mjs verify --version 0.1.1
+  node scripts/release-manager.mjs verify-version`);
 }
