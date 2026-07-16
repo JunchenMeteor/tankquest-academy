@@ -5,6 +5,9 @@ build/
 .env
 .env.*
 !.env.example
+!apps/web/.env.tauri-development
+!apps/web/.env.tauri-preview
+!apps/web/.env.tauri-release
 coverage/
 .turbo/
 .vite/
