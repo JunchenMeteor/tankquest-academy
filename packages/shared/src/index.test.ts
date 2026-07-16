@@ -1,12 +1,26 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  assetManifestEntrySchema,
+  assetManifestSchema,
   levelEnemyConfigSchema,
   levelMapConfigSchema,
   startSessionRequestSchema,
   submitAnswerRequestSchema,
   tankStatsSchema,
 } from './index.js';
+
+const tankVisualAsset = {
+  assetId: 'tank_visuals_v1',
+  type: 'tank-visuals' as const,
+  version: '1.0.0',
+  url: '/assets/phase4/v1/tank-visuals.json',
+  sha256: 'a'.repeat(64),
+  sizeBytes: 1024,
+  tags: ['tank', 'visual'],
+  preview: null,
+  dependencies: [],
+};
 
 describe('shared contracts', () => {
   it('accepts a valid session request', () => {
@@ -91,5 +105,66 @@ describe('shared contracts', () => {
         obstacles: [{ x: 360, y: 120, width: 50, height: 170 }],
       })
     ).toMatchObject({ style: 'gate' });
+  });
+
+  it('accepts a strict, same-origin versioned asset manifest', () => {
+    expect(
+      assetManifestSchema.parse({
+        levelId: 'level_addition_range',
+        levelVersion: 2,
+        assets: [
+          tankVisualAsset,
+          {
+            assetId: 'training_grounds_v1',
+            type: 'scene-description',
+            version: '1.0.0',
+            url: '/assets/phase4/v1/training-grounds.json',
+            sha256: 'b'.repeat(64),
+            sizeBytes: 2048,
+            tags: ['scene', 'training'],
+            preview: '/assets/phase4/v1/training-grounds-preview.svg',
+            dependencies: ['tank_visuals_v1'],
+          },
+        ],
+      }).assets
+    ).toHaveLength(2);
+  });
+
+  it('rejects cross-origin paths and unexpected manifest fields', () => {
+    expect(() =>
+      assetManifestEntrySchema.parse({
+        ...tankVisualAsset,
+        url: 'https://cdn.example.com/tank-visuals.json',
+      })
+    ).toThrow();
+    expect(() =>
+      assetManifestEntrySchema.parse({ ...tankVisualAsset, trusted: true })
+    ).toThrow();
+  });
+
+  it('rejects incomplete and cyclic dependency graphs', () => {
+    const baseManifest = {
+      levelId: 'level_addition_range',
+      levelVersion: 2,
+    };
+    expect(() =>
+      assetManifestSchema.parse({
+        ...baseManifest,
+        assets: [{ ...tankVisualAsset, dependencies: ['missing_asset'] }],
+      })
+    ).toThrow();
+    expect(() =>
+      assetManifestSchema.parse({
+        ...baseManifest,
+        assets: [
+          { ...tankVisualAsset, dependencies: ['training_grounds_v1'] },
+          {
+            ...tankVisualAsset,
+            assetId: 'training_grounds_v1',
+            dependencies: ['tank_visuals_v1'],
+          },
+        ],
+      })
+    ).toThrow();
   });
 });

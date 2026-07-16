@@ -1,6 +1,6 @@
 import type { TankStats } from '@tankquest/shared';
 
-import type { PlayerRuntimeConfig } from '../runtime/types.js';
+import type { PlayerCombatRuntimeConfig } from '../runtime/types.js';
 
 export const baselineTankStats: TankStats = {
   firepower: 3,
@@ -10,7 +10,7 @@ export const baselineTankStats: TankStats = {
   vision: 3,
 };
 
-export function deriveCombatStats(stats: TankStats): PlayerRuntimeConfig {
+export function deriveCombatStats(stats: TankStats): PlayerCombatRuntimeConfig {
   const firepower = normalizedLevel(stats.firepower);
   const mobility = normalizedLevel(stats.mobility);
   const armor = normalizedLevel(stats.armor);

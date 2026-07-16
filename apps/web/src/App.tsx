@@ -11,20 +11,25 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { emptyRuntimeState, readError } from './app-state.js';
 import { ApiClient } from './client/api-client.js';
+import { AssetClient, type AssetBundle } from './client/assets/index.js';
 import { clientConfig } from './client/runtime-config.js';
+import { platformClient } from './client/platform/platform-client.js';
 import { levelRuntimeConfig } from './game/config/level-runtime-config.js';
 import type { RuntimeState } from './game/runtime/types.js';
 import { useI18n } from './i18n/I18nProvider.js';
 import { MissionResult } from './MissionResult.js';
+import { useTheme } from './theme/ThemeProvider.js';
 import { ActiveTraining, AppHud, MissionPicker } from './TrainingViews.js';
 import './styles.css';
 
 const api = new ApiClient(clientConfig.apiBaseUrl);
+const assetClient = new AssetClient(api);
 
 type Phase = 'loading' | 'ready' | 'active' | 'finished';
 
 export function App() {
   const { locale, t } = useI18n();
+  const { theme } = useTheme();
   const [phase, setPhase] = useState<Phase>('loading');
   const [levels, setLevels] = useState<LevelDto[]>([]);
   const [tanks, setTanks] = useState<OwnedTankDto[]>([]);
@@ -40,10 +45,23 @@ export function App() {
   );
   const [upgrade, setUpgrade] = useState<UpgradeTankResponse | null>(null);
   const [runtime, setRuntime] = useState<RuntimeState>(emptyRuntimeState);
+  const [visualResources, setVisualResources] = useState<AssetBundle | null>(
+    null
+  );
+  const [previewVisualResources, setPreviewVisualResources] =
+    useState<AssetBundle | null>(null);
+  const [sessionTheme, setSessionTheme] = useState<
+    'training-base' | 'forest-camp' | 'snow-field'
+  >('training-base');
   const [busy, setBusy] = useState(false);
+  const [online, setOnline] = useState(() => platformClient.isOnline());
   const [error, setError] = useState<string | null>(null);
   const questionStartedAt = useRef(0);
   const sessionStartedAt = useRef(0);
+
+  useEffect(() => {
+    return platformClient.subscribeNetwork(setOnline);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -86,24 +104,56 @@ export function App() {
     };
   }, [selectedTankId]);
 
+  useEffect(() => {
+    if (!selectedLevelId) return;
+    let active = true;
+    setPreviewVisualResources(null);
+    void assetClient.preloadLevel(selectedLevelId).then((bundle) => {
+      if (active) setPreviewVisualResources(bundle);
+    });
+    return () => {
+      active = false;
+    };
+  }, [selectedLevelId]);
+
   const runtimeConfig = useMemo(
     () =>
-      session ? levelRuntimeConfig(session.level, session.tank, locale) : null,
-    [locale, session]
+      session
+        ? levelRuntimeConfig(
+            session.level,
+            session.tank,
+            locale,
+            visualResources ?? undefined,
+            sessionTheme
+          )
+        : null,
+    [locale, session, sessionTheme, visualResources]
   );
   const selectedLevel = levels.find((item) => item.id === selectedLevelId);
   const selectedOwnedTank = tanks.find((item) => item.id === selectedTankId);
   const missionPreview = useMemo(
     () =>
       selectedLevel
-        ? levelRuntimeConfig(selectedLevel, selectedOwnedTank, locale)
+        ? levelRuntimeConfig(
+            selectedLevel,
+            selectedOwnedTank,
+            locale,
+            previewVisualResources?.manifest.levelId === selectedLevel.id
+              ? previewVisualResources
+              : undefined,
+            theme
+          )
         : undefined,
-    [locale, selectedLevel, selectedOwnedTank]
+    [locale, previewVisualResources, selectedLevel, selectedOwnedTank, theme]
   );
   const currentQuestion = session?.questions[questionIndex];
   const selectedTank = session?.tank ?? selectedOwnedTank;
 
   const startTraining = async () => {
+    if (!online) {
+      setError(t('offline.actionBlocked'));
+      return;
+    }
     const level = selectedLevel;
     const tank = selectedOwnedTank;
     if (!level || !tank) {
@@ -113,6 +163,10 @@ export function App() {
     setBusy(true);
     setError(null);
     try {
+      const preparedVisualResources =
+        previewVisualResources?.manifest.levelId === level.id
+          ? previewVisualResources
+          : await assetClient.preloadLevel(level.id);
       const started = await api.startSession({
         childId: clientConfig.demoChildId,
         levelId: level.id,
@@ -123,6 +177,8 @@ export function App() {
         started.tank,
         locale
       );
+      setVisualResources(preparedVisualResources);
+      setSessionTheme(theme);
       setSession(started);
       setRuntime({
         enemiesRemaining: startedRuntimeConfig.enemies.length,
@@ -147,6 +203,10 @@ export function App() {
   };
 
   const equipSkin = async (skinId: string) => {
+    if (!online) {
+      setError(t('offline.actionBlocked'));
+      return;
+    }
     if (!selectedOwnedTank) return;
     setBusy(true);
     setError(null);
@@ -175,6 +235,10 @@ export function App() {
   };
 
   const submitAnswer = async (selectedAnswerId: string) => {
+    if (!online) {
+      setError(t('offline.actionBlocked'));
+      return;
+    }
     if (!session || !currentQuestion || feedback) return;
     setBusy(true);
     setError(null);
@@ -211,6 +275,11 @@ export function App() {
       return;
     }
 
+    if (!online) {
+      setError(t('offline.actionBlocked'));
+      return;
+    }
+
     setBusy(true);
     setError(null);
     try {
@@ -235,6 +304,10 @@ export function App() {
   };
 
   const upgradeFirepower = async () => {
+    if (!online) {
+      setError(t('offline.actionBlocked'));
+      return;
+    }
     if (!selectedTank) return;
     setBusy(true);
     setError(null);
@@ -273,6 +346,7 @@ export function App() {
     setLearningComplete(false);
     setSettlement(null);
     setUpgrade(null);
+    setVisualResources(null);
     setError(null);
     setRuntime(emptyRuntimeState());
   };
@@ -289,11 +363,18 @@ export function App() {
     <main className="app-shell">
       <AppHud active={phase === 'active'} runtime={runtime} />
 
+      {!online && (
+        <p className="offline-banner" role="status">
+          {t('offline.banner')}
+        </p>
+      )}
+
       {phase === 'loading' && <StatusCard>{t('app.loading')}</StatusCard>}
 
       {phase === 'ready' && (
         <MissionPicker
           busy={busy}
+          online={online}
           levels={levels}
           preview={missionPreview}
           selectedLevelId={selectedLevelId}
@@ -310,6 +391,7 @@ export function App() {
       {phase === 'active' && session && runtimeConfig && currentQuestion && (
         <ActiveTraining
           busy={busy}
+          online={online}
           config={runtimeConfig}
           currentQuestion={currentQuestion}
           feedback={feedback}
@@ -328,6 +410,7 @@ export function App() {
       {phase === 'finished' && settlement && selectedTank && (
         <MissionResult
           busy={busy}
+          online={online}
           settlement={settlement}
           tank={selectedTank}
           upgrade={upgrade}

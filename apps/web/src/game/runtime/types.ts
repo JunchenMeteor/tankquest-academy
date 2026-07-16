@@ -1,3 +1,5 @@
+import type { AssetBundle } from '../../client/assets/index.js';
+
 export type ArmorZone = 'front' | 'side' | 'rear';
 
 export interface ArmorProfile {
@@ -6,8 +8,7 @@ export interface ArmorProfile {
   rear: number;
 }
 
-export interface PlayerRuntimeConfig {
-  appearance?: { primaryColor: number; secondaryColor: number };
+export interface PlayerCombatRuntimeConfig {
   maxHealth: number;
   armorReduction: number;
   armorProfile: ArmorProfile;
@@ -22,6 +23,11 @@ export interface PlayerRuntimeConfig {
   fireCooldownMs: number;
   detectionRange: number;
   visibilityMultiplier: number;
+}
+
+export interface PlayerRuntimeConfig extends PlayerCombatRuntimeConfig {
+  visualCode: string;
+  appearance?: { primaryColor: number; secondaryColor: number };
 }
 
 export interface EnemyRuntimeConfig {
@@ -51,6 +57,7 @@ export interface ObstacleRuntimeConfig {
 
 export interface RuntimeLevelConfig {
   locale: 'en' | 'zh-CN';
+  theme: 'training-base' | 'forest-camp' | 'snow-field';
   width: number;
   height: number;
   mapStyle: 'range' | 'gate' | 'patrol';
@@ -58,6 +65,7 @@ export interface RuntimeLevelConfig {
   player: PlayerRuntimeConfig;
   enemies: EnemyRuntimeConfig[];
   obstacles: ObstacleRuntimeConfig[];
+  visualResources?: AssetBundle;
 }
 
 export interface RuntimeState {
