@@ -132,6 +132,9 @@ jobs:
       - name: Validate desktop runtime configuration
         run: npm run desktop-runtime:verify
 
+      - name: Build preview Web assets
+        run: npm run build:web:preview --workspace @tankquest/desktop
+
       - name: Check Rust formatting
         run: cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml --all -- --check
 
