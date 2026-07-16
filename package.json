@@ -19,6 +19,7 @@
     "db:validate": "npm run db:validate --workspace @tankquest/api",
     "assets:verify": "node scripts/verify-visual-assets.mjs",
     "pwa:verify": "node scripts/verify-pwa.mjs",
+    "ai-wheelhouse:verify": "node scripts/verify-ai-wheelhouse.mjs",
     "performance:check": "node scripts/verify-web-performance.mjs",
     "ai:format": "python3 -m ruff format services/ai",
     "ai:format:check": "python3 -m ruff format --check services/ai",
@@ -29,7 +30,7 @@
     "format:check": "prettier --check . && npm run ai:format:check",
     "lint": "eslint playwright.config.ts e2e && npm run lint --workspaces --if-present && npm run ai:lint",
     "typecheck": "tsc -p tsconfig.e2e.json --noEmit && npm run typecheck --workspaces --if-present && npm run ai:typecheck",
-    "test": "npm run build --workspace @tankquest/shared && npm run test --workspaces --if-present && npm run ai:test",
+    "test": "npm run ai-wheelhouse:verify && npm run build --workspace @tankquest/shared && npm run test --workspaces --if-present && npm run ai:test",
     "test:e2e": "playwright test",
     "build": "npm run build --workspace @tankquest/shared && npm run build --workspace @tankquest/api && npm run build --workspace @tankquest/web && npm run performance:check"
   },

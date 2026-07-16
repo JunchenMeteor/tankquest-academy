@@ -12,5 +12,6 @@ __pycache__/
 .pytest_cache/
 .venv/
 services/ai/wheelhouse/
+services/ai/wheelhouse-manifest.json
 *.log
 *.tsbuildinfo
