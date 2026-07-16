@@ -24,14 +24,18 @@ PWA 支持：
 
 ## 4. Windows App
 
-推荐 Tauri。
+Phase 5 使用 Tauri 2 实现 Windows 技术预览，具体边界以 `phase-five-scope.md` 为准。Web 仍是主版本，Windows 壳复用同一份 React、Phaser 和客户端契约，不复制业务规则。
 
 注意：
 
-- 本地文件缓存。
-- 自动更新。
-- 崩溃日志。
+- 显式 `PlatformClient` 和独立 Tauri adapter。
+- 最小 capability、CSP 和可配置 API origin。
+- Service Worker 与 Windows WebView 隔离。
+- 离线、配置和 bridge 失败时安全降级。
 - WebView 兼容性。
+- Windows runner 构建和启动烟测。
+
+技术预览不包含代码签名、应用商店发布、自动更新、本地权威存档或正式离线对局。文件缓存和崩溃诊断只有在隐私边界和真实需求明确后再增加。
 
 ## 5. Mobile App
 

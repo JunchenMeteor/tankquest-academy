@@ -1,6 +1,6 @@
 {
   "name": "tankquest-academy",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -13,6 +13,10 @@
   "scripts": {
     "dev": "npm run build --workspace @tankquest/shared && npm run dev --workspace @tankquest/web",
     "dev:api": "npm run build --workspace @tankquest/shared && npm run dev --workspace @tankquest/api",
+    "desktop:dev": "npm run dev --workspace @tankquest/desktop",
+    "desktop:build": "npm run build --workspace @tankquest/desktop",
+    "desktop:build:preview": "npm run build:preview --workspace @tankquest/desktop",
+    "desktop:build:release": "npm run build:release --workspace @tankquest/desktop",
     "db:generate": "npm run db:generate --workspace @tankquest/api",
     "db:migrate": "npm run db:migrate --workspace @tankquest/api",
     "db:seed": "npm run db:seed --workspace @tankquest/api",
@@ -20,6 +24,7 @@
     "assets:verify": "node scripts/verify-visual-assets.mjs",
     "pwa:verify": "node scripts/verify-pwa.mjs",
     "ai-wheelhouse:verify": "node scripts/verify-ai-wheelhouse.mjs",
+    "desktop-runtime:verify": "node scripts/verify-desktop-runtime-config.mjs",
     "performance:check": "node scripts/verify-web-performance.mjs",
     "ai:format": "python3 -m ruff format services/ai",
     "ai:format:check": "python3 -m ruff format --check services/ai",
@@ -30,7 +35,8 @@
     "format:check": "prettier --check . && npm run ai:format:check",
     "lint": "eslint playwright.config.ts e2e && npm run lint --workspaces --if-present && npm run ai:lint",
     "typecheck": "tsc -p tsconfig.e2e.json --noEmit && npm run typecheck --workspaces --if-present && npm run ai:typecheck",
-    "test": "npm run ai-wheelhouse:verify && npm run build --workspace @tankquest/shared && npm run test --workspaces --if-present && npm run ai:test",
+    "test": "npm run ai-wheelhouse:verify && npm run desktop-runtime:verify && npm run release-version:verify && npm run build --workspace @tankquest/shared && npm run test --workspaces --if-present && npm run ai:test",
+    "release-version:verify": "node scripts/release-manager.mjs verify-version",
     "test:e2e": "playwright test",
     "build": "npm run build --workspace @tankquest/shared && npm run build --workspace @tankquest/api && npm run build --workspace @tankquest/web && npm run performance:check"
   },
