@@ -102,10 +102,8 @@ jobs:
     needs: validate
     runs-on: [self-hosted, linux, x64, tencent, tankquest]
     steps:
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
+      - name: Verify runner Node
+        run: node -e "if (Number(process.versions.node.split('.')[0]) < 24) process.exit(1)"
 
       - name: Download validated source artifact
         uses: actions/download-artifact@v4
