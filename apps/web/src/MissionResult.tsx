@@ -9,6 +9,7 @@ import { useI18n } from './i18n/I18nProvider.js';
 
 interface MissionResultProps {
   busy: boolean;
+  online: boolean;
   settlement: FinishSessionResponse;
   tank: TankDto;
   upgrade: UpgradeTankResponse | null;
@@ -20,6 +21,7 @@ interface MissionResultProps {
 
 export function MissionResult({
   busy,
+  online,
   settlement,
   tank,
   upgrade,
@@ -50,7 +52,7 @@ export function MissionResult({
         })}
       </p>
       <button
-        disabled={busy || Boolean(upgrade) || firepowerMaxed}
+        disabled={busy || !online || Boolean(upgrade) || firepowerMaxed}
         onClick={onUpgrade}
       >
         {firepowerMaxed
@@ -90,7 +92,7 @@ export function MissionResult({
         </div>
       )}
       <div className="result-actions">
-        <button disabled={busy} onClick={onReplay}>
+        <button disabled={busy || !online} onClick={onReplay}>
           {t('action.replay')}
         </button>
         <button disabled={busy} onClick={onContinue}>

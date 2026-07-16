@@ -65,6 +65,9 @@ jobs:
       - name: Validate visual assets
         run: npm run assets:verify
 
+      - name: Validate PWA policy
+        run: npm run pwa:verify
+
       - name: Lint
         run: npm run lint
 
