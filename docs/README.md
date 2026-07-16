@@ -113,6 +113,9 @@ AI 开始开发前，按这个顺序阅读，不要一上来读所有文件。
 33. `phase-four-acceptance.md`
     - Phase 4 工程验收证据、PWA/资源公开探针、v0.4.0 发布门禁和已知非阻塞项。
 
+34. `phase-five-scope.md`
+    - Phase 5 Windows Tauri 技术预览、平台边界、构建烟测、降级和 v0.5.0 验收范围。
+
 ## 2. 第一阶段开发顺序
 
 第一阶段不要做全量功能，只做 MVP。
