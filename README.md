@@ -86,7 +86,14 @@ npm run desktop:dev
 npm run desktop:build
 ```
 
-The initial shell PR establishes the least-privilege native wrapper. Build-time API configuration, Tauri runtime selection, safe startup degradation, and authoritative Windows CI evidence arrive in the following Phase 5 PRs.
+Unsigned preview and release-flavor installers use separate API/CSP pairs:
+
+```bash
+npm run desktop:build:preview
+npm run desktop:build:release
+```
+
+The desktop shell uses environment-specific API/CSP pairs, explicit Tauri runtime selection, and a fail-closed startup check. Authoritative Windows CI evidence arrives in the following Phase 5 PR.
 
 ## Verification
 

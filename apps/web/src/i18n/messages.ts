@@ -5,6 +5,16 @@ export const messages: Record<Locale, Record<string, string>> = {
     'app.base': 'Training Base',
     'app.loading': 'Loading training catalog…',
     'app.noContent': 'No published level or available tank was found.',
+    'desktop.startup.title': 'TankQuest needs a connection',
+    'desktop.startup.checking': 'Checking the training service…',
+    'desktop.startup.offline': 'Reconnect to continue in the Windows app.',
+    'desktop.startup.apiUnavailable':
+      'The training service is unavailable. No mission or reward was started.',
+    'desktop.startup.invalidConfig':
+      'This Windows build has an invalid service configuration.',
+    'desktop.startup.bridgeUnavailable':
+      'The Windows app could not start its protected desktop bridge.',
+    'desktop.startup.retry': 'Try connection again',
     'offline.banner':
       'Offline mode: the app shell is available, but training and learning records require a connection.',
     'offline.actionBlocked': 'Reconnect before starting or saving training.',
@@ -136,6 +146,15 @@ export const messages: Record<Locale, Record<string, string>> = {
     'app.base': '训练基地',
     'app.loading': '正在加载训练目录…',
     'app.noContent': '暂时没有可用的关卡或坦克。',
+    'desktop.startup.title': 'TankQuest 需要联网',
+    'desktop.startup.checking': '正在检查训练服务…',
+    'desktop.startup.offline': '请恢复网络后继续使用 Windows 应用。',
+    'desktop.startup.apiUnavailable':
+      '训练服务暂时不可用，本次没有开始任务，也没有产生奖励。',
+    'desktop.startup.invalidConfig': '此 Windows 构建的服务配置无效。',
+    'desktop.startup.bridgeUnavailable':
+      'Windows 应用未能启动受保护的桌面桥接。',
+    'desktop.startup.retry': '重新连接',
     'offline.banner': '当前离线：可以打开应用外壳，但训练和学习记录需要联网。',
     'offline.actionBlocked': '请恢复网络后再开始或保存训练。',
     'hud.tanks': '训练坦克',
