@@ -84,7 +84,9 @@ done
 
 write_deployment_env "${API_IMAGE}" "${AI_IMAGE}" "${WEB_IMAGE}"
 if ! compose up -d --wait --wait-timeout 240 \
-  || ! curl -fsS --max-time 10 "http://127.0.0.1:${HOST_PORT}/api/health" >/dev/null; then
+  || ! curl -fsS --max-time 10 "http://127.0.0.1:${HOST_PORT}/api/health" >/dev/null \
+  || ! node "${script_dir}/../scripts/verify-public-deployment.mjs" \
+    "http://127.0.0.1:${HOST_PORT}"; then
   if [ "${has_previous_deployment}" = true ]; then
     echo "Deployment failed; restoring previous images" >&2
     install -m 0600 "${previous_env_snapshot}" "${deployment_env}"

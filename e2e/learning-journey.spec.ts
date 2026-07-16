@@ -250,17 +250,27 @@ test('continues combat after repeated enemy projectile impacts', async ({
 
 test('starts a mission with the selected owned tank', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('button', { name: /Star Shield/ })).toBeVisible();
-  await expect(page.getByRole('button', { name: /Swift Fox/ })).toBeVisible();
+  const starShield = page.getByRole('button', { name: /Star Shield/ });
+  const swiftFox = page.getByRole('button', { name: /Swift Fox/ });
+  await expect(starShield).toBeVisible();
+  await expect(swiftFox).toBeVisible();
   await expect(
     page.getByRole('button', { name: /Iron Mountain/ })
   ).toBeVisible();
+  await expect(
+    starShield.locator('[data-tank-visual="star-shield"]')
+  ).toBeVisible();
+  await expect(
+    swiftFox.locator('[data-tank-visual="swift-fox"]')
+  ).toBeVisible();
 
-  await page.getByRole('button', { name: /Swift Fox/ }).click();
+  await swiftFox.click();
   const arcticSkin = page.getByRole('button', { name: 'Arctic Dash' });
   await expect(arcticSkin).toBeVisible();
   await arcticSkin.click();
   await expect(arcticSkin).toHaveAttribute('aria-pressed', 'true');
+  await expect(swiftFox.locator('[fill="#85aebf"]')).not.toHaveCount(0);
+  await expect(swiftFox.locator('[fill="#f2f7f8"]')).not.toHaveCount(0);
   const sessionRequest = page.waitForRequest(
     (request) =>
       request.url().endsWith('/api/game-sessions') &&
@@ -308,6 +318,22 @@ test('persists language and theme preferences', async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByLabel('语言')).toHaveValue('zh-CN');
   await expect(page.getByLabel('主题')).toHaveValue('snow-field');
+  await page.getByRole('button', { name: '开始训练' }).click();
+  const trainingGround = page.locator('.game-canvas');
+  await expect(trainingGround).toHaveAttribute('data-render-mode', '2.5d');
+  await expect(trainingGround).toHaveAttribute(
+    'data-scene-theme',
+    'snow-field'
+  );
+
+  await page.getByLabel('主题').selectOption('forest-camp');
+  await expect
+    .poll(() => page.locator('html').getAttribute('data-theme'))
+    .toBe('forest-camp');
+  await expect(trainingGround).toHaveAttribute(
+    'data-scene-theme',
+    'snow-field'
+  );
 });
 
 test('completes English and direction missions through the shared API', async ({

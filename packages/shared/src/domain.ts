@@ -36,3 +36,6 @@ export type EnemyTankRole = (typeof enemyTankRoles)[number];
 
 export const trainingMapStyles = ['range', 'gate', 'patrol'] as const;
 export type TrainingMapStyle = (typeof trainingMapStyles)[number];
+
+export const assetTypes = ['scene-description', 'tank-visuals'] as const;
+export type AssetType = (typeof assetTypes)[number];

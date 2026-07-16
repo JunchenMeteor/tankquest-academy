@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import {
   ageGroups,
+  assetTypes,
   enemyTankRoles,
   gameModes,
   subjects,
@@ -10,6 +11,112 @@ import {
 } from './domain.js';
 
 const identifierSchema = z.string().trim().min(1).max(100);
+
+export const assetManifestMaxAssets = 32;
+export const assetMaxSizeBytes = 256 * 1024;
+export const assetManifestMaxSizeBytes = 2 * 1024 * 1024;
+
+const assetVersionedPathSchema = z
+  .string()
+  .regex(
+    /^\/assets\/phase4\/v[1-9]\d*\/(?:[a-z0-9][a-z0-9._-]*\/)*[a-z0-9][a-z0-9._-]*$/,
+    'Asset paths must be same-origin, versioned Phase 4 paths'
+  );
+
+const uniqueStrings = (values: string[]) =>
+  new Set(values).size === values.length;
+
+export const assetManifestEntrySchema = z
+  .object({
+    assetId: identifierSchema,
+    type: z.enum(assetTypes),
+    version: z.string().regex(/^\d+\.\d+\.\d+$/),
+    url: assetVersionedPathSchema,
+    sha256: z.string().regex(/^[a-f0-9]{64}$/),
+    sizeBytes: z.number().int().positive().max(assetMaxSizeBytes),
+    tags: z
+      .array(z.string().regex(/^[a-z0-9][a-z0-9-]{0,39}$/))
+      .max(16)
+      .refine(uniqueStrings, 'Asset tags must be unique'),
+    preview: assetVersionedPathSchema.nullable(),
+    dependencies: z
+      .array(identifierSchema)
+      .max(assetManifestMaxAssets)
+      .refine(uniqueStrings, 'Asset dependencies must be unique'),
+  })
+  .strict();
+
+export const assetManifestRequestSchema = z
+  .object({ levelId: identifierSchema })
+  .strict();
+
+export const assetManifestSchema = z
+  .object({
+    levelId: identifierSchema,
+    levelVersion: z.number().int().positive(),
+    assets: z.array(assetManifestEntrySchema).max(assetManifestMaxAssets),
+  })
+  .strict()
+  .superRefine((manifest, context) => {
+    const assets = new Map(
+      manifest.assets.map((asset) => [asset.assetId, asset])
+    );
+    if (assets.size !== manifest.assets.length) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Asset IDs must be unique',
+        path: ['assets'],
+      });
+    }
+
+    const totalBytes = manifest.assets.reduce(
+      (total, asset) => total + asset.sizeBytes,
+      0
+    );
+    if (totalBytes > assetManifestMaxSizeBytes) {
+      context.addIssue({
+        code: 'too_big',
+        maximum: assetManifestMaxSizeBytes,
+        origin: 'number',
+        inclusive: true,
+        message: 'Asset manifest exceeds its byte budget',
+        path: ['assets'],
+      });
+    }
+
+    const visited = new Set<string>();
+    const visiting = new Set<string>();
+    const visit = (assetId: string): boolean => {
+      if (visited.has(assetId)) return true;
+      if (visiting.has(assetId)) return false;
+      const asset = assets.get(assetId);
+      if (!asset) return false;
+      visiting.add(assetId);
+      const valid = asset.dependencies.every(visit);
+      visiting.delete(assetId);
+      if (valid) visited.add(assetId);
+      return valid;
+    };
+
+    for (const [index, asset] of manifest.assets.entries()) {
+      for (const dependency of asset.dependencies) {
+        if (!assets.has(dependency)) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Asset dependency is missing from the manifest',
+            path: ['assets', index, 'dependencies'],
+          });
+        }
+      }
+      if (!visit(asset.assetId)) {
+        context.addIssue({
+          code: 'custom',
+          message: 'Asset dependencies must be complete and acyclic',
+          path: ['assets', index, 'dependencies'],
+        });
+      }
+    }
+  });
 
 export const ageGroupSchema = z.enum(ageGroups);
 export const gameModeSchema = z.enum(gameModes);

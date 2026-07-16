@@ -28,8 +28,27 @@ const tank: TankDto = {
 };
 
 describe('levelRuntimeConfig', () => {
+  it('keeps a prepared visual resource bundle as an immutable session input', () => {
+    const visualResources = {
+      source: 'fallback' as const,
+      manifest: { levelId: level.id, levelVersion: 0, assets: [] },
+      resources: new Map<string, Uint8Array>(),
+    };
+
+    expect(
+      levelRuntimeConfig(level, undefined, 'en', visualResources)
+        .visualResources
+    ).toBe(visualResources);
+  });
+
   it('maps validated level data into the runtime boundary', () => {
     expect(levelRuntimeConfig(level).enemies).toHaveLength(1);
+  });
+
+  it('snapshots the selected theme into runtime configuration', () => {
+    expect(
+      levelRuntimeConfig(level, undefined, 'en', undefined, 'snow-field').theme
+    ).toBe('snow-field');
   });
 
   it('caps content values to the available local prototypes', () => {
@@ -84,6 +103,7 @@ describe('levelRuntimeConfig', () => {
     const config = levelRuntimeConfig(level, tank);
 
     expect(config.player.speed).toBeGreaterThan(170);
+    expect(config.player.visualCode).toBe('star-shield');
     expect(config.player.acceleration).toBeGreaterThan(420);
     expect(config.player.projectileDamage).toBeGreaterThan(34);
     expect(config.player.projectilePenetration).toBeGreaterThan(82);

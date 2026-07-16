@@ -7,6 +7,7 @@ describe('MissionResult', () => {
   it('shows a backend-owned next practice recommendation', () => {
     const html = renderToStaticMarkup(
       <MissionResult
+        online={true}
         busy={false}
         settlement={{
           sessionId: 'session_1',
