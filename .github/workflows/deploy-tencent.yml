@@ -19,6 +19,8 @@ on:
       - scripts/*ai-wheelhouse*.mjs
       - scripts/release-manager.mjs
       - scripts/verify-public-deployment.mjs
+      - scripts/smoke-windows-desktop.ps1
+      - .github/workflows/ci.yml
       - .github/workflows/deploy-tencent.yml
   push:
     branches:

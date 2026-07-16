@@ -93,7 +93,9 @@ npm run desktop:build:preview
 npm run desktop:build:release
 ```
 
-The desktop shell uses environment-specific API/CSP pairs, explicit Tauri runtime selection, and a fail-closed startup check. Authoritative Windows CI evidence arrives in the following Phase 5 PR.
+The desktop shell uses environment-specific API/CSP pairs, explicit Tauri runtime selection, and a fail-closed startup check.
+
+Pull requests build an unsigned preview NSIS installer on `windows-latest`, smoke-launch the executable, and upload only the installer for 14 days. The Windows job and the existing Linux core job must both pass before the protected `Verify` check succeeds. The technical preview is not code-signed and Windows may therefore show an unverified-publisher warning.
 
 ## Verification
 
