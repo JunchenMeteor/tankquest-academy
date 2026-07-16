@@ -110,6 +110,9 @@ AI 开始开发前，按这个顺序阅读，不要一上来读所有文件。
 32. `phase-four-scope.md`
     - Phase 4 Phaser 2.5D、资源清单、坦克识别度、主题场景、触控、PWA 和降级边界。
 
+33. `phase-four-acceptance.md`
+    - Phase 4 工程验收证据、PWA/资源公开探针、v0.4.0 发布门禁和已知非阻塞项。
+
 ## 2. 第一阶段开发顺序
 
 第一阶段不要做全量功能，只做 MVP。

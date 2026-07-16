@@ -17,6 +17,7 @@ on:
       - package.json
       - package-lock.json
       - scripts/release-manager.mjs
+      - scripts/verify-public-deployment.mjs
       - .github/workflows/deploy-tencent.yml
   push:
     branches:
@@ -101,6 +102,11 @@ jobs:
     needs: validate
     runs-on: [self-hosted, linux, x64, tencent, tankquest]
     steps:
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
       - name: Download validated source artifact
         uses: actions/download-artifact@v4
         with:
@@ -143,3 +149,13 @@ jobs:
         run: |
           chmod +x source/deploy/deploy-container.sh
           source/deploy/deploy-container.sh
+
+      - name: Verify public deployment contracts
+        shell: bash
+        run: |
+          if [ "${{ steps.target.outputs.environment }}" = "release" ]; then
+            origin="https://tankquest.jcmeteor.com"
+          else
+            origin="https://tq-pre.jcmeteor.com"
+          fi
+          node source/scripts/verify-public-deployment.mjs "$origin"
