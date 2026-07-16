@@ -17,6 +17,7 @@
     "db:migrate": "npm run db:migrate --workspace @tankquest/api",
     "db:seed": "npm run db:seed --workspace @tankquest/api",
     "db:validate": "npm run db:validate --workspace @tankquest/api",
+    "assets:verify": "node scripts/verify-visual-assets.mjs",
     "ai:format": "python3 -m ruff format services/ai",
     "ai:format:check": "python3 -m ruff format --check services/ai",
     "ai:lint": "python3 -m ruff check services/ai",

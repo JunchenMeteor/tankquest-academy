@@ -53,6 +53,29 @@ describe('ApiClient', () => {
     );
   });
 
+  it('loads a level asset manifest through the public query boundary', async () => {
+    const request = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: { levelId: 'level/one', levelVersion: 1, assets: [] },
+          error: null,
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } }
+      )
+    );
+    const client = new ApiClient('http://api.test', request);
+
+    await expect(client.getAssetManifest('level/one')).resolves.toEqual({
+      levelId: 'level/one',
+      levelVersion: 1,
+      assets: [],
+    });
+    expect(request).toHaveBeenCalledWith(
+      'http://api.test/api/assets/manifest?levelId=level%2Fone',
+      expect.any(Object)
+    );
+  });
+
   it('equips an unlocked tank skin through the child boundary', async () => {
     const request = vi.fn<typeof fetch>().mockResolvedValue(
       new Response(JSON.stringify({ data: { id: 'skin_1' }, error: null }), {

@@ -1,5 +1,6 @@
 import type {
   ApiResponse,
+  AssetManifestDto,
   FinishSessionResponse,
   GameEventRequest,
   LevelDto,
@@ -37,6 +38,12 @@ export class ApiClient {
 
   listLevels() {
     return this.send<LevelDto[]>('/api/levels');
+  }
+
+  getAssetManifest(levelId: string) {
+    return this.send<AssetManifestDto>(
+      `/api/assets/manifest?levelId=${encodeURIComponent(levelId)}`
+    );
   }
 
   listTanks() {

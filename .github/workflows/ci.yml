@@ -62,6 +62,9 @@ jobs:
       - name: Validate database schema
         run: npm run db:validate
 
+      - name: Validate visual assets
+        run: npm run assets:verify
+
       - name: Lint
         run: npm run lint
 

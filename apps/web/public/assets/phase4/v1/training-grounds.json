@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "coordinateSystem": "world-2d",
+  "themes": [
+    {
+      "id": "training-base",
+      "floor": { "base": "#78845d", "grid": "#9aa978", "accent": "#d5c477" },
+      "boundary": { "top": "#c0b17b", "side": "#706345" },
+      "obstacle": { "top": "#9b8b64", "side": "#5e523e" },
+      "shadow": "#27322566"
+    },
+    {
+      "id": "forest-camp",
+      "floor": { "base": "#42634a", "grid": "#628160", "accent": "#a6bd75" },
+      "boundary": { "top": "#7f9669", "side": "#40523b" },
+      "obstacle": { "top": "#71805c", "side": "#3d4936" },
+      "shadow": "#172a1c70"
+    },
+    {
+      "id": "snow-field",
+      "floor": { "base": "#c7dce4", "grid": "#edf6f8", "accent": "#83b4c9" },
+      "boundary": { "top": "#e8f4f6", "side": "#789aa8" },
+      "obstacle": { "top": "#d8e8ec", "side": "#708b96" },
+      "shadow": "#496b7b55"
+    }
+  ]
+}

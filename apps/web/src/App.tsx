@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { emptyRuntimeState, readError } from './app-state.js';
 import { ApiClient } from './client/api-client.js';
+import { AssetClient, type AssetBundle } from './client/assets/index.js';
 import { clientConfig } from './client/runtime-config.js';
 import { levelRuntimeConfig } from './game/config/level-runtime-config.js';
 import type { RuntimeState } from './game/runtime/types.js';
@@ -20,6 +21,7 @@ import { ActiveTraining, AppHud, MissionPicker } from './TrainingViews.js';
 import './styles.css';
 
 const api = new ApiClient(clientConfig.apiBaseUrl);
+const assetClient = new AssetClient(api);
 
 type Phase = 'loading' | 'ready' | 'active' | 'finished';
 
@@ -40,6 +42,9 @@ export function App() {
   );
   const [upgrade, setUpgrade] = useState<UpgradeTankResponse | null>(null);
   const [runtime, setRuntime] = useState<RuntimeState>(emptyRuntimeState);
+  const [visualResources, setVisualResources] = useState<AssetBundle | null>(
+    null
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const questionStartedAt = useRef(0);
@@ -88,8 +93,15 @@ export function App() {
 
   const runtimeConfig = useMemo(
     () =>
-      session ? levelRuntimeConfig(session.level, session.tank, locale) : null,
-    [locale, session]
+      session
+        ? levelRuntimeConfig(
+            session.level,
+            session.tank,
+            locale,
+            visualResources ?? undefined
+          )
+        : null,
+    [locale, session, visualResources]
   );
   const selectedLevel = levels.find((item) => item.id === selectedLevelId);
   const selectedOwnedTank = tanks.find((item) => item.id === selectedTankId);
@@ -113,6 +125,7 @@ export function App() {
     setBusy(true);
     setError(null);
     try {
+      const preparedVisualResources = await assetClient.preloadLevel(level.id);
       const started = await api.startSession({
         childId: clientConfig.demoChildId,
         levelId: level.id,
@@ -123,6 +136,7 @@ export function App() {
         started.tank,
         locale
       );
+      setVisualResources(preparedVisualResources);
       setSession(started);
       setRuntime({
         enemiesRemaining: startedRuntimeConfig.enemies.length,
@@ -273,6 +287,7 @@ export function App() {
     setLearningComplete(false);
     setSettlement(null);
     setUpgrade(null);
+    setVisualResources(null);
     setError(null);
     setRuntime(emptyRuntimeState());
   };
