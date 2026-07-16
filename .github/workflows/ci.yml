@@ -14,8 +14,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  verify:
-    name: Verify
+  core:
+    name: Core
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -90,3 +90,85 @@ jobs:
         env:
           DEBUG: pw:webserver
         run: npm run test:e2e
+
+  desktop-windows:
+    name: Windows desktop
+    runs-on: windows-latest
+    env:
+      CARGO_INCREMENTAL: 0
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Setup pinned Rust toolchain
+        shell: pwsh
+        run: |
+          rustup toolchain install 1.97.0 --profile minimal --component rustfmt,clippy
+          rustup default 1.97.0
+          rustc --version
+
+      - name: Restore Rust build cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            apps/desktop/src-tauri/target
+            !apps/desktop/src-tauri/target/release/bundle
+          key: windows-tauri-rust-1.97.0-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}
+          restore-keys: |
+            windows-tauri-rust-1.97.0-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate desktop runtime configuration
+        run: npm run desktop-runtime:verify
+
+      - name: Build preview Web assets
+        run: npm run build:web:preview --workspace @tankquest/desktop
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml --all -- --check
+
+      - name: Lint Rust
+        run: cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --release --all-targets --all-features --locked -- -D warnings
+
+      - name: Build unsigned preview installer
+        run: npm run build:preview --workspace @tankquest/desktop -- --ci --no-sign
+
+      - name: Smoke-launch desktop executable
+        shell: pwsh
+        run: ./scripts/smoke-windows-desktop.ps1
+
+      - name: Upload preview installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: tankquest-windows-preview-${{ github.sha }}
+          path: apps/desktop/src-tauri/target/release/bundle/nsis/*-setup.exe
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  verify:
+    name: Verify
+    if: ${{ always() }}
+    needs:
+      - core
+      - desktop-windows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require core and Windows validation
+        env:
+          CORE_RESULT: ${{ needs.core.result }}
+          WINDOWS_RESULT: ${{ needs.desktop-windows.result }}
+        run: |
+          test "$CORE_RESULT" = "success"
+          test "$WINDOWS_RESULT" = "success"

@@ -2,5 +2,6 @@ dist
 coverage
 node_modules
 package-lock.json
+scripts/*.ps1
 docs/*.md
 !docs/development-rules.md
