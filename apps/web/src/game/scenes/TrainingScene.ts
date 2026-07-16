@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 
+import type { GameInputController } from '../input/GameInputController.js';
 import {
   createTrainingTextures,
   destroyEnemyVisual,
@@ -60,7 +61,8 @@ export class TrainingScene extends Phaser.Scene {
 
   constructor(
     private readonly levelConfig: RuntimeLevelConfig,
-    private readonly onState: (state: RuntimeState) => void
+    private readonly onState: (state: RuntimeState) => void,
+    private readonly gameInput: GameInputController
   ) {
     super('training');
     this.playerHealth = levelConfig.player.maxHealth;
@@ -208,7 +210,22 @@ export class TrainingScene extends Phaser.Scene {
       right: Phaser.Input.Keyboard.KeyCodes.D,
       fire: Phaser.Input.Keyboard.KeyCodes.SPACE,
     }) as ControlKeys;
-    this.input.on('pointerdown', () => this.fire());
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      this.updatePointerAim(pointer);
+      this.gameInput.setCommand('fire', true, 'pointer');
+    });
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) =>
+      this.updatePointerAim(pointer)
+    );
+    this.input.on('pointerup', () =>
+      this.gameInput.setCommand('fire', false, 'pointer')
+    );
+    this.input.on('pointerupoutside', () =>
+      this.gameInput.setCommand('fire', false, 'pointer')
+    );
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () =>
+      this.gameInput.resetAll()
+    );
     logCombatEvent('scene_started', {
       enemyCount: this.levelConfig.enemies.length,
       mapStyle: this.levelConfig.mapStyle,
@@ -219,15 +236,38 @@ export class TrainingScene extends Phaser.Scene {
   update(time: number, delta: number) {
     if (this.playerDestroyed) return;
 
+    this.gameInput.setCommand(
+      'move-forward',
+      this.controls.up.isDown,
+      'keyboard'
+    );
+    this.gameInput.setCommand(
+      'move-backward',
+      this.controls.down.isDown,
+      'keyboard'
+    );
+    this.gameInput.setCommand(
+      'turn-left',
+      this.controls.left.isDown,
+      'keyboard'
+    );
+    this.gameInput.setCommand(
+      'turn-right',
+      this.controls.right.isDown,
+      'keyboard'
+    );
+    this.gameInput.setCommand('fire', this.controls.fire.isDown, 'keyboard');
+    const input = this.gameInput.snapshot();
+
     const motion = calculateTankMotion(
       this.player.rotation,
       this.levelConfig.player.speed,
       this.levelConfig.player.turnSpeed,
       {
-        forward: this.controls.up.isDown,
-        backward: this.controls.down.isDown,
-        left: this.controls.left.isDown,
-        right: this.controls.right.isDown,
+        forward: input.forward,
+        backward: input.backward,
+        left: input.left,
+        right: input.right,
       }
     );
     this.player.setVelocity(motion.velocityX, motion.velocityY);
@@ -237,21 +277,23 @@ export class TrainingScene extends Phaser.Scene {
     });
     this.player.rotation += motion.angularVelocity * (delta / 1000);
 
-    const pointer = this.input.activePointer;
-    const worldPoint = pointer.positionToCamera(
-      this.cameras.main
-    ) as Phaser.Math.Vector2;
     this.turret.setPosition(this.player.x, this.player.y);
-    this.turret.rotation = Phaser.Math.Angle.Between(
-      this.turret.x,
-      this.turret.y,
-      worldPoint.x,
-      worldPoint.y
-    );
+    const touchAim = Number(input.aimRight) - Number(input.aimLeft);
+    if (touchAim !== 0) {
+      this.turret.rotation += touchAim * 2.4 * (delta / 1000);
+    } else if (input.aimTarget) {
+      this.turret.rotation = Phaser.Math.Angle.Between(
+        this.turret.x,
+        this.turret.y,
+        input.aimTarget.x,
+        input.aimTarget.y
+      );
+    }
     applyTankDepth(this.player, this.turret);
 
+    const fireRequested = this.gameInput.consumeFireRequest();
     if (
-      this.controls.fire.isDown &&
+      (input.fire || fireRequested) &&
       time - this.lastShotAt >= this.levelConfig.player.fireCooldownMs
     ) {
       this.fire();
@@ -288,6 +330,13 @@ export class TrainingScene extends Phaser.Scene {
     this.lastShotAt = now;
     this.shotsFired += 1;
     this.emitState();
+  }
+
+  private updatePointerAim(pointer: Phaser.Input.Pointer) {
+    const worldPoint = pointer.positionToCamera(
+      this.cameras.main
+    ) as Phaser.Math.Vector2;
+    this.gameInput.setAimTarget(worldPoint.x, worldPoint.y);
   }
 
   private updateEnemies(time: number) {
@@ -429,6 +478,7 @@ export class TrainingScene extends Phaser.Scene {
   private disablePlayer() {
     if (this.playerDestroyed) return;
     this.playerDestroyed = true;
+    this.gameInput.resetAll();
     this.player.setVelocity(0, 0).setTint(0xb95b4b);
     this.turret.setTint(0xb95b4b);
     logCombatEvent('player_destroyed', { playerHealth: this.playerHealth });

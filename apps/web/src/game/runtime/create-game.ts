@@ -1,12 +1,14 @@
 import Phaser from 'phaser';
 
 import { TrainingScene } from '../scenes/TrainingScene.js';
+import type { GameInputController } from '../input/GameInputController.js';
 import type { RuntimeLevelConfig, RuntimeState } from './types.js';
 
 export function createGame(
   parent: HTMLElement,
   levelConfig: RuntimeLevelConfig,
-  onState: (state: RuntimeState) => void
+  onState: (state: RuntimeState) => void,
+  input: GameInputController
 ) {
   return new Phaser.Game({
     type: Phaser.AUTO,
@@ -21,6 +23,6 @@ export function createGame(
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
     },
-    scene: [new TrainingScene(levelConfig, onState)],
+    scene: [new TrainingScene(levelConfig, onState, input)],
   });
 }
