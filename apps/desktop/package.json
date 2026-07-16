@@ -1,0 +1,15 @@
+{
+  "name": "@tankquest/desktop",
+  "version": "0.4.0",
+  "private": true,
+  "scripts": {
+    "dev:web": "npm run build --workspace @tankquest/shared && npm run dev --workspace @tankquest/web",
+    "build:web": "npm run build --workspace @tankquest/shared && npm run build --workspace @tankquest/web",
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "check": "tauri build --debug --no-bundle"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.11.4"
+  }
+}

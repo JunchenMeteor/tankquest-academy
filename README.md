@@ -22,6 +22,7 @@ The current v0.4 milestone is an installable 2.5D Web learning-game vertical sli
 apps/
   web/      Web game client
   api/      Main backend API
+  desktop/  Tauri Windows technical-preview shell
 services/
   ai/       Optional FastAPI learning-assistance service
 packages/
@@ -70,6 +71,22 @@ npm run dev
 ```
 
 The API listens at `http://127.0.0.1:3000`; the Web client listens at `http://127.0.0.1:5173`. Copy `apps/web/.env.example` to `apps/web/.env.local` only when those client defaults need to change.
+
+## Windows Technical Preview
+
+Phase 5 packages the accepted Web client in a Tauri 2 Windows shell. Web remains the primary implementation, and the desktop shell does not own answers, rewards, progression, or child data.
+
+Install the [Tauri Windows prerequisites](https://v2.tauri.app/start/prerequisites/#windows), including Microsoft C++ Build Tools and WebView2. The repository pins Rust 1.97.0 and the Tauri dependencies used by the technical preview.
+
+On Windows, run the API separately, then start or build the shell from the repository root:
+
+```bash
+npm run dev:api
+npm run desktop:dev
+npm run desktop:build
+```
+
+The initial shell PR establishes the least-privilege native wrapper. Build-time API configuration, Tauri runtime selection, safe startup degradation, and authoritative Windows CI evidence arrive in the following Phase 5 PRs.
 
 ## Verification
 
