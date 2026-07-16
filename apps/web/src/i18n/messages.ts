@@ -5,6 +5,9 @@ export const messages: Record<Locale, Record<string, string>> = {
     'app.base': 'Training Base',
     'app.loading': 'Loading training catalog…',
     'app.noContent': 'No published level or available tank was found.',
+    'offline.banner':
+      'Offline mode: the app shell is available, but training and learning records require a connection.',
+    'offline.actionBlocked': 'Reconnect before starting or saving training.',
     'hud.tanks': 'Training tanks',
     'hud.shots': 'Shots fired',
     'hud.health': 'Hull integrity',
@@ -133,6 +136,8 @@ export const messages: Record<Locale, Record<string, string>> = {
     'app.base': '训练基地',
     'app.loading': '正在加载训练目录…',
     'app.noContent': '暂时没有可用的关卡或坦克。',
+    'offline.banner': '当前离线：可以打开应用外壳，但训练和学习记录需要联网。',
+    'offline.actionBlocked': '请恢复网络后再开始或保存训练。',
     'hud.tanks': '训练坦克',
     'hud.shots': '已发射',
     'hud.health': '车体完整度',

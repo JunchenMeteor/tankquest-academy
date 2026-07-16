@@ -1,0 +1,33 @@
+{
+  "id": "/",
+  "name": "TankQuest Academy",
+  "short_name": "TankQuest",
+  "description": "A safe learning-first tank training game for children.",
+  "lang": "en",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "landscape-primary",
+  "background_color": "#172017",
+  "theme_color": "#263826",
+  "icons": [
+    {
+      "src": "/icons/tankquest-v1-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/tankquest-v1-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/tankquest-v1-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -590,6 +590,17 @@ button:disabled {
   background: #4a201c;
 }
 
+.offline-banner {
+  width: min(960px, 100%);
+  margin: 0.75rem auto;
+  border: 1px solid #d5c477;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: #fff2bd;
+  background: #463f24;
+  text-align: center;
+}
+
 @media (max-width: 640px) {
   .app-shell {
     padding: 0.75rem;

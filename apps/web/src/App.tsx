@@ -13,6 +13,7 @@ import { emptyRuntimeState, readError } from './app-state.js';
 import { ApiClient } from './client/api-client.js';
 import { AssetClient, type AssetBundle } from './client/assets/index.js';
 import { clientConfig } from './client/runtime-config.js';
+import { platformClient } from './client/platform/platform-client.js';
 import { levelRuntimeConfig } from './game/config/level-runtime-config.js';
 import type { RuntimeState } from './game/runtime/types.js';
 import { useI18n } from './i18n/I18nProvider.js';
@@ -53,9 +54,14 @@ export function App() {
     'training-base' | 'forest-camp' | 'snow-field'
   >('training-base');
   const [busy, setBusy] = useState(false);
+  const [online, setOnline] = useState(() => platformClient.isOnline());
   const [error, setError] = useState<string | null>(null);
   const questionStartedAt = useRef(0);
   const sessionStartedAt = useRef(0);
+
+  useEffect(() => {
+    return platformClient.subscribeNetwork(setOnline);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -144,6 +150,10 @@ export function App() {
   const selectedTank = session?.tank ?? selectedOwnedTank;
 
   const startTraining = async () => {
+    if (!online) {
+      setError(t('offline.actionBlocked'));
+      return;
+    }
     const level = selectedLevel;
     const tank = selectedOwnedTank;
     if (!level || !tank) {
@@ -193,6 +203,10 @@ export function App() {
   };
 
   const equipSkin = async (skinId: string) => {
+    if (!online) {
+      setError(t('offline.actionBlocked'));
+      return;
+    }
     if (!selectedOwnedTank) return;
     setBusy(true);
     setError(null);
@@ -221,6 +235,10 @@ export function App() {
   };
 
   const submitAnswer = async (selectedAnswerId: string) => {
+    if (!online) {
+      setError(t('offline.actionBlocked'));
+      return;
+    }
     if (!session || !currentQuestion || feedback) return;
     setBusy(true);
     setError(null);
@@ -257,6 +275,11 @@ export function App() {
       return;
     }
 
+    if (!online) {
+      setError(t('offline.actionBlocked'));
+      return;
+    }
+
     setBusy(true);
     setError(null);
     try {
@@ -281,6 +304,10 @@ export function App() {
   };
 
   const upgradeFirepower = async () => {
+    if (!online) {
+      setError(t('offline.actionBlocked'));
+      return;
+    }
     if (!selectedTank) return;
     setBusy(true);
     setError(null);
@@ -336,11 +363,18 @@ export function App() {
     <main className="app-shell">
       <AppHud active={phase === 'active'} runtime={runtime} />
 
+      {!online && (
+        <p className="offline-banner" role="status">
+          {t('offline.banner')}
+        </p>
+      )}
+
       {phase === 'loading' && <StatusCard>{t('app.loading')}</StatusCard>}
 
       {phase === 'ready' && (
         <MissionPicker
           busy={busy}
+          online={online}
           levels={levels}
           preview={missionPreview}
           selectedLevelId={selectedLevelId}
@@ -357,6 +391,7 @@ export function App() {
       {phase === 'active' && session && runtimeConfig && currentQuestion && (
         <ActiveTraining
           busy={busy}
+          online={online}
           config={runtimeConfig}
           currentQuestion={currentQuestion}
           feedback={feedback}
@@ -375,6 +410,7 @@ export function App() {
       {phase === 'finished' && settlement && selectedTank && (
         <MissionResult
           busy={busy}
+          online={online}
           settlement={settlement}
           tank={selectedTank}
           upgrade={upgrade}

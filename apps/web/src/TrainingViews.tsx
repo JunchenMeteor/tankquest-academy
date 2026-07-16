@@ -88,6 +88,7 @@ export function PreferenceControls() {
 
 export function MissionPicker({
   busy,
+  online,
   levels,
   preview,
   selectedLevelId,
@@ -100,6 +101,7 @@ export function MissionPicker({
   onStart,
 }: {
   busy: boolean;
+  online: boolean;
   levels: LevelDto[];
   preview: RuntimeLevelConfig | undefined;
   selectedLevelId: string;
@@ -164,7 +166,7 @@ export function MissionPicker({
             key={skin.id}
             className={skin.equipped ? 'selected' : ''}
             aria-pressed={skin.equipped}
-            disabled={busy || !skin.unlocked}
+            disabled={busy || !online || !skin.unlocked}
             onClick={() => onEquipSkin(skin.id)}
           >
             <span
@@ -185,7 +187,7 @@ export function MissionPicker({
           })}
         </p>
       )}
-      <button disabled={busy} onClick={onStart}>
+      <button disabled={busy || !online} onClick={onStart}>
         {t('action.start')}
       </button>
     </section>
@@ -194,6 +196,7 @@ export function MissionPicker({
 
 export function ActiveTraining({
   busy,
+  online,
   config,
   currentQuestion,
   feedback,
@@ -208,6 +211,7 @@ export function ActiveTraining({
   onRuntime,
 }: {
   busy: boolean;
+  online: boolean;
   config: RuntimeLevelConfig;
   currentQuestion: QuestionDto;
   feedback: SubmitAnswerResponse | null;
@@ -248,7 +252,7 @@ export function ActiveTraining({
           <h2>{t('battle.disabled')}</h2>
           <p>{t('battle.disabledHint')}</p>
           <div className="result-actions">
-            <button disabled={busy} onClick={onRestart}>
+            <button disabled={busy || !online} onClick={onRestart}>
               {t('action.restart')}
             </button>
             <button disabled={busy} onClick={onReturn}>
@@ -266,7 +270,7 @@ export function ActiveTraining({
           </h2>
           <p>{t('battle.objective')}</p>
           {runtime.enemiesRemaining === 0 && (
-            <button disabled={busy} onClick={onContinue}>
+            <button disabled={busy || !online} onClick={onContinue}>
               {t('action.complete')}
             </button>
           )}
@@ -274,6 +278,7 @@ export function ActiveTraining({
       ) : (
         <LearningConsole
           busy={busy}
+          online={online}
           currentQuestion={currentQuestion}
           feedback={feedback}
           questionCount={session.questions.length}
@@ -290,6 +295,7 @@ export function ActiveTraining({
 
 function LearningConsole({
   busy,
+  online,
   currentQuestion,
   enemiesRemaining,
   feedback,
@@ -299,6 +305,7 @@ function LearningConsole({
   onContinue,
 }: {
   busy: boolean;
+  online: boolean;
   currentQuestion: QuestionDto;
   enemiesRemaining: number;
   feedback: SubmitAnswerResponse | null;
@@ -321,7 +328,7 @@ function LearningConsole({
         {currentQuestion.choices.map((choice) => (
           <button
             key={choice.id}
-            disabled={busy || Boolean(feedback)}
+            disabled={busy || !online || Boolean(feedback)}
             onClick={() => onAnswer(choice.id)}
           >
             {choice.text}
@@ -334,7 +341,7 @@ function LearningConsole({
             {feedback.correct ? t('learning.correct') : t('learning.retry')}
           </strong>
           <span>{feedback.explanation}</span>
-          <button disabled={busy} onClick={onContinue}>
+          <button disabled={busy || !online} onClick={onContinue}>
             {questionIndex < questionCount - 1
               ? t('action.next')
               : enemiesRemaining > 0
