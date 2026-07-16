@@ -136,7 +136,7 @@ jobs:
         run: cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml --all -- --check
 
       - name: Lint Rust
-        run: cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets --all-features --locked -- -D warnings
+        run: cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --release --all-targets --all-features --locked -- -D warnings
 
       - name: Build unsigned preview installer
         run: npm run build:preview --workspace @tankquest/desktop -- --ci --no-sign
