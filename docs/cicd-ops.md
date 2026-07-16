@@ -16,6 +16,8 @@
 - `TankQuest Preview and Release`：PR 验证 Docker 构建；`main`/`release` push 部署对应环境并执行健康检查；部署 Job 统一显示 `TankQuest / Deploy preview or release`。
 - `TankQuest Release Manager`：按版本创建 Issue/PR，把 `main` 晋级到 `release`，等待部署后创建 GitHub Release。
 
+工作流使用 Node 24 运行时世代的 GitHub/Docker Actions。升级 Action 主版本时必须保持现有权限、缓存键、artifact 名称和受保护分支行为，并通过 `Verify` 与三套运行时镜像检查后才能合并。
+
 发布操作见 `release-manager.md`，主机拓扑和数据路径见 `tencent-docker-deployment.md`。
 
 AI 运行时的 Linux wheelhouse 由 GitHub hosted runner 使用 Python 3.13 生成并作为提交 SHA 专属 artifact 传给部署 Job。目标服务器从 wheelhouse 离线组装 AI 镜像，不在部署期间访问 PyPI。

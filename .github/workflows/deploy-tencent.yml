@@ -38,11 +38,11 @@ jobs:
         target: [api-runtime, web-runtime, ai-runtime]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Python
         if: matrix.target == 'ai-runtime'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.13'
           cache: pip
@@ -58,11 +58,11 @@ jobs:
             './services/ai'
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build image
         if: github.event_name == 'pull_request'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile
@@ -74,7 +74,7 @@ jobs:
 
       - name: Upload validated source artifact
         if: github.event_name != 'pull_request' && matrix.target == 'api-runtime'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: tankquest-source-${{ github.sha }}
           path: |
@@ -89,7 +89,7 @@ jobs:
 
       - name: Upload AI wheelhouse artifact
         if: github.event_name != 'pull_request' && matrix.target == 'ai-runtime'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: tankquest-ai-wheelhouse-${{ github.sha }}
           path: services/ai/wheelhouse
@@ -106,13 +106,13 @@ jobs:
         run: node -e "if (Number(process.versions.node.split('.')[0]) < 24) process.exit(1)"
 
       - name: Download validated source artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: tankquest-source-${{ github.sha }}
           path: source
 
       - name: Download validated AI wheelhouse
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: tankquest-ai-wheelhouse-${{ github.sha }}
           path: source/services/ai/wheelhouse
