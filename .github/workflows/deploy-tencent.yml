@@ -16,6 +16,7 @@ on:
       - docs/**
       - package.json
       - package-lock.json
+      - scripts/*ai-wheelhouse*.mjs
       - scripts/release-manager.mjs
       - scripts/verify-public-deployment.mjs
       - .github/workflows/deploy-tencent.yml
@@ -57,6 +58,10 @@ jobs:
             'hatchling>=1.27,<2' \
             './services/ai'
 
+      - name: Create AI wheelhouse manifest
+        if: matrix.target == 'ai-runtime'
+        run: node scripts/ai-wheelhouse-manifest.mjs create services/ai/wheelhouse services/ai/wheelhouse-manifest.json
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
@@ -96,6 +101,15 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Upload AI wheelhouse manifest
+        if: github.event_name != 'pull_request' && matrix.target == 'ai-runtime'
+        uses: actions/upload-artifact@v7
+        with:
+          name: tankquest-ai-wheelhouse-manifest-${{ github.sha }}
+          path: services/ai/wheelhouse-manifest.json
+          if-no-files-found: error
+          retention-days: 7
+
   deploy:
     name: TankQuest / Deploy preview or release
     if: github.event_name != 'pull_request'
@@ -109,13 +123,74 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: tankquest-source-${{ github.sha }}
-          path: source
+          path: ${{ runner.temp }}/tankquest-source-${{ github.run_id }}-${{ github.run_attempt }}
 
-      - name: Download validated AI wheelhouse
+      - name: Download AI wheelhouse manifest
+        uses: actions/download-artifact@v8
+        with:
+          name: tankquest-ai-wheelhouse-manifest-${{ github.sha }}
+          path: ${{ runner.temp }}/tankquest-wheelhouse-manifest-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Resolve AI wheelhouse cache
+        id: ai_cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_dir="${RUNNER_TEMP}/tankquest-source-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          manifest_path="${RUNNER_TEMP}/tankquest-wheelhouse-manifest-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}/wheelhouse-manifest.json"
+          content_key="$(node "$source_dir/scripts/ai-wheelhouse-manifest.mjs" key "$manifest_path")"
+          cache_dir="/data/projects/tankquest/cache/ai-wheelhouse/$content_key"
+
+          echo "SOURCE_DIR=$source_dir" >> "$GITHUB_ENV"
+          echo "AI_WHEELHOUSE_MANIFEST=$manifest_path" >> "$GITHUB_ENV"
+          echo "AI_WHEELHOUSE_CACHE_DIR=$cache_dir" >> "$GITHUB_ENV"
+          echo "content_key=$content_key" >> "$GITHUB_OUTPUT"
+
+          if [ -d "$cache_dir" ]; then
+            node "$source_dir/scripts/ai-wheelhouse-manifest.mjs" verify "$cache_dir" "$manifest_path"
+            echo "AI wheelhouse cache hit: $content_key"
+            echo "hit=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "AI wheelhouse cache miss: $content_key"
+            echo "hit=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download validated AI wheelhouse on cache miss
+        if: steps.ai_cache.outputs.hit != 'true'
         uses: actions/download-artifact@v8
         with:
           name: tankquest-ai-wheelhouse-${{ github.sha }}
-          path: source/services/ai/wheelhouse
+          path: ${{ runner.temp }}/tankquest-wheelhouse-download-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Prepare verified AI wheelhouse
+        shell: bash
+        run: |
+          set -euo pipefail
+          download_dir="${RUNNER_TEMP}/tankquest-wheelhouse-download-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          cache_root="/data/projects/tankquest/cache/ai-wheelhouse"
+          mkdir -p "$cache_root"
+
+          if [ "${{ steps.ai_cache.outputs.hit }}" != "true" ]; then
+            node "$SOURCE_DIR/scripts/ai-wheelhouse-manifest.mjs" verify "$download_dir" "$AI_WHEELHOUSE_MANIFEST"
+            staging_dir="$cache_root/.staging-${{ steps.ai_cache.outputs.content_key }}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+
+            (
+              flock 9
+              if [ -d "$AI_WHEELHOUSE_CACHE_DIR" ]; then
+                node "$SOURCE_DIR/scripts/ai-wheelhouse-manifest.mjs" verify "$AI_WHEELHOUSE_CACHE_DIR" "$AI_WHEELHOUSE_MANIFEST"
+              else
+                mkdir "$staging_dir"
+                cp -a "$download_dir/." "$staging_dir/"
+                node "$SOURCE_DIR/scripts/ai-wheelhouse-manifest.mjs" verify "$staging_dir" "$AI_WHEELHOUSE_MANIFEST"
+                mv -T "$staging_dir" "$AI_WHEELHOUSE_CACHE_DIR"
+                echo "Stored verified AI wheelhouse cache: $AI_WHEELHOUSE_CACHE_DIR"
+              fi
+            ) 9>"$cache_root/.lock"
+          fi
+
+          mkdir -p "$SOURCE_DIR/services/ai/wheelhouse"
+          cp -a "$AI_WHEELHOUSE_CACHE_DIR/." "$SOURCE_DIR/services/ai/wheelhouse/"
+          node "$SOURCE_DIR/scripts/ai-wheelhouse-manifest.mjs" verify "$SOURCE_DIR/services/ai/wheelhouse" "$AI_WHEELHOUSE_MANIFEST"
 
       - name: Resolve target
         id: target
@@ -131,9 +206,9 @@ jobs:
 
       - name: Build deployment images
         run: |
-          docker build --target api-runtime --tag "tankquest-api:${GITHUB_SHA}" --file source/Dockerfile source
-          docker build --target ai-runtime --tag "tankquest-ai:${GITHUB_SHA}" --file source/Dockerfile source
-          docker build --target web-runtime --tag "tankquest-web:${GITHUB_SHA}" --file source/Dockerfile source
+          docker build --target api-runtime --tag "tankquest-api:${GITHUB_SHA}" --file "$SOURCE_DIR/Dockerfile" "$SOURCE_DIR"
+          docker build --target ai-runtime --tag "tankquest-ai:${GITHUB_SHA}" --file "$SOURCE_DIR/Dockerfile" "$SOURCE_DIR"
+          docker build --target web-runtime --tag "tankquest-web:${GITHUB_SHA}" --file "$SOURCE_DIR/Dockerfile" "$SOURCE_DIR"
 
       - name: Deploy
         env:
@@ -145,8 +220,8 @@ jobs:
           HOST_PORT: ${{ steps.target.outputs.port }}
           WEB_IMAGE: tankquest-web:${{ github.sha }}
         run: |
-          chmod +x source/deploy/deploy-container.sh
-          source/deploy/deploy-container.sh
+          chmod +x "$SOURCE_DIR/deploy/deploy-container.sh"
+          "$SOURCE_DIR/deploy/deploy-container.sh"
 
       - name: Verify public deployment contracts
         shell: bash
@@ -156,4 +231,4 @@ jobs:
           else
             origin="https://tq-pre.jcmeteor.com"
           fi
-          node source/scripts/verify-public-deployment.mjs "$origin"
+          node "$SOURCE_DIR/scripts/verify-public-deployment.mjs" "$origin"

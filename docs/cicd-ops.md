@@ -20,7 +20,9 @@
 
 发布操作见 `release-manager.md`，主机拓扑和数据路径见 `tencent-docker-deployment.md`。
 
-AI 运行时的 Linux wheelhouse 由 GitHub hosted runner 使用 Python 3.13 生成并作为提交 SHA 专属 artifact 传给部署 Job。目标服务器从 wheelhouse 离线组装 AI 镜像，不在部署期间访问 PyPI。
+AI 运行时的 Linux wheelhouse 由 GitHub hosted runner 使用 Python 3.13 生成，并输出逐文件大小、SHA-256 和内容键清单。部署 Job 先下载小清单并严格校验 `/data/projects/tankquest/cache/ai-wheelhouse/<content-key>`：命中时跳过大 artifact，未命中时才下载提交 SHA 专属 wheelhouse、逐文件校验并原子写入项目缓存。目标服务器始终从已验证 wheelhouse 离线组装 AI 镜像，部署期间不访问 PyPI。
+
+源码与 cache-miss 下载目录必须使用当前 Job 独有的 `${RUNNER_TEMP}` 路径，禁止把持久 runner workspace 中可能残留的旧文件作为 Docker build context。wheelhouse 缓存不含业务或儿童数据，preview/release 可以共享相同的不可变依赖内容；损坏缓存必须 fail closed，不自动覆盖。依赖内容变化时产生新内容键，旧键只按当前版本和最近回滚版本的精确保留策略清理，不执行全局删除。
 
 ## 3. 运行配置
 
