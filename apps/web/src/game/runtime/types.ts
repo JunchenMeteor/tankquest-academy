@@ -1,3 +1,5 @@
+import type { AssetBundle } from '../../client/assets/index.js';
+
 export type ArmorZone = 'front' | 'side' | 'rear';
 
 export interface ArmorProfile {
@@ -58,6 +60,7 @@ export interface RuntimeLevelConfig {
   player: PlayerRuntimeConfig;
   enemies: EnemyRuntimeConfig[];
   obstacles: ObstacleRuntimeConfig[];
+  visualResources?: AssetBundle;
 }
 
 export interface RuntimeState {

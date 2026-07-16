@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 
+import assetCatalog from './asset-catalog.json' with { type: 'json' };
+
 const prisma = new PrismaClient();
 
 const enemyPresets = {
@@ -454,6 +456,35 @@ async function seed() {
     questions.set(item.code, question.id);
   }
 
+  for (const asset of assetCatalog) {
+    await prisma.asset.upsert({
+      where: { id: asset.id },
+      update: {
+        type: asset.type,
+        version: asset.version,
+        url: asset.url,
+        sha256: asset.sha256,
+        sizeBytes: asset.sizeBytes,
+        tags: asset.tags,
+        previewUrl: asset.preview,
+        dependencies: asset.dependencies,
+        status: 'published',
+      },
+      create: {
+        id: asset.id,
+        type: asset.type,
+        version: asset.version,
+        url: asset.url,
+        sha256: asset.sha256,
+        sizeBytes: asset.sizeBytes,
+        tags: asset.tags,
+        previewUrl: asset.preview,
+        dependencies: asset.dependencies,
+        status: 'published',
+      },
+    });
+  }
+
   for (const item of levelSeeds) {
     const configJson = {
       theme: 'training-base',
@@ -461,7 +492,7 @@ async function seed() {
       map: item.map,
       objectives: ['answer_questions', 'defeat_training_tanks'],
     };
-    await prisma.level.upsert({
+    const level = await prisma.level.upsert({
       where: { code: item.code },
       update: {
         titleKey: item.titleKey,
@@ -492,6 +523,20 @@ async function seed() {
             questionId: getQuestionId(questions, code),
           })),
         },
+      },
+    });
+    await prisma.levelAsset.upsert({
+      where: {
+        levelId_assetId: {
+          levelId: level.id,
+          assetId: 'asset_training_grounds_v1',
+        },
+      },
+      update: { sortOrder: 0 },
+      create: {
+        levelId: level.id,
+        assetId: 'asset_training_grounds_v1',
+        sortOrder: 0,
       },
     });
   }

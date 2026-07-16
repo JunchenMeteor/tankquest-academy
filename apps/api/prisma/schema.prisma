@@ -168,9 +168,40 @@ model Level {
   status         ContentStatus   @default(draft)
   version        Int             @default(1)
   questions      LevelQuestion[]
+  assets         LevelAsset[]
   sessions       GameSession[]
 
   @@map("levels")
+}
+
+model Asset {
+  id           String        @id
+  type         String
+  version      String
+  url          String        @unique
+  sha256       String
+  sizeBytes    Int           @map("size_bytes")
+  tags         String[]      @default([])
+  previewUrl   String?       @map("preview_url")
+  dependencies String[]      @default([])
+  status       ContentStatus @default(draft)
+  levels       LevelAsset[]
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("assets")
+}
+
+model LevelAsset {
+  levelId   String @map("level_id")
+  assetId   String @map("asset_id")
+  sortOrder Int    @default(0) @map("sort_order")
+  level     Level  @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  asset     Asset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@id([levelId, assetId])
+  @@map("level_assets")
 }
 
 model Question {

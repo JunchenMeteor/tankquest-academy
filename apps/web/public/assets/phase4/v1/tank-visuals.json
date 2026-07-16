@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "playerTanks": [
+    {
+      "code": "star-shield",
+      "role": "medium",
+      "hull": { "width": 58, "height": 34, "cornerRadius": 8 },
+      "turret": { "radius": 15, "barrelLength": 35, "barrelWidth": 7 },
+      "details": ["front-star", "side-panels"]
+    },
+    {
+      "code": "swift-fox",
+      "role": "scout",
+      "hull": { "width": 52, "height": 28, "cornerRadius": 12 },
+      "turret": { "radius": 12, "barrelLength": 31, "barrelWidth": 5 },
+      "details": ["fox-ears", "rear-vents"]
+    },
+    {
+      "code": "iron-mountain",
+      "role": "heavy",
+      "hull": { "width": 66, "height": 40, "cornerRadius": 5 },
+      "turret": { "radius": 18, "barrelLength": 40, "barrelWidth": 9 },
+      "details": ["armor-brow", "track-guards"]
+    }
+  ],
+  "enemyRoles": [
+    {
+      "role": "scout",
+      "hullScale": 0.82,
+      "turretScale": 0.78,
+      "barrelScale": 0.82
+    },
+    {
+      "role": "medium",
+      "hullScale": 0.94,
+      "turretScale": 0.92,
+      "barrelScale": 0.94
+    },
+    {
+      "role": "heavy",
+      "hullScale": 1.08,
+      "turretScale": 1.06,
+      "barrelScale": 1.08
+    }
+  ]
+}

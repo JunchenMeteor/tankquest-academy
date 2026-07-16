@@ -1,10 +1,29 @@
 import type {
+  AssetType,
   EnemyTankRole,
   GameMode,
   Subject,
   TankStats,
   TrainingMapStyle,
 } from './domain.js';
+
+export interface AssetManifestEntryDto {
+  assetId: string;
+  type: AssetType;
+  version: string;
+  url: string;
+  sha256: string;
+  sizeBytes: number;
+  tags: string[];
+  preview: string | null;
+  dependencies: string[];
+}
+
+export interface AssetManifestDto {
+  levelId: string;
+  levelVersion: number;
+  assets: AssetManifestEntryDto[];
+}
 
 export interface ApiError {
   code: string;

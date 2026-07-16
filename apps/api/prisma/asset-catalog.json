@@ -1,0 +1,24 @@
+[
+  {
+    "id": "asset_tank_visuals_v1",
+    "type": "tank-visuals",
+    "version": "1.0.0",
+    "url": "/assets/phase4/v1/tank-visuals.json",
+    "sha256": "ce279558d806eaa1e60f41865eb0f00833f10544d60b3b977727eef2707d1d79",
+    "sizeBytes": 1157,
+    "tags": ["tank", "visual", "phase4"],
+    "preview": null,
+    "dependencies": []
+  },
+  {
+    "id": "asset_training_grounds_v1",
+    "type": "scene-description",
+    "version": "1.0.0",
+    "url": "/assets/phase4/v1/training-grounds.json",
+    "sha256": "3188966c8d4f2fb77433c3a849836b67136abe2afcff4e7d721547966c67e3f7",
+    "sizeBytes": 870,
+    "tags": ["scene", "training", "phase4"],
+    "preview": null,
+    "dependencies": ["asset_tank_visuals_v1"]
+  }
+]

@@ -12,11 +12,13 @@ import {
 } from '../systems/combat-stats.js';
 import { localTrainingConfig } from './local-training-config.js';
 import type { RuntimeLevelConfig } from '../runtime/types.js';
+import type { AssetBundle } from '../../client/assets/index.js';
 
 export function levelRuntimeConfig(
   level: LevelDto,
   tank?: TankDto,
-  locale: RuntimeLevelConfig['locale'] = 'en'
+  locale: RuntimeLevelConfig['locale'] = 'en',
+  visualResources?: AssetBundle
 ) {
   const parsedEnemies = levelEnemyConfigSchema.safeParse(level.config);
   const parsedMap = levelMapConfigSchema.safeParse(level.config.map);
@@ -32,6 +34,7 @@ export function levelRuntimeConfig(
   return {
     ...localTrainingConfig,
     locale,
+    ...(visualResources ? { visualResources } : {}),
     mapStyle: parsedMap.success
       ? parsedMap.data.style
       : localTrainingConfig.mapStyle,
