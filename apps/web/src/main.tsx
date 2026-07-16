@@ -2,7 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { App } from './App';
-import { platformClient } from './client/platform/platform-client.js';
+import { platformClient } from './client/platform/create-platform-client.js';
 import { I18nProvider } from './i18n/I18nProvider.js';
 import { ParentReport } from './ParentReport.js';
 import { ThemeProvider } from './theme/ThemeProvider.js';

@@ -1,8 +1,36 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { PlatformClient } from './platform-client.js';
+import { BrowserPlatformClient } from './browser-platform-client.js';
+import { createPlatformClient } from './create-platform-client.js';
 
-describe('PlatformClient', () => {
+describe('BrowserPlatformClient', () => {
+  it('declares browser platform capabilities without native privileges', () => {
+    const client = new BrowserPlatformClient(
+      {
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        matchMedia: () => ({ matches: false }),
+      },
+      { onLine: true, maxTouchPoints: 0, getGamepads: vi.fn() }
+    );
+
+    expect(client.getPlatform()).toBe('web');
+    expect(client.isTouchDevice()).toBe(false);
+    expect(client.supportsGamepad()).toBe(true);
+    expect(client.supportsFileCache()).toBe(false);
+    expect(client.supportsNativeNotification()).toBe(false);
+  });
+
+  it('detects touch input without changing the runtime platform', () => {
+    const client = new BrowserPlatformClient(
+      { addEventListener: vi.fn(), removeEventListener: vi.fn() },
+      { onLine: true, maxTouchPoints: 1 }
+    );
+
+    expect(client.getPlatform()).toBe('web');
+    expect(client.isTouchDevice()).toBe(true);
+  });
+
   it('reports network changes without owning application state', () => {
     let online = true;
     const listeners = new Map<string, () => void>();
@@ -16,7 +44,7 @@ describe('PlatformClient', () => {
         return online;
       },
     };
-    const client = new PlatformClient(windowRef, navigatorRef);
+    const client = new BrowserPlatformClient(windowRef, navigatorRef);
     const listener = vi.fn();
     const unsubscribe = client.subscribeNetwork(listener);
 
@@ -29,7 +57,7 @@ describe('PlatformClient', () => {
 
   it('registers the fixed same-origin Service Worker and fails quietly', async () => {
     const register = vi.fn().mockResolvedValue({});
-    const client = new PlatformClient(
+    const client = new BrowserPlatformClient(
       { addEventListener: vi.fn(), removeEventListener: vi.fn() },
       { onLine: true, serviceWorker: { register } }
     );
@@ -39,5 +67,18 @@ describe('PlatformClient', () => {
 
     register.mockRejectedValue(new Error('disabled'));
     await expect(client.registerServiceWorker()).resolves.toBe(false);
+  });
+
+  it('returns false when Service Workers are unavailable', async () => {
+    const client = new BrowserPlatformClient(
+      { addEventListener: vi.fn(), removeEventListener: vi.fn() },
+      { onLine: true }
+    );
+
+    await expect(client.registerServiceWorker()).resolves.toBe(false);
+  });
+
+  it('is selected by the default platform factory', () => {
+    expect(createPlatformClient()).toBeInstanceOf(BrowserPlatformClient);
   });
 });
