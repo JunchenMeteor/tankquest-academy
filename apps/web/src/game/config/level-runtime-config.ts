@@ -18,7 +18,8 @@ export function levelRuntimeConfig(
   level: LevelDto,
   tank?: TankDto,
   locale: RuntimeLevelConfig['locale'] = 'en',
-  visualResources?: AssetBundle
+  visualResources?: AssetBundle,
+  theme: RuntimeLevelConfig['theme'] = 'training-base'
 ) {
   const parsedEnemies = levelEnemyConfigSchema.safeParse(level.config);
   const parsedMap = levelMapConfigSchema.safeParse(level.config.map);
@@ -34,6 +35,7 @@ export function levelRuntimeConfig(
   return {
     ...localTrainingConfig,
     locale,
+    theme,
     ...(visualResources ? { visualResources } : {}),
     mapStyle: parsedMap.success
       ? parsedMap.data.style

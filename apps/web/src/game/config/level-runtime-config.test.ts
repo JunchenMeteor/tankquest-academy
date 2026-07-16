@@ -45,6 +45,12 @@ describe('levelRuntimeConfig', () => {
     expect(levelRuntimeConfig(level).enemies).toHaveLength(1);
   });
 
+  it('snapshots the selected theme into runtime configuration', () => {
+    expect(
+      levelRuntimeConfig(level, undefined, 'en', undefined, 'snow-field').theme
+    ).toBe('snow-field');
+  });
+
   it('caps content values to the available local prototypes', () => {
     expect(
       levelRuntimeConfig({ ...level, config: { enemyCount: 99 } }).enemies

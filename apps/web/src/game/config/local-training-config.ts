@@ -6,6 +6,7 @@ import {
 
 export const localTrainingConfig: RuntimeLevelConfig = {
   locale: 'en',
+  theme: 'training-base',
   width: 960,
   height: 540,
   mapStyle: 'range',
