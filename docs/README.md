@@ -116,6 +116,9 @@ AI 开始开发前，按这个顺序阅读，不要一上来读所有文件。
 34. `phase-five-scope.md`
     - Phase 5 Windows Tauri 技术预览、平台边界、构建烟测、降级和 v0.5.0 验收范围。
 
+35. `phase-five-acceptance.md`
+    - Phase 5 工程验收证据、Windows 构建产物、v0.5.0 发布门禁和已知非阻塞项。
+
 ## 2. 第一阶段开发顺序
 
 第一阶段不要做全量功能，只做 MVP。

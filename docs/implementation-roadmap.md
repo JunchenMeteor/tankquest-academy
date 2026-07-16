@@ -18,7 +18,7 @@
 | Phase 2 养成与学习记录 | 已完成 | 三辆坦克、涂装、学习记录、独立家长报告、英语和方向任务已通过工程验收 |
 | Phase 3 AI 学习教练 | 已完成 | 结构化 AI 服务、错题解释、自适应难度、家长摘要和安全题目草稿已通过工程验收 |
 | Phase 4 2.5D Web 升级 | 已完成 | Phaser 2.5D、资源清单、高识别度坦克、主题场景、触控和安全 PWA 壳已通过工程验收 |
-| Phase 5 Windows 技术预览 | 实施中 | Tauri 2 Windows 壳、平台 adapter、启动降级和 Windows 构建烟测，目标 v0.5.0 |
+| Phase 5 Windows 技术预览 | 已完成 | Tauri 2 Windows 壳、平台 adapter、启动降级和 Windows 构建烟测已通过工程验收 |
 | Phase 6+ | 待评估 | 完整 low-poly 3D、多人玩法和移动端分别独立评估 |
 
 Phase 1 的逐项结论和非阻塞项见 `phase-one-mvp-acceptance.md`。家庭试用发现的问题进入独立 Issue，不回填到已冻结的工程 MVP 范围。
@@ -29,7 +29,7 @@ Phase 3 的交付边界见 `phase-three-scope.md`，验收证据见 `phase-three
 
 Phase 4 的交付边界见 `phase-four-scope.md`，验收证据见 `phase-four-acceptance.md`，工程版本为 v0.4.0。本阶段选择 Phaser 2.5D 等距表现并保留现有 Arcade Physics，以 PWA 作为客户端包装基础；完整 3D 和原生客户端不进入 v0.4.0。
 
-Phase 5 的交付边界见 `phase-five-scope.md`，目标工程版本为 v0.5.0。本阶段只实现复用现有 Web 产品的 Windows Tauri 技术预览；完整 3D、多人、移动端、代码签名、商店发布和自动更新继续后置。
+Phase 5 的交付边界见 `phase-five-scope.md`，验收证据见 `phase-five-acceptance.md`，工程版本为 v0.5.0。本阶段只实现复用现有 Web 产品的 Windows Tauri 技术预览；完整 3D、多人、移动端、代码签名、商店发布和自动更新继续后置。
 
 Phase 1.6 和 Phase 2 的交付边界分别见 `phase-one-six-combat-scope.md` 和 `phase-two-scope.md`。Phase 1.6 完成后不再追加新的 1.x 工程阶段。
 

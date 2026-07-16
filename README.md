@@ -2,7 +2,7 @@
 
 TankQuest Academy is a family-friendly tank training game that combines tank driving, tactical challenges, learning tasks, progression, and safe AI-assisted education.
 
-The current v0.4 milestone is an installable 2.5D Web learning-game vertical slice with bounded AI learning assistance:
+The current v0.5 milestone is an installable 2.5D Web learning-game vertical slice with a Windows Tauri technical preview and bounded AI learning assistance:
 
 - Phaser 2.5D themed training grounds with recognizable layered tanks and authoritative Arcade Physics combat.
 - Math, English, and direction training objectives.
@@ -15,6 +15,7 @@ The current v0.4 milestone is an installable 2.5D Web learning-game vertical sli
 - Strict backend validation and deterministic fallback: AI never decides correctness, rewards, upgrades, final difficulty, or published content.
 - Backend-managed, hash-verified visual manifests with safe built-in fallbacks.
 - Unified desktop and touch commands plus a safe PWA shell that never caches business API data.
+- Unsigned Windows Tauri preview builds with isolated API/CSP flavors, fail-closed startup checks, and a protected Windows CI smoke gate.
 
 ## Repository Layout
 
