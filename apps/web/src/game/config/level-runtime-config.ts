@@ -43,6 +43,7 @@ export function levelRuntimeConfig(
       : localTrainingConfig.playerSpawn,
     player: {
       ...deriveCombatStats(tank?.stats ?? baselineTankStats),
+      visualCode: tank?.code ?? 'star-shield',
       ...(tank?.skin
         ? {
             appearance: {

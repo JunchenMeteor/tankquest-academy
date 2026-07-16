@@ -250,17 +250,27 @@ test('continues combat after repeated enemy projectile impacts', async ({
 
 test('starts a mission with the selected owned tank', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('button', { name: /Star Shield/ })).toBeVisible();
-  await expect(page.getByRole('button', { name: /Swift Fox/ })).toBeVisible();
+  const starShield = page.getByRole('button', { name: /Star Shield/ });
+  const swiftFox = page.getByRole('button', { name: /Swift Fox/ });
+  await expect(starShield).toBeVisible();
+  await expect(swiftFox).toBeVisible();
   await expect(
     page.getByRole('button', { name: /Iron Mountain/ })
   ).toBeVisible();
+  await expect(
+    starShield.locator('[data-tank-visual="star-shield"]')
+  ).toBeVisible();
+  await expect(
+    swiftFox.locator('[data-tank-visual="swift-fox"]')
+  ).toBeVisible();
 
-  await page.getByRole('button', { name: /Swift Fox/ }).click();
+  await swiftFox.click();
   const arcticSkin = page.getByRole('button', { name: 'Arctic Dash' });
   await expect(arcticSkin).toBeVisible();
   await arcticSkin.click();
   await expect(arcticSkin).toHaveAttribute('aria-pressed', 'true');
+  await expect(swiftFox.locator('[fill="#85aebf"]')).not.toHaveCount(0);
+  await expect(swiftFox.locator('[fill="#f2f7f8"]')).not.toHaveCount(0);
   const sessionRequest = page.waitForRequest(
     (request) =>
       request.url().endsWith('/api/game-sessions') &&

@@ -8,8 +8,7 @@ export interface ArmorProfile {
   rear: number;
 }
 
-export interface PlayerRuntimeConfig {
-  appearance?: { primaryColor: number; secondaryColor: number };
+export interface PlayerCombatRuntimeConfig {
   maxHealth: number;
   armorReduction: number;
   armorProfile: ArmorProfile;
@@ -24,6 +23,11 @@ export interface PlayerRuntimeConfig {
   fireCooldownMs: number;
   detectionRange: number;
   visibilityMultiplier: number;
+}
+
+export interface PlayerRuntimeConfig extends PlayerCombatRuntimeConfig {
+  visualCode: string;
+  appearance?: { primaryColor: number; secondaryColor: number };
 }
 
 export interface EnemyRuntimeConfig {
