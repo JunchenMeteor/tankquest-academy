@@ -15,6 +15,7 @@ export const ASSET_LIMITS = {
 } as const;
 
 const ASSET_PATH_PREFIX = '/assets/phase4/v1/';
+const DEFAULT_PRELOAD_TIMEOUT_MS = 5_000;
 
 export interface AssetBundle {
   source: 'manifest' | 'fallback';
@@ -29,11 +30,13 @@ type AssetHasher = (bytes: Uint8Array) => Promise<string>;
 export interface AssetClientDependencies {
   fetch?: AssetFetcher;
   hash?: AssetHasher;
+  timeoutMs?: number;
 }
 
 export class AssetClient {
   private readonly fetchAsset: AssetFetcher;
   private readonly hashAsset: AssetHasher;
+  private readonly timeoutMs: number;
 
   constructor(
     private readonly apiClient: ManifestClient,
@@ -41,36 +44,55 @@ export class AssetClient {
   ) {
     this.fetchAsset = (dependencies.fetch ?? globalThis.fetch).bind(globalThis);
     this.hashAsset = dependencies.hash ?? sha256;
+    this.timeoutMs = dependencies.timeoutMs ?? DEFAULT_PRELOAD_TIMEOUT_MS;
   }
 
   async preloadLevel(levelId: string): Promise<AssetBundle> {
+    const controller = new AbortController();
+    let timeout: ReturnType<typeof setTimeout> | undefined;
     try {
-      const manifest = assetManifestSchema.parse(
-        await this.apiClient.getAssetManifest(levelId)
-      );
-      if (manifest.levelId !== levelId) {
-        throw new Error('Asset manifest level mismatch');
-      }
-      const orderedAssets = validateManifest(manifest);
-      const resources = new Map<string, Uint8Array>();
-
-      for (const asset of orderedAssets) {
-        const response = await this.fetchAsset(asset.url);
-        if (!response.ok) {
-          throw new Error('Asset request failed');
-        }
-        const bytes = await readExactBytes(response, asset.sizeBytes);
-        const digest = (await this.hashAsset(bytes)).toLowerCase();
-        if (digest !== asset.sha256.toLowerCase()) {
-          throw new Error('Asset hash mismatch');
-        }
-        resources.set(asset.assetId, bytes);
-      }
-
-      return { source: 'manifest', manifest, resources };
+      const load = this.loadLevel(levelId, controller.signal);
+      const timedOut = new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => {
+          controller.abort();
+          reject(new Error('Asset preload timed out'));
+        }, this.timeoutMs);
+      });
+      return await Promise.race([load, timedOut]);
     } catch {
       return fallbackBundle(levelId);
+    } finally {
+      if (timeout !== undefined) clearTimeout(timeout);
     }
+  }
+
+  private async loadLevel(
+    levelId: string,
+    signal: AbortSignal
+  ): Promise<AssetBundle> {
+    const manifest = assetManifestSchema.parse(
+      await this.apiClient.getAssetManifest(levelId, signal)
+    );
+    if (manifest.levelId !== levelId) {
+      throw new Error('Asset manifest level mismatch');
+    }
+    const orderedAssets = validateManifest(manifest);
+    const resources = new Map<string, Uint8Array>();
+
+    for (const asset of orderedAssets) {
+      const response = await this.fetchAsset(asset.url, { signal });
+      if (!response.ok) {
+        throw new Error('Asset request failed');
+      }
+      const bytes = await readExactBytes(response, asset.sizeBytes);
+      const digest = (await this.hashAsset(bytes)).toLowerCase();
+      if (digest !== asset.sha256.toLowerCase()) {
+        throw new Error('Asset hash mismatch');
+      }
+      resources.set(asset.assetId, bytes);
+    }
+
+    return { source: 'manifest', manifest, resources };
   }
 }
 

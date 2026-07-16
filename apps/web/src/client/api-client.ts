@@ -40,9 +40,10 @@ export class ApiClient {
     return this.send<LevelDto[]>('/api/levels');
   }
 
-  getAssetManifest(levelId: string) {
+  getAssetManifest(levelId: string, signal?: AbortSignal) {
     return this.send<AssetManifestDto>(
-      `/api/assets/manifest?levelId=${encodeURIComponent(levelId)}`
+      `/api/assets/manifest?levelId=${encodeURIComponent(levelId)}`,
+      { signal }
     );
   }
 

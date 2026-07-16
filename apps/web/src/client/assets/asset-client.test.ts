@@ -69,7 +69,8 @@ describe('AssetClient', () => {
     expect(bundle.manifest).toEqual(manifest());
     expect(bundle.resources.get('map_range')).toEqual(bytes);
     expect(fetchAsset).toHaveBeenCalledWith(
-      '/assets/phase4/v1/maps/range.json'
+      '/assets/phase4/v1/maps/range.json',
+      { signal: expect.any(AbortSignal) }
     );
     expect(hash).toHaveBeenCalledWith(bytes);
   });
@@ -112,6 +113,35 @@ describe('AssetClient', () => {
 
     const missingAsset = setup(manifest(), new Response(null, { status: 404 }));
     await expectFallback(missingAsset.client);
+  });
+
+  it('aborts and falls back when the preload does not finish in time', async () => {
+    vi.useFakeTimers();
+    try {
+      const getAssetManifest =
+        vi.fn<
+          (levelId: string, signal?: AbortSignal) => Promise<AssetManifestDto>
+        >();
+      getAssetManifest.mockReturnValue(
+        new Promise<AssetManifestDto>(() => undefined)
+      );
+      const apiClient = {
+        getAssetManifest,
+      };
+      const client = new AssetClient(apiClient, { timeoutMs: 50 });
+
+      const result = client.preloadLevel('level_1');
+      await vi.advanceTimersByTimeAsync(50);
+
+      await expect(result).resolves.toEqual({
+        source: 'fallback',
+        manifest: { levelId: 'level_1', levelVersion: 0, assets: [] },
+        resources: new Map(),
+      });
+      expect(apiClient.getAssetManifest.mock.calls[0]?.[1]?.aborted).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('falls back for malformed manifests and non-versioned URLs', async () => {
