@@ -148,11 +148,25 @@ jobs:
         shell: pwsh
         run: ./scripts/smoke-windows-desktop.ps1
 
+      - name: Resolve current preview installer
+        id: preview-installer
+        shell: pwsh
+        run: |
+          $version = (Get-Content 'apps/desktop/src-tauri/tauri.conf.json' -Raw | ConvertFrom-Json).version
+          $path = "apps/desktop/src-tauri/target/release/bundle/nsis/TankQuest Academy_${version}_x64-setup.exe"
+          if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            throw "Current preview installer was not created: $path"
+          }
+          $size = (Get-Item -LiteralPath $path).Length
+          Write-Output "Resolved v$version preview installer ($size bytes)."
+          "path=$path" >> $env:GITHUB_OUTPUT
+          "version=$version" >> $env:GITHUB_OUTPUT
+
       - name: Upload preview installer
         uses: actions/upload-artifact@v7
         with:
-          name: tankquest-windows-preview-${{ github.sha }}
-          path: apps/desktop/src-tauri/target/release/bundle/nsis/*-setup.exe
+          name: tankquest-windows-preview-v${{ steps.preview-installer.outputs.version }}-${{ github.sha }}
+          path: ${{ steps.preview-installer.outputs.path }}
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
