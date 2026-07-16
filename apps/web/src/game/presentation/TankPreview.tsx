@@ -23,6 +23,7 @@ export function TankPreview({
     <svg
       aria-hidden="true"
       className="tank-preview"
+      data-tank-details={definition.details.join(' ')}
       data-tank-visual={definition.code}
       viewBox="0 0 120 72"
     >
@@ -74,8 +75,8 @@ export function TankPreview({
         strokeWidth="3"
       />
       <TankDetails
-        code={definition.code}
         color={secondaryColor}
+        details={definition.details}
         x={hullX}
         y={hullY}
       />
@@ -84,17 +85,17 @@ export function TankPreview({
 }
 
 function TankDetails({
-  code,
   color,
+  details,
   x,
   y,
 }: {
-  code: string;
   color: string;
+  details: string[];
   x: number;
   y: number;
 }) {
-  if (code === 'swift-fox') {
+  if (details.includes('fox-ears')) {
     return (
       <path
         d={`M ${x + 8} ${y + 5} l 5 -7 l 5 7 M ${x + 24} ${y + 5} l 5 -7 l 5 7`}
@@ -104,7 +105,7 @@ function TankDetails({
       />
     );
   }
-  if (code === 'iron-mountain') {
+  if (details.includes('armor-brow')) {
     return (
       <path
         d={`M ${x + 4} ${y + 7} H ${x + 22} M ${x + 4} ${y + 13} H ${x + 18}`}

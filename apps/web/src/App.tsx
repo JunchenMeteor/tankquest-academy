@@ -45,6 +45,8 @@ export function App() {
   const [visualResources, setVisualResources] = useState<AssetBundle | null>(
     null
   );
+  const [previewVisualResources, setPreviewVisualResources] =
+    useState<AssetBundle | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const questionStartedAt = useRef(0);
@@ -91,6 +93,18 @@ export function App() {
     };
   }, [selectedTankId]);
 
+  useEffect(() => {
+    if (!selectedLevelId) return;
+    let active = true;
+    setPreviewVisualResources(null);
+    void assetClient.preloadLevel(selectedLevelId).then((bundle) => {
+      if (active) setPreviewVisualResources(bundle);
+    });
+    return () => {
+      active = false;
+    };
+  }, [selectedLevelId]);
+
   const runtimeConfig = useMemo(
     () =>
       session
@@ -108,9 +122,16 @@ export function App() {
   const missionPreview = useMemo(
     () =>
       selectedLevel
-        ? levelRuntimeConfig(selectedLevel, selectedOwnedTank, locale)
+        ? levelRuntimeConfig(
+            selectedLevel,
+            selectedOwnedTank,
+            locale,
+            previewVisualResources?.manifest.levelId === selectedLevel.id
+              ? previewVisualResources
+              : undefined
+          )
         : undefined,
-    [locale, selectedLevel, selectedOwnedTank]
+    [locale, previewVisualResources, selectedLevel, selectedOwnedTank]
   );
   const currentQuestion = session?.questions[questionIndex];
   const selectedTank = session?.tank ?? selectedOwnedTank;
@@ -125,7 +146,10 @@ export function App() {
     setBusy(true);
     setError(null);
     try {
-      const preparedVisualResources = await assetClient.preloadLevel(level.id);
+      const preparedVisualResources =
+        previewVisualResources?.manifest.levelId === level.id
+          ? previewVisualResources
+          : await assetClient.preloadLevel(level.id);
       const started = await api.startSession({
         childId: clientConfig.demoChildId,
         levelId: level.id,

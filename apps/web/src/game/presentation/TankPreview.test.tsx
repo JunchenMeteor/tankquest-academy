@@ -14,6 +14,7 @@ describe('TankPreview', () => {
     );
 
     expect(markup).toContain('data-tank-visual="iron-mountain"');
+    expect(markup).toContain('data-tank-details="armor-brow track-guards"');
     expect(markup).toContain('#426b8a');
     expect(markup).toContain('#d7edf7');
   });
