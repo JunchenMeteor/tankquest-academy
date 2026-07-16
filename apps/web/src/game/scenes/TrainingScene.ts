@@ -6,6 +6,21 @@ import {
   drawTrainingMap,
   drawEnemyHealth,
 } from '../presentation/training-visuals.js';
+import {
+  ENEMY_BODY_SIZES,
+  PLAYER_BODY_SIZE,
+  resolveEnemyTankVisual,
+  resolvePlayerTankVisual,
+} from '../presentation/tank-visual-definition.js';
+import {
+  configureTurretOrigin,
+  createTankVisualTextures,
+  enemyBodyTexture,
+  enemyTurretTexture,
+  lockTankBody,
+  PLAYER_BODY_TEXTURE,
+  PLAYER_TURRET_TEXTURE,
+} from '../presentation/tank-visuals.js';
 import { logCombatEvent } from '../systems/combat-log.js';
 import {
   effectiveEnemyDetectionRange,
@@ -47,7 +62,8 @@ export class TrainingScene extends Phaser.Scene {
   }
 
   create() {
-    createTrainingTextures(this, this.levelConfig.player.appearance);
+    createTrainingTextures(this);
+    createTankVisualTextures(this, this.levelConfig);
     this.physics.world.setBounds(
       0,
       0,
@@ -71,27 +87,39 @@ export class TrainingScene extends Phaser.Scene {
     this.player = this.physics.add.sprite(
       this.levelConfig.playerSpawn.x,
       this.levelConfig.playerSpawn.y,
-      'tank-body'
+      PLAYER_BODY_TEXTURE
     );
     this.player
       .setCollideWorldBounds(true)
       .setDrag(600, 600)
       .setMaxVelocity(220);
+    lockTankBody(this.player, PLAYER_BODY_SIZE);
     this.player.body?.setMass(this.levelConfig.player.mass);
     this.turret = this.add
-      .image(this.player.x, this.player.y, 'tank-turret')
+      .image(this.player.x, this.player.y, PLAYER_TURRET_TEXTURE)
       .setDepth(2);
+    configureTurretOrigin(
+      this.turret,
+      resolvePlayerTankVisual(
+        this.levelConfig.player.visualCode,
+        this.levelConfig.visualResources
+      )
+    );
 
     this.enemies = this.physics.add.group();
     for (const enemy of this.levelConfig.enemies) {
       const sprite = this.enemies.create(
         enemy.x,
         enemy.y,
-        `enemy-${enemy.role}-body`
+        enemyBodyTexture(enemy.role)
       );
       const turret = this.add
-        .image(enemy.x, enemy.y, `enemy-${enemy.role}-turret`)
+        .image(enemy.x, enemy.y, enemyTurretTexture(enemy.role))
         .setDepth(2);
+      configureTurretOrigin(
+        turret,
+        resolveEnemyTankVisual(enemy.role, this.levelConfig.visualResources)
+      );
       sprite.setData({
         id: enemy.id,
         turret,
@@ -113,6 +141,7 @@ export class TrainingScene extends Phaser.Scene {
         healthBar: this.add.graphics().setDepth(3),
       });
       sprite.setCollideWorldBounds(true);
+      lockTankBody(sprite, ENEMY_BODY_SIZES[enemy.role]);
       sprite.body?.setMass(enemy.mass);
     }
 

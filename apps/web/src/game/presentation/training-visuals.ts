@@ -38,25 +38,8 @@ export function drawTrainingMap(
   }
 }
 
-export function createTrainingTextures(
-  scene: Phaser.Scene,
-  appearance: RuntimeLevelConfig['player']['appearance']
-) {
+export function createTrainingTextures(scene: Phaser.Scene) {
   const graphics = scene.add.graphics();
-  graphics
-    .fillStyle(appearance?.primaryColor ?? 0x5d7d46)
-    .fillRoundedRect(0, 0, 52, 34, 8);
-  graphics.generateTexture('tank-body', 52, 34);
-  graphics
-    .clear()
-    .fillStyle(appearance?.secondaryColor ?? 0xe8c65a)
-    .fillRoundedRect(0, 0, 42, 10, 5);
-  graphics.generateTexture('tank-turret', 42, 10);
-
-  createEnemyTexture(graphics, 'scout', 42, 28, 0xb95b4b);
-  createEnemyTexture(graphics, 'medium', 48, 32, 0xa6483c);
-  createEnemyTexture(graphics, 'heavy', 56, 38, 0x87372f);
-
   graphics.clear().fillStyle(0xeadfbd).fillRect(0, 0, 12, 4);
   graphics.generateTexture('projectile', 12, 4);
   graphics.clear().fillStyle(0xff8b6f).fillRect(0, 0, 12, 4);
@@ -149,25 +132,4 @@ export function destroyEnemyVisual(enemy: Phaser.Physics.Arcade.Sprite) {
   bar.destroy();
   turret.destroy();
   enemy.destroy();
-}
-
-function createEnemyTexture(
-  graphics: Phaser.GameObjects.Graphics,
-  role: string,
-  width: number,
-  height: number,
-  color: number
-) {
-  graphics.clear();
-  graphics.fillStyle(0x392522).fillRoundedRect(0, 1, width, height - 2, 5);
-  graphics.fillStyle(color).fillRoundedRect(4, 5, width - 8, height - 10, 6);
-  graphics.generateTexture(`enemy-${role}-body`, width, height);
-
-  const turretWidth = Math.round(width * 0.82);
-  graphics.clear();
-  graphics
-    .fillStyle(color)
-    .fillCircle(10, 6, 6)
-    .fillRoundedRect(10, 4, turretWidth - 10, 4, 2);
-  graphics.generateTexture(`enemy-${role}-turret`, turretWidth, 12);
 }

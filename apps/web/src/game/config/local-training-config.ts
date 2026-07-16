@@ -10,7 +10,10 @@ export const localTrainingConfig: RuntimeLevelConfig = {
   height: 540,
   mapStyle: 'range',
   playerSpawn: { x: 120, y: 270 },
-  player: deriveCombatStats(baselineTankStats),
+  player: {
+    ...deriveCombatStats(baselineTankStats),
+    visualCode: 'star-shield',
+  },
   enemies: [
     {
       id: 'robot_alpha',

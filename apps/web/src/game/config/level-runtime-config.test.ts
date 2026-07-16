@@ -97,6 +97,7 @@ describe('levelRuntimeConfig', () => {
     const config = levelRuntimeConfig(level, tank);
 
     expect(config.player.speed).toBeGreaterThan(170);
+    expect(config.player.visualCode).toBe('star-shield');
     expect(config.player.acceleration).toBeGreaterThan(420);
     expect(config.player.projectileDamage).toBeGreaterThan(34);
     expect(config.player.projectilePenetration).toBeGreaterThan(82);

@@ -8,6 +8,7 @@ import type {
 } from '@tankquest/shared';
 
 import { GameCanvas } from './game/GameCanvas.js';
+import { TankPreview } from './game/presentation/TankPreview.js';
 import type { RuntimeLevelConfig, RuntimeState } from './game/runtime/types.js';
 import { useI18n } from './i18n/I18nProvider.js';
 import { themes, type ThemeCode, useTheme } from './theme/ThemeProvider.js';
@@ -137,6 +138,12 @@ export function MissionPicker({
             aria-pressed={tank.id === selectedTankId}
             onClick={() => onSelectTank(tank.id)}
           >
+            <TankPreview
+              code={tank.code}
+              primaryColor={tank.skin?.primaryColor}
+              secondaryColor={tank.skin?.secondaryColor}
+              visualResources={preview?.visualResources}
+            />
             <strong>{contentName(tank.code, t)}</strong>
             <span>
               {t(`role.${tank.role}`)} ·{' '}
