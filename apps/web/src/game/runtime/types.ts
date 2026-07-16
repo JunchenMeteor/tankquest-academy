@@ -57,6 +57,7 @@ export interface ObstacleRuntimeConfig {
 
 export interface RuntimeLevelConfig {
   locale: 'en' | 'zh-CN';
+  theme: 'training-base' | 'forest-camp' | 'snow-field';
   width: number;
   height: number;
   mapStyle: 'range' | 'gate' | 'patrol';

@@ -318,6 +318,22 @@ test('persists language and theme preferences', async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByLabel('语言')).toHaveValue('zh-CN');
   await expect(page.getByLabel('主题')).toHaveValue('snow-field');
+  await page.getByRole('button', { name: '开始训练' }).click();
+  const trainingGround = page.locator('.game-canvas');
+  await expect(trainingGround).toHaveAttribute('data-render-mode', '2.5d');
+  await expect(trainingGround).toHaveAttribute(
+    'data-scene-theme',
+    'snow-field'
+  );
+
+  await page.getByLabel('主题').selectOption('forest-camp');
+  await expect
+    .poll(() => page.locator('html').getAttribute('data-theme'))
+    .toBe('forest-camp');
+  await expect(trainingGround).toHaveAttribute(
+    'data-scene-theme',
+    'snow-field'
+  );
 });
 
 test('completes English and direction missions through the shared API', async ({

@@ -3,9 +3,14 @@ import Phaser from 'phaser';
 import {
   createTrainingTextures,
   destroyEnemyVisual,
-  drawTrainingMap,
   drawEnemyHealth,
 } from '../presentation/training-visuals.js';
+import { resolveScenePalette } from '../presentation/map-visual-definition.js';
+import {
+  applyTankDepth,
+  drawObstacleVisual,
+  drawTrainingGround,
+} from '../presentation/training-ground-visuals.js';
 import {
   ENEMY_BODY_SIZES,
   PLAYER_BODY_SIZE,
@@ -70,18 +75,27 @@ export class TrainingScene extends Phaser.Scene {
       this.levelConfig.width,
       this.levelConfig.height
     );
-    this.cameras.main.setBackgroundColor('#263826');
-    drawTrainingMap(
+    const palette = resolveScenePalette(
+      this.levelConfig.theme,
+      this.levelConfig.visualResources
+    );
+    this.cameras.main.setBackgroundColor(palette.floor.base);
+    drawTrainingGround(
       this,
       this.levelConfig.width,
       this.levelConfig.height,
-      this.levelConfig.mapStyle
+      this.levelConfig.mapStyle,
+      palette
     );
 
     const obstacles = this.physics.add.staticGroup();
     for (const obstacle of this.levelConfig.obstacles) {
+      drawObstacleVisual(this, obstacle, palette);
       const sprite = obstacles.create(obstacle.x, obstacle.y, 'obstacle');
-      sprite.setDisplaySize(obstacle.width, obstacle.height).refreshBody();
+      sprite
+        .setDisplaySize(obstacle.width, obstacle.height)
+        .setAlpha(0)
+        .refreshBody();
     }
 
     this.player = this.physics.add.sprite(
@@ -105,6 +119,7 @@ export class TrainingScene extends Phaser.Scene {
         this.levelConfig.visualResources
       )
     );
+    applyTankDepth(this.player, this.turret);
 
     this.enemies = this.physics.add.group();
     for (const enemy of this.levelConfig.enemies) {
@@ -143,6 +158,11 @@ export class TrainingScene extends Phaser.Scene {
       sprite.setCollideWorldBounds(true);
       lockTankBody(sprite, ENEMY_BODY_SIZES[enemy.role]);
       sprite.body?.setMass(enemy.mass);
+      applyTankDepth(
+        sprite,
+        turret,
+        sprite.getData('healthBar') as Phaser.GameObjects.Graphics
+      );
     }
 
     this.projectiles = this.physics.add.group({ maxSize: 24 });
@@ -228,6 +248,7 @@ export class TrainingScene extends Phaser.Scene {
       worldPoint.x,
       worldPoint.y
     );
+    applyTankDepth(this.player, this.turret);
 
     if (
       this.controls.fire.isDown &&
@@ -318,6 +339,7 @@ export class TrainingScene extends Phaser.Scene {
         'healthBar'
       ) as Phaser.GameObjects.Graphics;
       healthBar.setVisible(revealed);
+      applyTankDepth(enemy, turret, healthBar);
       const body = enemy.body as Phaser.Physics.Arcade.Body;
       enemy.setData({
         impactVelocityX: body.velocity.x,

@@ -17,6 +17,7 @@ import { levelRuntimeConfig } from './game/config/level-runtime-config.js';
 import type { RuntimeState } from './game/runtime/types.js';
 import { useI18n } from './i18n/I18nProvider.js';
 import { MissionResult } from './MissionResult.js';
+import { useTheme } from './theme/ThemeProvider.js';
 import { ActiveTraining, AppHud, MissionPicker } from './TrainingViews.js';
 import './styles.css';
 
@@ -27,6 +28,7 @@ type Phase = 'loading' | 'ready' | 'active' | 'finished';
 
 export function App() {
   const { locale, t } = useI18n();
+  const { theme } = useTheme();
   const [phase, setPhase] = useState<Phase>('loading');
   const [levels, setLevels] = useState<LevelDto[]>([]);
   const [tanks, setTanks] = useState<OwnedTankDto[]>([]);
@@ -47,6 +49,9 @@ export function App() {
   );
   const [previewVisualResources, setPreviewVisualResources] =
     useState<AssetBundle | null>(null);
+  const [sessionTheme, setSessionTheme] = useState<
+    'training-base' | 'forest-camp' | 'snow-field'
+  >('training-base');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const questionStartedAt = useRef(0);
@@ -112,10 +117,11 @@ export function App() {
             session.level,
             session.tank,
             locale,
-            visualResources ?? undefined
+            visualResources ?? undefined,
+            sessionTheme
           )
         : null,
-    [locale, session, visualResources]
+    [locale, session, sessionTheme, visualResources]
   );
   const selectedLevel = levels.find((item) => item.id === selectedLevelId);
   const selectedOwnedTank = tanks.find((item) => item.id === selectedTankId);
@@ -128,10 +134,11 @@ export function App() {
             locale,
             previewVisualResources?.manifest.levelId === selectedLevel.id
               ? previewVisualResources
-              : undefined
+              : undefined,
+            theme
           )
         : undefined,
-    [locale, previewVisualResources, selectedLevel, selectedOwnedTank]
+    [locale, previewVisualResources, selectedLevel, selectedOwnedTank, theme]
   );
   const currentQuestion = session?.questions[questionIndex];
   const selectedTank = session?.tank ?? selectedOwnedTank;
@@ -161,6 +168,7 @@ export function App() {
         locale
       );
       setVisualResources(preparedVisualResources);
+      setSessionTheme(theme);
       setSession(started);
       setRuntime({
         enemiesRemaining: startedRuntimeConfig.enemies.length,

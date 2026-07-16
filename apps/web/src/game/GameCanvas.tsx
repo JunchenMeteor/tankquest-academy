@@ -33,6 +33,9 @@ export function GameCanvas({ config, onState }: GameCanvasProps) {
   return (
     <div
       className="game-canvas"
+      data-map-style={config.mapStyle}
+      data-render-mode="2.5d"
+      data-scene-theme={config.theme}
       ref={hostRef}
       aria-label="Tank training area"
     />
