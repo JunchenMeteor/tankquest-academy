@@ -1,0 +1,19 @@
+{
+  "name": "@tankquest/desktop",
+  "version": "0.5.0",
+  "private": true,
+  "scripts": {
+    "dev:web": "npm run build --workspace @tankquest/shared && npm run dev --workspace @tankquest/web -- --mode tauri-development",
+    "build:web": "npm run build --workspace @tankquest/shared && npm run build --workspace @tankquest/web -- --mode tauri-development",
+    "build:web:preview": "npm run build --workspace @tankquest/shared && npm run build --workspace @tankquest/web -- --mode tauri-preview",
+    "build:web:release": "npm run build --workspace @tankquest/shared && npm run build --workspace @tankquest/web -- --mode tauri-release",
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "build:preview": "tauri build --config src-tauri/tauri.preview.conf.json",
+    "build:release": "tauri build --config src-tauri/tauri.release.conf.json",
+    "check": "tauri build --debug --no-bundle"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.11.4"
+  }
+}

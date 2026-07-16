@@ -30,7 +30,7 @@ The workflow falls back to `GITHUB_TOKEN` if the secret is missing. GitHub may n
 1. Confirm tag `v<version>` does not already exist.
 2. Create or reuse a release tracking issue.
 3. Create a preparation branch from `origin/main`.
-4. Update root package versions and create `docs/releases/v<version>.md`.
+4. Update root/desktop npm, Cargo, Tauri, Service Worker cache versions and create `docs/releases/v<version>.md`.
 5. Open a PR into `main`, wait for checks, and squash merge it.
 6. Create a dedicated promotion branch whose parents include the current `release` and accepted `main`, while its file tree exactly matches `main`.
 7. Open a PR from the promotion branch into `release`, wait for fresh Verify and all three runtime container checks to register and pass, and squash merge it.
@@ -49,6 +49,7 @@ If a run stops after one phase, continue locally or from Actions:
 node scripts/release-manager.mjs prepare --version 0.1.1
 node scripts/release-manager.mjs promote --version 0.1.1
 node scripts/release-manager.mjs verify --version 0.1.1
+npm run release-version:verify
 ```
 
 To run the deployment contract probe directly against one or more environments:

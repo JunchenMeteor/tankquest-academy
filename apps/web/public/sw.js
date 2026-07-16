@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'tankquest-shell-';
-const CACHE_NAME = `${CACHE_PREFIX}v0.4.0`;
+const CACHE_NAME = `${CACHE_PREFIX}v0.5.0`;
 const APP_SHELL = [
   '/',
   '/manifest.webmanifest',
