@@ -40,7 +40,7 @@ export function showDamage(
       fontSize: '16px',
       fontStyle: 'bold',
     })
-    .setDepth(5)
+    .setDepth(2_000)
     .setOrigin(0.5);
   scene.tweens.add({
     targets: label,
@@ -80,7 +80,7 @@ export function showProjectileImpact(
       fontSize: '16px',
       fontStyle: 'bold',
     })
-    .setDepth(5)
+    .setDepth(2_000)
     .setOrigin(0.5);
   scene.tweens.add({
     targets: label,
