@@ -13,6 +13,8 @@
   "scripts": {
     "dev": "npm run build --workspace @tankquest/shared && npm run dev --workspace @tankquest/web",
     "dev:api": "npm run build --workspace @tankquest/shared && npm run dev --workspace @tankquest/api",
+    "desktop:dev": "npm run dev --workspace @tankquest/desktop",
+    "desktop:build": "npm run build --workspace @tankquest/desktop",
     "db:generate": "npm run db:generate --workspace @tankquest/api",
     "db:migrate": "npm run db:migrate --workspace @tankquest/api",
     "db:seed": "npm run db:seed --workspace @tankquest/api",
