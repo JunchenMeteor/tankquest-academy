@@ -431,7 +431,9 @@ export function App() {
       {phase === 'finished' && settlement && selectedTank && (
         <MissionResult
           busy={busy}
+          enemyTotal={runtimeConfig?.enemies.length ?? 0}
           online={online}
+          runtime={runtime}
           settlement={settlement}
           tank={selectedTank}
           upgrade={upgrade}

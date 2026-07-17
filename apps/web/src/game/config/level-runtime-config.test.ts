@@ -174,6 +174,88 @@ describe('levelRuntimeConfig', () => {
     );
   });
 
+  it('keeps scout, medium, and heavy enemy outcomes observably distinct', () => {
+    const enemies = levelRuntimeConfig({
+      ...level,
+      config: {
+        enemyTanks: [
+          {
+            id: 'scout',
+            role: 'scout',
+            x: 650,
+            y: 100,
+            stats: {
+              firepower: 2,
+              mobility: 4,
+              armor: 1,
+              stealth: 4,
+              vision: 3,
+            },
+            ai: {
+              detectionRange: 300,
+              attackRange: 205,
+              fireCooldownMs: 1900,
+              speedMultiplier: 0.42,
+            },
+          },
+          {
+            id: 'medium',
+            role: 'medium',
+            x: 760,
+            y: 270,
+            stats: {
+              firepower: 3,
+              mobility: 3,
+              armor: 3,
+              stealth: 2,
+              vision: 3,
+            },
+            ai: {
+              detectionRange: 310,
+              attackRange: 230,
+              fireCooldownMs: 1650,
+              speedMultiplier: 0.38,
+            },
+          },
+          {
+            id: 'heavy',
+            role: 'heavy',
+            x: 850,
+            y: 440,
+            stats: {
+              firepower: 4,
+              mobility: 2,
+              armor: 5,
+              stealth: 1,
+              vision: 2,
+            },
+            ai: {
+              detectionRange: 280,
+              attackRange: 250,
+              fireCooldownMs: 1450,
+              speedMultiplier: 0.32,
+            },
+          },
+        ],
+      },
+    }).enemies;
+
+    expect(enemies.map((enemy) => enemy.speed)).toEqual([79, 65, 49]);
+    expect(enemies.map((enemy) => enemy.maxHealth)).toEqual([100, 150, 200]);
+    expect(enemies.map((enemy) => enemy.armorProfile.front)).toEqual([
+      54, 78, 102,
+    ]);
+    expect(enemies.map((enemy) => enemy.projectileDamage)).toEqual([
+      15, 19, 23,
+    ]);
+    expect(enemies.map((enemy) => enemy.fireCooldownMs)).toEqual([
+      1900, 1650, 1450,
+    ]);
+    expect(enemies.map((enemy) => enemy.detectionRange)).toEqual([
+      300, 310, 280,
+    ]);
+  });
+
   it('maps effective upgrades into perceptible runtime values', () => {
     const config = levelRuntimeConfig(level, tank);
 
