@@ -41,6 +41,14 @@ import { fireEnemyProjectile } from '../systems/enemy-fire.js';
 import { applyProjectileImpact } from '../systems/projectile-combat.js';
 import { applyRamImpact } from '../systems/ram-combat.js';
 import { calculateTankMotion } from '../systems/tank-motion.js';
+import {
+  activeWaveEnemyIds,
+  applyMissionObjectiveEvent,
+  createMissionObjectiveState,
+  objectiveRuntimeSummary,
+  type MissionObjectiveEvent,
+  type MissionObjectiveState,
+} from '../systems/mission-objectives.js';
 import type { RuntimeLevelConfig, RuntimeState } from '../runtime/types.js';
 
 interface ControlKeys {
@@ -63,6 +71,7 @@ export class TrainingScene extends Phaser.Scene {
   private playerHealth: number;
   private playerDestroyed = false;
   private readonly lastRamAt = new Map<string, number>();
+  private objectiveState: MissionObjectiveState;
 
   constructor(
     private readonly levelConfig: RuntimeLevelConfig,
@@ -71,6 +80,7 @@ export class TrainingScene extends Phaser.Scene {
   ) {
     super('training');
     this.playerHealth = levelConfig.player.maxHealth;
+    this.objectiveState = createMissionObjectiveState(levelConfig.objectiveSet);
   }
 
   create() {
@@ -144,6 +154,9 @@ export class TrainingScene extends Phaser.Scene {
       );
       sprite.setData({
         id: enemy.id,
+        elite: enemy.elite,
+        spawnX: enemy.x,
+        spawnY: enemy.y,
         turret,
         health: enemy.maxHealth,
         maxHealth: enemy.maxHealth,
@@ -171,7 +184,13 @@ export class TrainingScene extends Phaser.Scene {
         turret,
         sprite.getData('healthBar') as Phaser.GameObjects.Graphics
       );
+      if (enemy.elite) {
+        sprite.setTint(0xf2c14e);
+        turret.setTint(0xf2c14e).setScale(1.12);
+      }
     }
+
+    this.syncWaveActivation();
 
     this.projectiles = this.physics.add.group({ maxSize: 24 });
     this.enemyProjectiles = this.physics.add.group({ maxSize: 48 });
@@ -201,6 +220,7 @@ export class TrainingScene extends Phaser.Scene {
           projectile as Phaser.Physics.Arcade.Sprite
         )
     );
+    this.createObjectiveZones();
     this.physics.add.overlap(
       this.projectiles,
       this.enemies,
@@ -360,6 +380,7 @@ export class TrainingScene extends Phaser.Scene {
   private updateEnemies(time: number) {
     for (const child of this.enemies.children) {
       const enemy = child as Phaser.Physics.Arcade.Sprite;
+      if (!enemy.active) continue;
       const turret = enemy.getData('turret') as Phaser.GameObjects.Image;
       const distance = Phaser.Math.Distance.Between(
         enemy.x,
@@ -483,10 +504,18 @@ export class TrainingScene extends Phaser.Scene {
         source: 'projectile',
       });
       destroyEnemyVisual(enemy);
+      this.applyObjectiveEvent({
+        type: 'enemy-defeated',
+        enemyId,
+      });
+      this.syncWaveActivation();
     } else {
       enemy.setTint(0xffffff);
       this.time.delayedCall(80, () => {
-        if (enemy.active) enemy.clearTint();
+        if (enemy.active) {
+          if (enemy.getData('elite') as boolean) enemy.setTint(0xf2c14e);
+          else enemy.clearTint();
+        }
       });
       drawEnemyHealth(enemy);
     }
@@ -530,6 +559,10 @@ export class TrainingScene extends Phaser.Scene {
     if (!resolution) return;
     this.lastRamAt.set(resolution.enemyId, now);
     this.playerHealth = resolution.playerHealth;
+    if (resolution.enemyDestroyed) {
+      this.applyObjectiveEvent({ type: 'enemy-defeated', enemyId });
+      this.syncWaveActivation();
+    }
     if (this.playerHealth === 0) this.disablePlayer();
     this.emitState();
   }
@@ -544,13 +577,118 @@ export class TrainingScene extends Phaser.Scene {
   }
 
   private emitState() {
+    const objective = objectiveRuntimeSummary(this.objectiveState);
     this.onState({
       enemiesRemaining:
-        this.enemies?.countActive(true) ?? this.levelConfig.enemies.length,
+        this.levelConfig.enemies.length -
+        this.objectiveState.defeatedEnemyIds.length,
       shotsFired: this.shotsFired,
       playerHealth: this.playerHealth,
       playerMaxHealth: this.levelConfig.player.maxHealth,
       playerDestroyed: this.playerDestroyed,
+      ...objective,
     });
+  }
+
+  private createObjectiveZones() {
+    for (const objective of this.levelConfig.objectiveSet.objectives) {
+      const points =
+        objective.type === 'supply-run'
+          ? objective.points.map((point) => ({
+              ...point,
+              event: {
+                type: 'supply-collected' as const,
+                pointId: point.id,
+              },
+              color: 0xe8c65a,
+            }))
+          : objective.type === 'route-choice'
+            ? objective.checkpoints.map((point) => ({
+                ...point,
+                event: {
+                  type: 'checkpoint-reached' as const,
+                  checkpointId: point.id,
+                },
+                color: 0x63c7da,
+              }))
+            : [];
+      for (const point of points) {
+        const marker = this.add
+          .circle(point.x, point.y, 18, point.color, 0.28)
+          .setStrokeStyle(3, point.color, 0.9)
+          .setDepth(1);
+        const zone = this.add.zone(point.x, point.y, 48, 48);
+        this.physics.add.existing(zone, true);
+        this.physics.add.overlap(this.player, zone, () => {
+          const accepted = this.applyObjectiveEvent(point.event);
+          if (!accepted) return;
+          marker.destroy();
+          zone.destroy();
+        });
+      }
+    }
+  }
+
+  private applyObjectiveEvent(event: MissionObjectiveEvent) {
+    const before = this.objectiveState.objectives
+      .map((objective) => objective.current)
+      .join(':');
+    this.objectiveState = applyMissionObjectiveEvent(
+      this.levelConfig.objectiveSet,
+      this.objectiveState,
+      event
+    );
+    const after = this.objectiveState.objectives
+      .map((objective) => objective.current)
+      .join(':');
+    if (before === after) return false;
+    logCombatEvent('objective_progressed', {
+      eventType: event.type,
+      objectiveComplete: String(this.objectiveState.complete),
+    });
+    this.emitState();
+    return true;
+  }
+
+  private syncWaveActivation() {
+    if (!this.enemies) return;
+    const activeIds = activeWaveEnemyIds(
+      this.levelConfig.objectiveSet,
+      this.objectiveState
+    );
+    if (activeIds === null) return;
+    const waveEnemyIds = new Set(
+      this.levelConfig.objectiveSet.objectives.flatMap((objective) =>
+        objective.type === 'defend-waves'
+          ? objective.waves.flatMap((wave) => wave.enemyIds)
+          : []
+      )
+    );
+    const activeWaveIds = new Set(activeIds);
+    for (const child of this.enemies.children) {
+      const enemy = child as Phaser.Physics.Arcade.Sprite;
+      const enemyId = enemy.getData('id') as string;
+      if (this.objectiveState.defeatedEnemyIds.includes(enemyId)) continue;
+      const shouldBeActive =
+        !waveEnemyIds.has(enemyId) || activeWaveIds.has(enemyId);
+      const turret = enemy.getData('turret') as Phaser.GameObjects.Image;
+      const healthBar = enemy.getData(
+        'healthBar'
+      ) as Phaser.GameObjects.Graphics;
+      if (shouldBeActive && !enemy.active) {
+        enemy.enableBody(
+          false,
+          enemy.getData('spawnX') as number,
+          enemy.getData('spawnY') as number,
+          true,
+          true
+        );
+        turret.setVisible(true);
+      } else if (!shouldBeActive && enemy.active) {
+        enemy.disableBody(true, true);
+        turret.setVisible(false);
+        healthBar.setVisible(false);
+      }
+    }
   }
 }

@@ -11,6 +11,7 @@ import { calculateRamDamage, isRamDamageReady } from './ram-collision.js';
 
 export interface RamResolution {
   enemyId: string;
+  enemyDestroyed: boolean;
   playerHealth: number;
 }
 
@@ -66,10 +67,11 @@ export function applyRamImpact(
     enemyId,
     relativeSpeed: Math.round(damage.relativeSpeed),
   });
-  if (enemyHealth === 0) {
+  const enemyDestroyed = enemyHealth === 0;
+  if (enemyDestroyed) {
     logCombatEvent('enemy_destroyed', { enemyId, source: 'ram' });
     destroyEnemyVisual(enemy);
   }
 
-  return { enemyId, playerHealth };
+  return { enemyId, enemyDestroyed, playerHealth };
 }

@@ -12,7 +12,7 @@
     "lint": "eslint src prisma",
     "typecheck": "prisma generate && tsc --noEmit && tsc -p tsconfig.seed.json --noEmit",
     "test": "vitest run",
-    "content:verify": "vitest run prisma/content/official-questions.test.ts",
+    "content:verify": "vitest run prisma/content/official-questions.test.ts && tsx prisma/seed.ts --validate-only",
     "build": "prisma generate && tsc -p tsconfig.build.json"
   },
   "dependencies": {

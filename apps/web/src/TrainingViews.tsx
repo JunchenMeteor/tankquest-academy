@@ -11,7 +11,11 @@ import { GameCanvas } from './game/GameCanvas.js';
 import { TankPreview } from './game/presentation/TankPreview.js';
 import type { RuntimeLevelConfig, RuntimeState } from './game/runtime/types.js';
 import { useI18n } from './i18n/I18nProvider.js';
-import { themes, type ThemeCode, useTheme } from './theme/ThemeProvider.js';
+import {
+  themes,
+  type ThemePreference,
+  useTheme,
+} from './theme/ThemeProvider.js';
 
 export function AppHud({
   active,
@@ -73,8 +77,9 @@ export function PreferenceControls() {
         <select
           aria-label={t('settings.theme')}
           value={theme}
-          onChange={(event) => setTheme(event.target.value as ThemeCode)}
+          onChange={(event) => setTheme(event.target.value as ThemePreference)}
         >
+          <option value="mission">{t('theme.mission')}</option>
           {themes.map((code) => (
             <option key={code} value={code}>
               {t(`theme.${code}`)}
@@ -127,6 +132,7 @@ export function MissionPicker({
             onClick={() => onSelectLevel(level.id)}
           >
             {contentName(level.code, t)} ·{' '}
+            {level.subject ? `${t(`subject.${level.subject}`)} · ` : ''}
             {t('picker.difficulty', { value: level.baseDifficulty })}
           </button>
         ))}
@@ -264,12 +270,18 @@ export function ActiveTraining({
         <section className="battle-objective" aria-live="polite">
           <p className="eyebrow">{t('battle.supplies')}</p>
           <h2>
-            {runtime.enemiesRemaining > 0
-              ? t('battle.remaining', { count: runtime.enemiesRemaining })
-              : t('battle.secured')}
+            {runtime.objectiveType === 'eliminate'
+              ? runtime.objectiveComplete
+                ? t('battle.secured')
+                : t('battle.remaining', { count: runtime.enemiesRemaining })
+              : t('battle.objectiveProgress', {
+                  objective: t(`objective.${runtime.objectiveType}`),
+                  current: runtime.objectiveCurrent,
+                  target: runtime.objectiveTarget,
+                })}
           </h2>
-          <p>{t('battle.objective')}</p>
-          {runtime.enemiesRemaining === 0 && (
+          <p>{t(`objective.hint.${runtime.objectiveType}`)}</p>
+          {runtime.objectiveComplete && (
             <button disabled={busy || !online} onClick={onContinue}>
               {t('action.complete')}
             </button>
@@ -283,7 +295,7 @@ export function ActiveTraining({
           feedback={feedback}
           questionCount={session.questions.length}
           questionIndex={questionIndex}
-          enemiesRemaining={runtime.enemiesRemaining}
+          objectiveComplete={runtime.objectiveComplete}
           onAnswer={onAnswer}
           onContinue={onContinue}
         />
@@ -297,7 +309,7 @@ function LearningConsole({
   busy,
   online,
   currentQuestion,
-  enemiesRemaining,
+  objectiveComplete,
   feedback,
   questionCount,
   questionIndex,
@@ -307,7 +319,7 @@ function LearningConsole({
   busy: boolean;
   online: boolean;
   currentQuestion: QuestionDto;
-  enemiesRemaining: number;
+  objectiveComplete: boolean;
   feedback: SubmitAnswerResponse | null;
   questionCount: number;
   questionIndex: number;
@@ -344,9 +356,9 @@ function LearningConsole({
           <button disabled={busy || !online} onClick={onContinue}>
             {questionIndex < questionCount - 1
               ? t('action.next')
-              : enemiesRemaining > 0
-                ? t('action.battle')
-                : t('action.complete')}
+              : objectiveComplete
+                ? t('action.complete')
+                : t('action.battle')}
           </button>
         </div>
       )}

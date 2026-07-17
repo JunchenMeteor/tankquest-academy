@@ -61,6 +61,24 @@ describe('PrismaGameSessionRepository', () => {
     );
   });
 
+  it('returns each published level subject in the catalog contract', async () => {
+    prisma.level.findMany.mockResolvedValue([
+      {
+        id: 'level_1',
+        code: 'addition-range',
+        titleKey: 'level.additionRange.title',
+        mode: 'child_learning',
+        subjectFocus: 'math',
+        baseDifficulty: 1,
+        configJson: { theme: 'training-base' },
+      },
+    ]);
+
+    await expect(repository.listLevels()).resolves.toMatchObject([
+      { code: 'addition-range', subject: 'math', baseDifficulty: 1 },
+    ]);
+  });
+
   it('loads only published localized content and avoids recent questions', async () => {
     prisma.child.findUnique.mockResolvedValue({
       ageGroup: 'child_6_8',
@@ -174,6 +192,7 @@ describe('PrismaGameSessionRepository', () => {
         code: 'addition-range',
         titleKey: 'level.additionRange.title',
         mode: 'child_learning',
+        subjectFocus: 'math',
         baseDifficulty: 1,
         configJson: {},
         questions: [{ question: levelQuestion }],
@@ -222,6 +241,7 @@ describe('PrismaGameSessionRepository', () => {
         code: 'addition-range',
         titleKey: 'level.additionRange.title',
         mode: 'child_learning',
+        subjectFocus: 'math',
         baseDifficulty: 1,
         configJson: {},
         questions: [{ question: legacyQuestion }],

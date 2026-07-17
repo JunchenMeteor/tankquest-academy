@@ -134,6 +134,7 @@ export const tankStatsSchema = z.object({
 export const enemyTankConfigSchema = z.object({
   id: identifierSchema,
   role: z.enum(enemyTankRoles),
+  elite: z.boolean().default(false),
   x: z.number().min(40).max(920),
   y: z.number().min(40).max(500),
   stats: tankStatsSchema,
@@ -154,12 +155,60 @@ export const levelEnemyConfigSchema = z.object({
 });
 
 const mapCoordinateSchema = z.number().min(30).max(930);
+const mapVerticalCoordinateSchema = z.number().min(30).max(510);
+const objectivePointSchema = z.object({
+  id: identifierSchema,
+  x: mapCoordinateSchema,
+  y: mapVerticalCoordinateSchema,
+});
+
+export const missionObjectiveSchema = z.discriminatedUnion('type', [
+  z.object({
+    id: identifierSchema,
+    type: z.literal('eliminate'),
+    targetCount: z.number().int().min(1).max(8),
+  }),
+  z.object({
+    id: identifierSchema,
+    type: z.literal('defend-waves'),
+    waves: z
+      .array(
+        z.object({
+          id: identifierSchema,
+          enemyIds: z.array(identifierSchema).min(1).max(8),
+        })
+      )
+      .min(2)
+      .max(4),
+  }),
+  z.object({
+    id: identifierSchema,
+    type: z.literal('supply-run'),
+    required: z.number().int().min(1).max(6),
+    points: z.array(objectivePointSchema).min(1).max(6),
+  }),
+  z.object({
+    id: identifierSchema,
+    type: z.literal('route-choice'),
+    checkpoints: z.array(objectivePointSchema).min(2).max(6),
+  }),
+  z.object({
+    id: identifierSchema,
+    type: z.literal('elite-hunt'),
+    targetEnemyIds: z.array(identifierSchema).min(1).max(3),
+  }),
+]);
+
+export const levelObjectiveSetSchema = z.object({
+  completion: z.literal('all'),
+  objectives: z.array(missionObjectiveSchema).min(1).max(3),
+});
 
 export const levelMapConfigSchema = z.object({
   style: z.enum(trainingMapStyles),
   playerSpawn: z.object({
     x: mapCoordinateSchema,
-    y: z.number().min(30).max(510),
+    y: mapVerticalCoordinateSchema,
   }),
   obstacles: z
     .array(
@@ -173,9 +222,113 @@ export const levelMapConfigSchema = z.object({
     .max(24),
 });
 
-export const levelRuntimeContentSchema = levelEnemyConfigSchema.extend({
-  map: levelMapConfigSchema,
-});
+export const levelRuntimeContentSchema = levelEnemyConfigSchema
+  .extend({
+    theme: z
+      .enum(['training-base', 'forest-camp', 'snow-field'])
+      .default('training-base'),
+    map: levelMapConfigSchema,
+    objectiveSet: levelObjectiveSetSchema,
+  })
+  .superRefine((content, context) => {
+    const enemyIds = new Set(content.enemyTanks.map((enemy) => enemy.id));
+    const eliteIds = new Set(
+      content.enemyTanks.filter((enemy) => enemy.elite).map((enemy) => enemy.id)
+    );
+    const objectiveIds = new Set<string>();
+    for (const [
+      objectiveIndex,
+      objective,
+    ] of content.objectiveSet.objectives.entries()) {
+      if (objectiveIds.has(objective.id)) {
+        context.addIssue({
+          code: 'custom',
+          message: 'Objective IDs must be unique',
+          path: ['objectiveSet', 'objectives', objectiveIndex, 'id'],
+        });
+      }
+      objectiveIds.add(objective.id);
+      if (
+        objective.type === 'eliminate' &&
+        objective.targetCount > enemyIds.size
+      ) {
+        context.addIssue({
+          code: 'custom',
+          message: 'Eliminate target exceeds enemy count',
+          path: ['objectiveSet', 'objectives', objectiveIndex, 'targetCount'],
+        });
+      }
+      if (
+        objective.type === 'supply-run' &&
+        objective.required > objective.points.length
+      ) {
+        context.addIssue({
+          code: 'custom',
+          message: 'Supply requirement exceeds available points',
+          path: ['objectiveSet', 'objectives', objectiveIndex, 'required'],
+        });
+      }
+      if (objective.type === 'defend-waves') {
+        const waveEnemyIds = objective.waves.flatMap((wave) => wave.enemyIds);
+        if (
+          new Set(waveEnemyIds).size !== waveEnemyIds.length ||
+          waveEnemyIds.some((id) => !enemyIds.has(id))
+        ) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Wave enemies must exist and appear once',
+            path: ['objectiveSet', 'objectives', objectiveIndex, 'waves'],
+          });
+        }
+      }
+      if (
+        objective.type === 'elite-hunt' &&
+        objective.targetEnemyIds.some((id) => !eliteIds.has(id))
+      ) {
+        context.addIssue({
+          code: 'custom',
+          message: 'Elite targets must reference elite enemies',
+          path: [
+            'objectiveSet',
+            'objectives',
+            objectiveIndex,
+            'targetEnemyIds',
+          ],
+        });
+      }
+      if (
+        objective.type === 'supply-run' ||
+        objective.type === 'route-choice'
+      ) {
+        const points =
+          objective.type === 'supply-run'
+            ? objective.points
+            : objective.checkpoints;
+        if (new Set(points.map((point) => point.id)).size !== points.length) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Objective point IDs must be unique',
+            path: ['objectiveSet', 'objectives', objectiveIndex],
+          });
+        }
+        if (
+          points.some((point) =>
+            content.map.obstacles.some(
+              (obstacle) =>
+                Math.abs(point.x - obstacle.x) < obstacle.width / 2 &&
+                Math.abs(point.y - obstacle.y) < obstacle.height / 2
+            )
+          )
+        ) {
+          context.addIssue({
+            code: 'custom',
+            message: 'Objective points must not be inside solid obstacles',
+            path: ['objectiveSet', 'objectives', objectiveIndex],
+          });
+        }
+      }
+    }
+  });
 
 export const startSessionRequestSchema = z.object({
   childId: identifierSchema,

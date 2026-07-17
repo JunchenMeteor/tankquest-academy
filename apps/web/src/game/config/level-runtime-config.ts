@@ -1,6 +1,7 @@
 import {
   levelEnemyConfigSchema,
   levelMapConfigSchema,
+  levelObjectiveSetSchema,
   type EnemyTankConfigDto,
   type LevelDto,
   type TankDto,
@@ -19,11 +20,21 @@ export function levelRuntimeConfig(
   tank?: TankDto,
   locale: RuntimeLevelConfig['locale'] = 'en',
   visualResources?: AssetBundle,
-  theme: RuntimeLevelConfig['theme'] = 'training-base'
+  theme?: RuntimeLevelConfig['theme']
 ) {
   const parsedEnemies = levelEnemyConfigSchema.safeParse(level.config);
   const parsedMap = levelMapConfigSchema.safeParse(level.config.map);
+  const parsedObjectives = levelObjectiveSetSchema.safeParse(
+    level.config.objectiveSet
+  );
   const configuredCount = level.config.enemyCount;
+  const configuredTheme = level.config.theme;
+  const levelTheme =
+    configuredTheme === 'training-base' ||
+    configuredTheme === 'forest-camp' ||
+    configuredTheme === 'snow-field'
+      ? configuredTheme
+      : localTrainingConfig.theme;
   const enemyCount =
     typeof configuredCount === 'number' && Number.isInteger(configuredCount)
       ? Math.min(
@@ -35,7 +46,7 @@ export function levelRuntimeConfig(
   return {
     ...localTrainingConfig,
     locale,
-    theme,
+    theme: theme ?? levelTheme,
     ...(visualResources ? { visualResources } : {}),
     mapStyle: parsedMap.success
       ? parsedMap.data.style
@@ -61,6 +72,20 @@ export function levelRuntimeConfig(
     obstacles: parsedMap.success
       ? parsedMap.data.obstacles
       : localTrainingConfig.obstacles,
+    objectiveSet: parsedObjectives.success
+      ? parsedObjectives.data
+      : {
+          completion: 'all' as const,
+          objectives: [
+            {
+              id: 'fallback_eliminate',
+              type: 'eliminate' as const,
+              targetCount: parsedEnemies.success
+                ? parsedEnemies.data.enemyTanks.length
+                : enemyCount,
+            },
+          ],
+        },
   };
 }
 
@@ -75,6 +100,7 @@ function toRuntimeEnemy(enemy: EnemyTankConfigDto) {
   return {
     id: enemy.id,
     role: enemy.role,
+    elite: enemy.elite ?? false,
     x: enemy.x,
     y: enemy.y,
     maxHealth: combat.maxHealth,

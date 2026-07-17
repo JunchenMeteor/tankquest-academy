@@ -51,6 +51,77 @@ describe('levelRuntimeConfig', () => {
     ).toBe('snow-field');
   });
 
+  it('uses validated mission content and its theme unless manually overridden', () => {
+    const themedLevel: LevelDto = {
+      ...level,
+      config: {
+        theme: 'snow-field',
+        enemyTanks: [
+          {
+            id: 'snow_elite',
+            role: 'heavy',
+            elite: true,
+            x: 760,
+            y: 270,
+            stats: {
+              firepower: 4,
+              mobility: 2,
+              armor: 5,
+              stealth: 1,
+              vision: 2,
+            },
+            ai: {
+              detectionRange: 300,
+              attackRange: 240,
+              fireCooldownMs: 1500,
+              speedMultiplier: 0.35,
+            },
+          },
+        ],
+        map: {
+          style: 'gate',
+          playerSpawn: { x: 110, y: 270 },
+          obstacles: [],
+        },
+        objectiveSet: {
+          completion: 'all',
+          objectives: [
+            {
+              id: 'hunt_elite',
+              type: 'elite-hunt',
+              targetEnemyIds: ['snow_elite'],
+            },
+          ],
+        },
+      },
+    };
+
+    expect(levelRuntimeConfig(themedLevel)).toMatchObject({
+      theme: 'snow-field',
+      objectiveSet: {
+        objectives: [{ id: 'hunt_elite', type: 'elite-hunt' }],
+      },
+    });
+    expect(
+      levelRuntimeConfig(themedLevel, undefined, 'en', undefined, 'forest-camp')
+        .theme
+    ).toBe('forest-camp');
+
+    const legacyConfig = Object.fromEntries(
+      Object.entries(themedLevel.config).filter(
+        ([key]) => key !== 'objectiveSet'
+      )
+    );
+    expect(
+      levelRuntimeConfig({ ...themedLevel, config: legacyConfig })
+    ).toMatchObject({
+      theme: 'snow-field',
+      objectiveSet: {
+        objectives: [{ type: 'eliminate', targetCount: 1 }],
+      },
+    });
+  });
+
   it('caps content values to the available local prototypes', () => {
     expect(
       levelRuntimeConfig({ ...level, config: { enemyCount: 99 } }).enemies
