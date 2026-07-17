@@ -138,7 +138,7 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
           childId: request.childId,
           status: { in: ['active', 'finished'] },
         },
-        orderBy: { startedAt: 'desc' },
+        orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
         take: 2,
         include: { questions: { select: { questionId: true } } },
       }),
