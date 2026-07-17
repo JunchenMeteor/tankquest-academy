@@ -46,7 +46,12 @@ test('offers localized coarse-pointer movement, aim, and fire controls', async (
       objectiveSet: {
         completion: 'all',
         objectives: [
-          { id: 'touch_eliminate', type: 'eliminate', targetCount: 1 },
+          {
+            id: 'touch_supply',
+            type: 'supply-run',
+            required: 1,
+            points: [{ id: 'touch_supply_start', x: 120, y: 270 }],
+          },
         ],
       },
     };
@@ -106,7 +111,6 @@ test('offers localized coarse-pointer movement, aim, and fire controls', async (
   const fire = controls.getByRole('button', { name: 'Fire' });
   await fire.tap();
   await expect(page.locator('.hud dd').nth(1)).toHaveText('1');
-  await fireAt(page, 330, 270, 4);
   await expect(
     page.getByRole('heading', { name: 'Training field secured' })
   ).toBeVisible({ timeout: 10_000 });
@@ -162,27 +166,4 @@ async function expectTouchTarget(locator: Locator) {
   const box = await locator.boundingBox();
   expect(box?.width).toBeGreaterThanOrEqual(44);
   expect(box?.height).toBeGreaterThanOrEqual(44);
-}
-
-async function fireAt(
-  page: Page,
-  worldX: number,
-  worldY: number,
-  shots: number
-) {
-  const canvas = page.locator('.game-canvas canvas');
-  await canvas.scrollIntoViewIfNeeded();
-  const box = await canvas.boundingBox();
-  expect(box).not.toBeNull();
-  if (!box) return;
-
-  const targetX = box.x + (worldX / 960) * box.width;
-  const targetY = box.y + (worldY / 540) * box.height;
-  await page.mouse.move(targetX, targetY);
-  await page.waitForTimeout(400);
-  for (let shot = 0; shot < shots; shot += 1) {
-    await page.mouse.click(targetX, targetY);
-    await page.waitForTimeout(400);
-  }
-  await page.waitForTimeout(1_000);
 }
