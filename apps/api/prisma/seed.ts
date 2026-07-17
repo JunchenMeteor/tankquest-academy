@@ -12,6 +12,10 @@ const enemyPresets = {
       attackRange: 205,
       fireCooldownMs: 1900,
       speedMultiplier: 0.42,
+      alertMemoryMs: 6000,
+      nearMissRadius: 64,
+      allyAlertRadius: 240,
+      searchLeashRange: 560,
     },
   },
   medium: {
@@ -21,6 +25,10 @@ const enemyPresets = {
       attackRange: 230,
       fireCooldownMs: 1650,
       speedMultiplier: 0.38,
+      alertMemoryMs: 6500,
+      nearMissRadius: 64,
+      allyAlertRadius: 260,
+      searchLeashRange: 560,
     },
   },
   heavy: {
@@ -30,6 +38,10 @@ const enemyPresets = {
       attackRange: 250,
       fireCooldownMs: 1450,
       speedMultiplier: 0.32,
+      alertMemoryMs: 7000,
+      nearMissRadius: 72,
+      allyAlertRadius: 280,
+      searchLeashRange: 520,
     },
   },
 } as const;

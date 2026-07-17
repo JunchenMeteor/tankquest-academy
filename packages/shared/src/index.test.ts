@@ -70,7 +70,41 @@ describe('shared contracts', () => {
   });
 
   it('validates backend-owned enemy tank compositions', () => {
-    expect(
+    const parsed = levelEnemyConfigSchema.parse({
+      enemyTanks: [
+        {
+          id: 'scout_1',
+          role: 'scout',
+          x: 720,
+          y: 150,
+          stats: {
+            firepower: 2,
+            mobility: 4,
+            armor: 1,
+            stealth: 4,
+            vision: 3,
+          },
+          ai: {
+            detectionRange: 300,
+            attackRange: 210,
+            fireCooldownMs: 1800,
+            speedMultiplier: 0.4,
+          },
+        },
+      ],
+    });
+
+    expect(parsed.enemyTanks).toHaveLength(1);
+    expect(parsed.enemyTanks[0]?.ai).toMatchObject({
+      alertMemoryMs: 6000,
+      nearMissRadius: 64,
+      allyAlertRadius: 240,
+      searchLeashRange: 560,
+    });
+  });
+
+  it('rejects unsafe enemy awareness ranges', () => {
+    expect(() =>
       levelEnemyConfigSchema.parse({
         enemyTanks: [
           {
@@ -90,11 +124,12 @@ describe('shared contracts', () => {
               attackRange: 210,
               fireCooldownMs: 1800,
               speedMultiplier: 0.4,
+              alertMemoryMs: 500,
             },
           },
         ],
-      }).enemyTanks
-    ).toHaveLength(1);
+      })
+    ).toThrow();
   });
 
   it('validates backend-owned battlefield geometry', () => {

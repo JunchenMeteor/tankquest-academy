@@ -32,6 +32,10 @@ export const localTrainingConfig: RuntimeLevelConfig = {
       projectilePenetration: 57,
       projectileSpeed: 320,
       fireCooldownMs: 1900,
+      alertMemoryMs: 6000,
+      nearMissRadius: 64,
+      allyAlertRadius: 240,
+      searchLeashRange: 560,
     },
     {
       id: 'robot_bravo',
@@ -49,6 +53,10 @@ export const localTrainingConfig: RuntimeLevelConfig = {
       projectilePenetration: 67,
       projectileSpeed: 340,
       fireCooldownMs: 1700,
+      alertMemoryMs: 6500,
+      nearMissRadius: 64,
+      allyAlertRadius: 260,
+      searchLeashRange: 560,
     },
   ],
   obstacles: [
