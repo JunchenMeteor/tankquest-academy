@@ -102,31 +102,29 @@ test('offers localized coarse-pointer movement, aim, and fire controls', async (
     await answerButton.tap();
     await expect(page.locator('.feedback.good')).toBeVisible();
     const continueButton = page.getByRole('button', {
-      name: index === 2 ? 'Return to battle' : 'Next challenge',
+      name: index === 2 ? 'Complete mission' : 'Next challenge',
     });
+    if (index === 2) {
+      const fire = controls.getByRole('button', { name: 'Fire' });
+      await fire.tap();
+      await expect(page.locator('.hud dd').nth(1)).toHaveText('1');
+      await controls
+        .getByRole('button', { name: 'Drive forward' })
+        .click({ delay: 120 });
+      await controls
+        .getByRole('button', { name: 'Reverse' })
+        .click({ delay: 120 });
+      await controls
+        .getByRole('button', { name: 'Aim left' })
+        .click({ delay: 120 });
+      await controls
+        .getByRole('button', { name: 'Aim right' })
+        .click({ delay: 120 });
+    }
     await expectTouchTarget(continueButton);
     await continueButton.tap();
   }
 
-  const fire = controls.getByRole('button', { name: 'Fire' });
-  await fire.tap();
-  await expect(page.locator('.hud dd').nth(1)).toHaveText('1');
-  await expect(
-    page.getByRole('heading', { name: 'Training field secured' })
-  ).toBeVisible({ timeout: 10_000 });
-  await controls
-    .getByRole('button', { name: 'Drive forward' })
-    .click({ delay: 120 });
-  await controls.getByRole('button', { name: 'Reverse' }).click({ delay: 120 });
-  await controls
-    .getByRole('button', { name: 'Aim left' })
-    .click({ delay: 120 });
-  await controls
-    .getByRole('button', { name: 'Aim right' })
-    .click({ delay: 120 });
-  const complete = page.getByRole('button', { name: 'Complete mission' });
-  await expectTouchTarget(complete);
-  await complete.tap();
   await expect(
     page.getByRole('heading', { name: 'Mission complete' })
   ).toBeVisible();
