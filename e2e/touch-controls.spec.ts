@@ -27,7 +27,7 @@ test('offers localized coarse-pointer movement, aim, and fire controls', async (
       enemyTanks: [
         {
           ...enemy,
-          x: 430,
+          x: 330,
           y: 270,
           stats: { ...enemy.stats, armor: 1, mobility: 1 },
           ai: {
@@ -81,17 +81,6 @@ test('offers localized coarse-pointer movement, aim, and fire controls', async (
   }
 
   await expect(page.locator('.game-canvas canvas')).toBeVisible();
-  await controls
-    .getByRole('button', { name: 'Drive forward' })
-    .click({ delay: 120 });
-  await controls.getByRole('button', { name: 'Reverse' }).click({ delay: 120 });
-  await controls
-    .getByRole('button', { name: 'Aim left' })
-    .click({ delay: 120 });
-  await controls
-    .getByRole('button', { name: 'Aim right' })
-    .click({ delay: 120 });
-
   for (let index = 0; index < 3; index += 1) {
     const prompt = await page.locator('.learning-console h2').textContent();
     const question = officialQuestionSeeds.find(
@@ -123,6 +112,16 @@ test('offers localized coarse-pointer movement, aim, and fire controls', async (
   await expect(
     page.getByRole('heading', { name: 'Training field secured' })
   ).toBeVisible({ timeout: 10_000 });
+  await controls
+    .getByRole('button', { name: 'Drive forward' })
+    .click({ delay: 120 });
+  await controls.getByRole('button', { name: 'Reverse' }).click({ delay: 120 });
+  await controls
+    .getByRole('button', { name: 'Aim left' })
+    .click({ delay: 120 });
+  await controls
+    .getByRole('button', { name: 'Aim right' })
+    .click({ delay: 120 });
   const complete = page.getByRole('button', { name: 'Complete mission' });
   await expectTouchTarget(complete);
   await complete.tap();
