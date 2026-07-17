@@ -91,6 +91,10 @@ describe('levelRuntimeConfig', () => {
       maxHealth: 200,
       mass: 140,
       fireCooldownMs: 1400,
+      alertMemoryMs: 6000,
+      nearMissRadius: 64,
+      allyAlertRadius: 240,
+      searchLeashRange: 560,
     });
     expect(config.enemies[0]?.projectileDamage).toBeGreaterThan(0);
     expect(config.enemies[0]?.projectilePenetration).toBeGreaterThan(0);

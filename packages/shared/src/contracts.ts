@@ -95,6 +95,10 @@ export interface EnemyTankConfigDto {
     attackRange: number;
     fireCooldownMs: number;
     speedMultiplier: number;
+    alertMemoryMs: number;
+    nearMissRadius: number;
+    allyAlertRadius: number;
+    searchLeashRange: number;
   };
 }
 

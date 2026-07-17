@@ -141,6 +141,10 @@ export const enemyTankConfigSchema = z.object({
     attackRange: z.number().min(80).max(500),
     fireCooldownMs: z.number().int().min(500).max(5000),
     speedMultiplier: z.number().min(0.1).max(1),
+    alertMemoryMs: z.number().int().min(1000).max(15000).default(6000),
+    nearMissRadius: z.number().min(16).max(160).default(64),
+    allyAlertRadius: z.number().min(50).max(600).default(240),
+    searchLeashRange: z.number().min(100).max(900).default(560),
   }),
 });
 

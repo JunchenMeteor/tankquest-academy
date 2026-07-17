@@ -88,5 +88,9 @@ function toRuntimeEnemy(enemy: EnemyTankConfigDto) {
     projectilePenetration: Math.round(combat.projectilePenetration * 0.82),
     projectileSpeed: Math.round(combat.projectileSpeed * 0.75),
     fireCooldownMs: enemy.ai.fireCooldownMs,
+    alertMemoryMs: enemy.ai.alertMemoryMs,
+    nearMissRadius: enemy.ai.nearMissRadius,
+    allyAlertRadius: enemy.ai.allyAlertRadius,
+    searchLeashRange: enemy.ai.searchLeashRange,
   };
 }

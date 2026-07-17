@@ -29,9 +29,14 @@ import {
 } from '../presentation/tank-visuals.js';
 import { logCombatEvent } from '../systems/combat-log.js';
 import {
-  effectiveEnemyDetectionRange,
-  selectEnemyAction,
-} from '../systems/enemy-ai.js';
+  alertEnemiesAlongProjectilePath,
+  alertEnemiesNearPlayerProjectiles,
+  alertEnemySquad,
+  createEnemyAwarenessData,
+  projectileSourcePosition,
+  resolveEnemyAwarenessDecision,
+} from '../systems/enemy-awareness-scene.js';
+import { shouldContinueSearch } from '../systems/enemy-ai.js';
 import { fireEnemyProjectile } from '../systems/enemy-fire.js';
 import { applyProjectileImpact } from '../systems/projectile-combat.js';
 import { applyRamImpact } from '../systems/ram-combat.js';
@@ -153,6 +158,7 @@ export class TrainingScene extends Phaser.Scene {
         projectileSpeed: enemy.projectileSpeed,
         fireCooldownMs: enemy.fireCooldownMs,
         lastShotAt: -enemy.fireCooldownMs,
+        ...createEnemyAwarenessData(enemy),
         impactVelocityX: 0,
         impactVelocityY: 0,
         healthBar: this.add.graphics().setDepth(3),
@@ -175,9 +181,15 @@ export class TrainingScene extends Phaser.Scene {
     this.physics.add.collider(this.player, this.enemies, (_player, enemy) =>
       this.handleRam(enemy as Phaser.Physics.Arcade.Sprite)
     );
-    this.physics.add.collider(this.projectiles, obstacles, (projectile) =>
-      projectile.destroy()
-    );
+    this.physics.add.collider(this.projectiles, obstacles, (projectile) => {
+      const playerProjectile = projectile as Phaser.Physics.Arcade.Sprite;
+      alertEnemiesAlongProjectilePath(
+        playerProjectile,
+        this.enemies,
+        this.time.now
+      );
+      playerProjectile.destroy();
+    });
     this.physics.add.collider(this.enemyProjectiles, obstacles, (projectile) =>
       projectile.destroy()
     );
@@ -298,6 +310,7 @@ export class TrainingScene extends Phaser.Scene {
     ) {
       this.fire();
     }
+    alertEnemiesNearPlayerProjectiles(this.projectiles, this.enemies, time);
     this.updateEnemies(time);
   }
 
@@ -317,6 +330,11 @@ export class TrainingScene extends Phaser.Scene {
     projectile.setActive(true).setVisible(true).setData({
       damage: this.levelConfig.player.projectileDamage,
       penetration: this.levelConfig.player.projectilePenetration,
+      sourceX: this.turret.x,
+      sourceY: this.turret.y,
+      previousX: this.turret.x,
+      previousY: this.turret.y,
+      alertedEnemyIds: [],
     });
     this.physics.velocityFromRotation(
       this.turret.rotation,
@@ -349,26 +367,59 @@ export class TrainingScene extends Phaser.Scene {
         this.player.x,
         this.player.y
       );
-      const detectionRange = effectiveEnemyDetectionRange(
-        enemy.getData('detectionRange') as number,
-        this.levelConfig.player.visibilityMultiplier
-      );
-      const action = selectEnemyAction(
-        distance,
-        detectionRange,
-        enemy.getData('attackRange') as number
-      );
+      const { action, targetPosition, homePosition } =
+        resolveEnemyAwarenessDecision(
+          enemy,
+          time,
+          { x: this.player.x, y: this.player.y },
+          this.levelConfig.player.visibilityMultiplier
+        );
       const angle = Phaser.Math.Angle.Between(
         enemy.x,
         enemy.y,
-        this.player.x,
-        this.player.y
+        targetPosition.x,
+        targetPosition.y
       );
 
       if (action === 'chase') {
         this.physics.moveToObject(
           enemy,
           this.player,
+          enemy.getData('speed') as number
+        );
+        enemy.rotation = angle;
+      } else if (action === 'search') {
+        const distanceToLastKnownPosition = Phaser.Math.Distance.Between(
+          enemy.x,
+          enemy.y,
+          targetPosition.x,
+          targetPosition.y
+        );
+        if (shouldContinueSearch(distanceToLastKnownPosition)) {
+          this.physics.moveTo(
+            enemy,
+            targetPosition.x,
+            targetPosition.y,
+            enemy.getData('speed') as number
+          );
+          enemy.rotation = angle;
+        } else {
+          enemy.setVelocity(0, 0);
+        }
+      } else if (
+        shouldContinueSearch(
+          Phaser.Math.Distance.Between(
+            enemy.x,
+            enemy.y,
+            homePosition.x,
+            homePosition.y
+          )
+        )
+      ) {
+        this.physics.moveTo(
+          enemy,
+          homePosition.x,
+          homePosition.y,
           enemy.getData('speed') as number
         );
         enemy.rotation = angle;
@@ -403,6 +454,7 @@ export class TrainingScene extends Phaser.Scene {
     enemy: Phaser.Physics.Arcade.Sprite
   ) {
     const enemyId = enemy.getData('id') as string;
+    const sourcePosition = projectileSourcePosition(projectile, this.player);
     const resolution = applyProjectileImpact(
       this,
       projectile,
@@ -416,6 +468,13 @@ export class TrainingScene extends Phaser.Scene {
       this.levelConfig.locale
     );
     if (!resolution) return;
+    alertEnemySquad(
+      this.enemies,
+      enemy,
+      this.time.now,
+      sourcePosition,
+      'direct_hit'
+    );
     enemy.setData('health', resolution.health);
 
     if (resolution.health === 0) {

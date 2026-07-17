@@ -46,6 +46,10 @@ export interface EnemyRuntimeConfig {
   projectilePenetration: number;
   projectileSpeed: number;
   fireCooldownMs: number;
+  alertMemoryMs: number;
+  nearMissRadius: number;
+  allyAlertRadius: number;
+  searchLeashRange: number;
 }
 
 export interface ObstacleRuntimeConfig {
