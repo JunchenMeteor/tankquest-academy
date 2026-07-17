@@ -110,7 +110,16 @@ test('completes the authoritative learning and upgrade journey', async ({
   await expect(page.getByText('Range map · 2 scouts')).toBeVisible();
   await expect(page.locator('main[data-phase="ready"]')).toBeVisible();
   await expect(page.locator('.selection-heading')).toHaveCount(3);
+  const firstSessionResponse = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/game-sessions') &&
+      response.request().method() === 'POST'
+  );
   await startButton.click();
+  const firstSession = (await (
+    await firstSessionResponse
+  ).json()) as ApiResponse<StartSessionResponse>;
+  expect(firstSession.data?.sessionId).toBeTruthy();
   await expect(page.locator('.mission-status')).toContainText(
     /Addition range · Firepower [3-5]/
   );
@@ -206,13 +215,22 @@ test('completes the authoritative learning and upgrade journey', async ({
   await expect(page.locator('.upgrade-deltas')).toContainText('→');
   await expect(page.locator('.upgrade-deltas')).toContainText('Shell');
   await expect(page.locator('.upgrade-deltas')).toContainText('Reload');
-  await page
-    .getByRole('button', { name: 'Use upgrade in another mission' })
-    .click();
-  await expect(
-    page.getByRole('heading', { name: 'Choose a training mission' })
-  ).toBeVisible();
-  await expect(page.getByRole('link', { name: /parent/i })).toHaveCount(0);
+  const replaySessionResponse = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/game-sessions') &&
+      response.request().method() === 'POST'
+  );
+  await page.getByRole('button', { name: 'Replay mission' }).click();
+  const replaySession = (await (
+    await replaySessionResponse
+  ).json()) as ApiResponse<StartSessionResponse>;
+  expect(replaySession.data?.sessionId).toBeTruthy();
+  expect(replaySession.data?.sessionId).not.toBe(firstSession.data?.sessionId);
+  await expect(page.locator('main[data-phase="active"]')).toBeVisible();
+  await expect(page.locator('.game-canvas canvas')).toBeVisible();
+  await expect(page.locator('.mission-status')).toContainText(
+    /Firepower [4-5]/
+  );
   await page.reload();
   await page.getByRole('button', { name: 'Start training' }).click();
   await expect(page.locator('.mission-status')).toContainText(
@@ -250,6 +268,45 @@ test('completes the authoritative learning and upgrade journey', async ({
     page.getByRole('heading', { name: '学习教练摘要' })
   ).toBeVisible();
   expect(consoleErrors).toEqual([]);
+});
+
+test('allocates distinct question groups across three consecutive sessions', async ({
+  request,
+}) => {
+  const levels = (await (
+    await request.get('http://127.0.0.1:3000/api/levels')
+  ).json()) as ApiResponse<LevelDto[]>;
+  const tanks = (await (
+    await request.get('http://127.0.0.1:3000/api/children/child_demo/tanks')
+  ).json()) as ApiResponse<OwnedTankDto[]>;
+  const level = levels.data?.find((item) => item.code === 'addition-range');
+  const tank = tanks.data?.[0];
+  expect(level).toBeTruthy();
+  expect(tank).toBeTruthy();
+  if (!level || !tank) return;
+
+  const groups: string[][] = [];
+  for (let session = 0; session < 3; session += 1) {
+    const response = await request.post(
+      'http://127.0.0.1:3000/api/game-sessions',
+      {
+        data: {
+          childId: 'child_demo',
+          levelId: level.id,
+          tankId: tank.id,
+        },
+      }
+    );
+    const payload =
+      (await response.json()) as ApiResponse<StartSessionResponse>;
+    expect(response.ok(), JSON.stringify(payload)).toBe(true);
+    const questionIds = payload.data?.questions.map((question) => question.id);
+    expect(questionIds).toHaveLength(3);
+    expect(new Set(questionIds).size).toBe(3);
+    groups.push(questionIds ?? []);
+  }
+
+  expect(new Set(groups.flat()).size).toBe(9);
 });
 
 test('continues combat after repeated enemy projectile impacts', async ({
@@ -318,7 +375,7 @@ test('continues combat after repeated enemy projectile impacts', async ({
   expect(pageErrors).toEqual([]);
 });
 
-test('keeps the full journey usable when experience assets fail', async ({
+test('keeps combat feedback usable when experience assets fail', async ({
   page,
 }) => {
   const pageErrors: string[] = [];
@@ -331,8 +388,42 @@ test('keeps the full journey usable when experience assets fail', async ({
   await page.getByRole('button', { name: 'Start training' }).click();
   await expect(page.locator('.game-canvas canvas')).toBeVisible();
   await expect(page.locator('.learning-console')).toBeVisible();
-  await fireAt(page, 720, 145, 1);
-  await expect(page.locator('.game-canvas canvas')).toBeVisible();
+  for (let index = 0; index < 3; index += 1) {
+    const prompt = await page.locator('.learning-console h2').textContent();
+    const answer = prompt ? correctAnswerForPrompt(prompt) : undefined;
+    expect(answer, `known seed answer for ${prompt}`).toBeTruthy();
+    if (!answer) throw new Error(`Missing answer for ${prompt}`);
+    await page.getByRole('button', { name: answer, exact: true }).click();
+    await page
+      .getByRole('button', {
+        name: index === 2 ? 'Return to battle' : 'Next challenge',
+      })
+      .click();
+  }
+  await fireAt(page, 720, 145, 4);
+  await fireAt(page, 790, 390, 4);
+  await expect(
+    page.getByRole('heading', { name: 'Training field secured' })
+  ).toBeVisible({ timeout: 10_000 });
+  const feedbackCues = await page.evaluate(() => {
+    const target = globalThis as typeof globalThis & {
+      __TANKQUEST_COMBAT_LOGS__?: Array<{
+        event: string;
+        details: Record<string, number | string>;
+      }>;
+    };
+    return (target.__TANKQUEST_COMBAT_LOGS__ ?? [])
+      .filter((entry) => entry.event === 'feedback_cue')
+      .map((entry) => entry.details.cue);
+  });
+  expect(feedbackCues).toContain('fire');
+  await page.getByRole('button', { name: 'Complete mission' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Mission complete' })
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Replay mission' })
+  ).toBeVisible();
   expect(pageErrors).toEqual([]);
 });
 

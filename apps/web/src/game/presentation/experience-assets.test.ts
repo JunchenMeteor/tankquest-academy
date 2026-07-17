@@ -61,4 +61,27 @@ describe('experience asset preparation', () => {
     expect(assets.audio).toEqual([]);
     expect(() => assets.release()).not.toThrow();
   });
+
+  it('falls back safely when the browser rejects object URL creation', () => {
+    const revoke = vi.fn();
+    const assets = prepareExperienceAssets(
+      bundle([
+        'asset_training_base_ground_v2',
+        'asset_cannon_fire_v1',
+        'asset_training_base_ambience_v1',
+      ]),
+      'training-base',
+      {
+        create: vi.fn(() => {
+          throw new Error('object URLs unavailable');
+        }),
+        revoke,
+      }
+    );
+
+    expect(assets.groundTextureUrl).toBeUndefined();
+    expect(assets.audio).toEqual([]);
+    expect(() => assets.release()).not.toThrow();
+    expect(revoke).not.toHaveBeenCalled();
+  });
 });

@@ -38,6 +38,7 @@
     "lint": "eslint playwright.config.ts e2e && npm run lint --workspaces --if-present && npm run ai:lint",
     "typecheck": "tsc -p tsconfig.e2e.json --noEmit && npm run typecheck --workspaces --if-present && npm run ai:typecheck",
     "test": "npm run ai-wheelhouse:verify && npm run desktop-runtime:verify && npm run release-version:verify && npm run assets:test && npm run build --workspace @tankquest/shared && npm run test --workspaces --if-present && npm run ai:test",
+    "product-experience:verify": "node scripts/verify-product-experience.mjs",
     "release-version:verify": "node scripts/release-manager.mjs verify-version",
     "test:e2e": "playwright test",
     "build": "npm run build --workspace @tankquest/shared && npm run build --workspace @tankquest/api && npm run build --workspace @tankquest/web && npm run performance:check"
