@@ -6,6 +6,7 @@ import {
   destroyEnemyVisual,
   drawEnemyHealth,
 } from '../presentation/training-visuals.js';
+import { TrainingExperience } from '../presentation/training-experience.js';
 import { resolveScenePalette } from '../presentation/map-visual-definition.js';
 import {
   applyTankDepth,
@@ -72,6 +73,7 @@ export class TrainingScene extends Phaser.Scene {
   private playerDestroyed = false;
   private readonly lastRamAt = new Map<string, number>();
   private objectiveState: MissionObjectiveState;
+  private readonly experience: TrainingExperience;
 
   constructor(
     private readonly levelConfig: RuntimeLevelConfig,
@@ -81,9 +83,15 @@ export class TrainingScene extends Phaser.Scene {
     super('training');
     this.playerHealth = levelConfig.player.maxHealth;
     this.objectiveState = createMissionObjectiveState(levelConfig.objectiveSet);
+    this.experience = new TrainingExperience(this, levelConfig);
+  }
+
+  preload() {
+    this.experience.preload();
   }
 
   create() {
+    this.experience.create();
     createTrainingTextures(this);
     createTankVisualTextures(this, this.levelConfig);
     this.physics.world.setBounds(
@@ -102,7 +110,8 @@ export class TrainingScene extends Phaser.Scene {
       this.levelConfig.width,
       this.levelConfig.height,
       this.levelConfig.mapStyle,
-      palette
+      palette,
+      this.experience.groundTextureKey()
     );
 
     const obstacles = this.physics.add.staticGroup();
@@ -255,9 +264,10 @@ export class TrainingScene extends Phaser.Scene {
     this.input.on('pointerupoutside', () =>
       this.gameInput.setCommand('fire', false, 'pointer')
     );
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () =>
-      this.gameInput.resetAll()
-    );
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.gameInput.resetAll();
+      this.experience.shutdown();
+    });
     logCombatEvent('scene_started', {
       enemyCount: this.levelConfig.enemies.length,
       mapStyle: this.levelConfig.mapStyle,
@@ -367,6 +377,22 @@ export class TrainingScene extends Phaser.Scene {
     });
     this.lastShotAt = now;
     this.shotsFired += 1;
+    this.experience.fire(
+      this.turret.x,
+      this.turret.y,
+      this.turret.rotation,
+      this.turret
+    );
+    this.time.delayedCall(this.levelConfig.player.fireCooldownMs, () => {
+      if (
+        !this.playerDestroyed &&
+        this.player.active &&
+        this.time.now - this.lastShotAt >=
+          this.levelConfig.player.fireCooldownMs
+      ) {
+        this.experience.reloadReady(this.player.x, this.player.y);
+      }
+    });
     this.emitState();
   }
 
@@ -450,7 +476,16 @@ export class TrainingScene extends Phaser.Scene {
       turret.setPosition(enemy.x, enemy.y);
       turret.rotation = action === 'idle' ? enemy.rotation : angle;
       if (action === 'fire') {
-        fireEnemyProjectile(this, this.enemyProjectiles, enemy, turret, time);
+        const fired = fireEnemyProjectile(
+          this,
+          this.enemyProjectiles,
+          enemy,
+          turret,
+          time
+        );
+        if (fired) {
+          this.experience.fire(turret.x, turret.y, turret.rotation, turret);
+        }
       }
 
       const revealed = distance <= this.levelConfig.player.detectionRange;
@@ -489,6 +524,7 @@ export class TrainingScene extends Phaser.Scene {
       this.levelConfig.locale
     );
     if (!resolution) return;
+    this.experience.impact(enemy.x, enemy.y, resolution.impact.outcome, false);
     alertEnemySquad(
       this.enemies,
       enemy,
@@ -503,6 +539,7 @@ export class TrainingScene extends Phaser.Scene {
         enemyId,
         source: 'projectile',
       });
+      this.experience.destroyed(enemy.x, enemy.y);
       destroyEnemyVisual(enemy);
       this.applyObjectiveEvent({
         type: 'enemy-defeated',
@@ -524,6 +561,7 @@ export class TrainingScene extends Phaser.Scene {
 
   private handleEnemyProjectileHit(projectile: Phaser.Physics.Arcade.Sprite) {
     if (this.playerDestroyed) return;
+    const previousHealth = this.playerHealth;
     const resolution = applyProjectileImpact(
       this,
       projectile,
@@ -536,6 +574,19 @@ export class TrainingScene extends Phaser.Scene {
     );
     if (!resolution) return;
     this.playerHealth = resolution.health;
+    this.experience.impact(
+      this.player.x,
+      this.player.y,
+      resolution.impact.outcome,
+      true
+    );
+    this.experience.lowHealthIfCrossed(
+      previousHealth,
+      this.playerHealth,
+      this.levelConfig.player.maxHealth,
+      this.player.x,
+      this.player.y
+    );
     this.player.setTint(0xffffff);
     this.time.delayedCall(80, () => {
       if (!this.playerDestroyed) this.player.clearTint();
@@ -547,6 +598,8 @@ export class TrainingScene extends Phaser.Scene {
   private handleRam(enemy: Phaser.Physics.Arcade.Sprite) {
     const now = this.time.now;
     const enemyId = enemy.getData('id') as string;
+    const previousHealth = this.playerHealth;
+    const enemyPosition = { x: enemy.x, y: enemy.y };
     const resolution = applyRamImpact(
       this,
       this.player,
@@ -559,7 +612,15 @@ export class TrainingScene extends Phaser.Scene {
     if (!resolution) return;
     this.lastRamAt.set(resolution.enemyId, now);
     this.playerHealth = resolution.playerHealth;
+    this.experience.lowHealthIfCrossed(
+      previousHealth,
+      this.playerHealth,
+      this.levelConfig.player.maxHealth,
+      this.player.x,
+      this.player.y
+    );
     if (resolution.enemyDestroyed) {
+      this.experience.destroyed(enemyPosition.x, enemyPosition.y);
       this.applyObjectiveEvent({ type: 'enemy-defeated', enemyId });
       this.syncWaveActivation();
     }
@@ -573,6 +634,7 @@ export class TrainingScene extends Phaser.Scene {
     this.gameInput.resetAll();
     this.player.setVelocity(0, 0).setTint(0xb95b4b);
     this.turret.setTint(0xb95b4b);
+    this.experience.destroyed(this.player.x, this.player.y, true);
     logCombatEvent('player_destroyed', { playerHealth: this.playerHealth });
   }
 

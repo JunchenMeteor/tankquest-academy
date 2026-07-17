@@ -52,9 +52,10 @@ for (const expected of environments) {
   assert.equal(config.build?.beforeBuildCommand, expected.buildCommand);
   assert.equal(typeof csp, 'string');
   assert.deepEqual(
-    readCspDirective(csp, 'connect-src'),
-    expected.connectSources
+    readCspDirective(csp, 'connect-src').sort(),
+    [...expected.connectSources, 'blob:'].sort()
   );
+  assert.deepEqual(readCspDirective(csp, 'media-src'), ["'self'", 'blob:']);
 
   for (const other of environments) {
     if (other.environment === expected.environment) continue;

@@ -25,6 +25,7 @@ import { MissionResult } from './MissionResult.js';
 import { useTheme } from './theme/ThemeProvider.js';
 import { ActiveTraining, AppHud, MissionPicker } from './TrainingViews.js';
 import './styles.css';
+import './theme/experience.css';
 
 const api = new ApiClient(clientConfig.apiBaseUrl);
 const assetClient = new AssetClient(api);
@@ -381,7 +382,17 @@ export function App() {
   };
 
   return (
-    <main className="app-shell">
+    <main
+      className="app-shell"
+      data-phase={phase}
+      data-player-health={
+        phase === 'active' &&
+        runtime.playerMaxHealth > 0 &&
+        runtime.playerHealth / runtime.playerMaxHealth <= 0.35
+          ? 'low'
+          : 'normal'
+      }
+    >
       <AppHud active={phase === 'active'} runtime={runtime} />
 
       {!online && (

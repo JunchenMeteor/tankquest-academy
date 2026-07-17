@@ -11,10 +11,19 @@ export function drawTrainingGround(
   width: number,
   height: number,
   style: RuntimeLevelConfig['mapStyle'],
-  palette: ScenePalette
+  palette: ScenePalette,
+  groundTextureKey?: string
 ) {
+  if (groundTextureKey && scene.textures.exists(groundTextureKey)) {
+    scene.add
+      .tileSprite(width / 2, height / 2, width, height, groundTextureKey)
+      .setDepth(-21)
+      .setAlpha(0.72);
+  }
   const graphics = scene.add.graphics().setDepth(-20);
-  graphics.fillStyle(palette.floor.base).fillRect(0, 0, width, height);
+  graphics
+    .fillStyle(palette.floor.base, groundTextureKey ? 0.36 : 1)
+    .fillRect(0, 0, width, height);
   graphics.lineStyle(1, palette.floor.grid, 0.38);
   for (let x = -height; x < width + height; x += 64) {
     graphics.lineBetween(x, 0, x + height, height);

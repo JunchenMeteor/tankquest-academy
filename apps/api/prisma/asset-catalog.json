@@ -19,6 +19,164 @@
     "sizeBytes": 870,
     "tags": ["scene", "training", "phase4"],
     "preview": null,
-    "dependencies": ["asset_tank_visuals_v1"]
+    "dependencies": [
+      "asset_tank_visuals_v1",
+      "asset_training_base_ground_v2",
+      "asset_forest_camp_ground_v2",
+      "asset_snow_field_ground_v2",
+      "asset_cannon_fire_v1",
+      "asset_reload_ready_v1",
+      "asset_ricochet_v1",
+      "asset_blocked_v1",
+      "asset_penetrated_v1",
+      "asset_low_health_v1",
+      "asset_destroyed_v1",
+      "asset_training_base_ambience_v1",
+      "asset_forest_camp_ambience_v1",
+      "asset_snow_field_ambience_v1"
+    ]
+  },
+  {
+    "id": "asset_training_base_ground_v2",
+    "type": "theme-texture",
+    "version": "2.0.0",
+    "url": "/assets/phase4/v2/experience/training-base-ground-v2.webp",
+    "sha256": "b7b511d2a9e45428de89746164c97ecd73ff91c3d1511d1d4f6d0d451253e313",
+    "sizeBytes": 13958,
+    "tags": ["theme", "ground", "training-base"],
+    "preview": null,
+    "dependencies": []
+  },
+  {
+    "id": "asset_forest_camp_ground_v2",
+    "type": "theme-texture",
+    "version": "2.0.0",
+    "url": "/assets/phase4/v2/experience/forest-camp-ground-v2.webp",
+    "sha256": "3e8593453e5e3332fae1d13c55453831933d0b5f33850689225ecd952c9a05e7",
+    "sizeBytes": 38672,
+    "tags": ["theme", "ground", "forest-camp"],
+    "preview": null,
+    "dependencies": []
+  },
+  {
+    "id": "asset_snow_field_ground_v2",
+    "type": "theme-texture",
+    "version": "2.0.0",
+    "url": "/assets/phase4/v2/experience/snow-field-ground-v2.webp",
+    "sha256": "62b1d6f01e7097a0e593cecb5b2babe0def955554bb4d7ae3eefa86391c2f7cd",
+    "sizeBytes": 19506,
+    "tags": ["theme", "ground", "snow-field"],
+    "preview": null,
+    "dependencies": []
+  },
+  {
+    "id": "asset_cannon_fire_v1",
+    "type": "sound-effect",
+    "version": "1.0.0",
+    "url": "/assets/phase4/v2/experience/cannon-fire-v1.ogg",
+    "sha256": "df98c94feeb13183a1668751cbed0938ecd4fc799eb323060f243043bcb02763",
+    "sizeBytes": 1043,
+    "tags": ["audio", "combat", "cannon-fire"],
+    "preview": null,
+    "dependencies": []
+  },
+  {
+    "id": "asset_reload_ready_v1",
+    "type": "sound-effect",
+    "version": "1.0.0",
+    "url": "/assets/phase4/v2/experience/reload-ready-v1.ogg",
+    "sha256": "49777f8271e118f45063c03f2af5c0a3f2d3367e58c52e9377233d5cb1756575",
+    "sizeBytes": 1015,
+    "tags": ["audio", "combat", "reload-ready"],
+    "preview": null,
+    "dependencies": []
+  },
+  {
+    "id": "asset_ricochet_v1",
+    "type": "sound-effect",
+    "version": "1.0.0",
+    "url": "/assets/phase4/v2/experience/ricochet-v1.ogg",
+    "sha256": "5f18e00cd5e892411173f93704882317b2969bb419a0974f46ce09d855876f53",
+    "sizeBytes": 641,
+    "tags": ["audio", "combat", "ricochet"],
+    "preview": null,
+    "dependencies": []
+  },
+  {
+    "id": "asset_blocked_v1",
+    "type": "sound-effect",
+    "version": "1.0.0",
+    "url": "/assets/phase4/v2/experience/blocked-v1.ogg",
+    "sha256": "b88df023f892d2ae55cc63e1fb4bb753ba9ba9822eab2405f67bf6a76edf25a6",
+    "sizeBytes": 867,
+    "tags": ["audio", "combat", "blocked"],
+    "preview": null,
+    "dependencies": []
+  },
+  {
+    "id": "asset_penetrated_v1",
+    "type": "sound-effect",
+    "version": "1.0.0",
+    "url": "/assets/phase4/v2/experience/penetrated-v1.ogg",
+    "sha256": "192376b2db86f93590afb0ff9971378f047c023cb4c82a726d2a0e36f45d8a31",
+    "sizeBytes": 1109,
+    "tags": ["audio", "combat", "penetrated"],
+    "preview": null,
+    "dependencies": []
+  },
+  {
+    "id": "asset_low_health_v1",
+    "type": "sound-effect",
+    "version": "1.0.0",
+    "url": "/assets/phase4/v2/experience/low-health-v1.ogg",
+    "sha256": "68078dc729e27cdbd994bc5406ceccff9efa079fb0bf6e56d2817aee2376422e",
+    "sizeBytes": 1421,
+    "tags": ["audio", "combat", "low-health"],
+    "preview": null,
+    "dependencies": []
+  },
+  {
+    "id": "asset_destroyed_v1",
+    "type": "sound-effect",
+    "version": "1.0.0",
+    "url": "/assets/phase4/v2/experience/destroyed-v1.ogg",
+    "sha256": "4edc137c705511aabfcda5cf237a702ff70f2f6ca0745ef44679b183b876b063",
+    "sizeBytes": 2243,
+    "tags": ["audio", "combat", "destroyed"],
+    "preview": null,
+    "dependencies": []
+  },
+  {
+    "id": "asset_training_base_ambience_v1",
+    "type": "sound-effect",
+    "version": "1.0.0",
+    "url": "/assets/phase4/v2/experience/training-base-ambience-v1.ogg",
+    "sha256": "4fd1092dd97cac0520bce13f24952b6069c345cf039264240922604f9ef39063",
+    "sizeBytes": 10442,
+    "tags": ["audio", "ambience", "training-base"],
+    "preview": null,
+    "dependencies": []
+  },
+  {
+    "id": "asset_forest_camp_ambience_v1",
+    "type": "sound-effect",
+    "version": "1.0.0",
+    "url": "/assets/phase4/v2/experience/forest-camp-ambience-v1.ogg",
+    "sha256": "2684f3592cc2b34c948900191b13f3601ebd0ce45ac7dae5da5d11fd7e32ab74",
+    "sizeBytes": 10340,
+    "tags": ["audio", "ambience", "forest-camp"],
+    "preview": null,
+    "dependencies": []
+  },
+  {
+    "id": "asset_snow_field_ambience_v1",
+    "type": "sound-effect",
+    "version": "1.0.0",
+    "url": "/assets/phase4/v2/experience/snow-field-ambience-v1.ogg",
+    "sha256": "a4ce08c5a8ad31aa1dde286b134ba69a4a010be6c127e3cf6e85eebb3df9e6f9",
+    "sizeBytes": 10376,
+    "tags": ["audio", "ambience", "snow-field"],
+    "preview": null,
+    "dependencies": []
   }
 ]

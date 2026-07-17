@@ -29,6 +29,10 @@ export function AppHud({
   runtime: RuntimeState;
 }) {
   const { t } = useI18n();
+  const healthRatio =
+    runtime.playerMaxHealth > 0
+      ? runtime.playerHealth / runtime.playerMaxHealth
+      : 1;
   return (
     <header className="hud">
       <div>
@@ -45,10 +49,27 @@ export function AppHud({
           <dd>{runtime.shotsFired}</dd>
         </div>
         {active && (
-          <div>
+          <div data-health={healthRatio <= 0.35 ? 'low' : 'normal'}>
             <dt>{t('hud.health')}</dt>
+            <dd className="hud-health">
+              <span>
+                {runtime.playerHealth}/{runtime.playerMaxHealth}
+              </span>
+              <meter
+                aria-label={t('hud.health')}
+                min={0}
+                max={runtime.playerMaxHealth}
+                low={runtime.playerMaxHealth * 0.35}
+                value={runtime.playerHealth}
+              />
+            </dd>
+          </div>
+        )}
+        {active && (
+          <div>
+            <dt>{t('hud.objective')}</dt>
             <dd>
-              {runtime.playerHealth}/{runtime.playerMaxHealth}
+              {runtime.objectiveCurrent}/{runtime.objectiveTarget}
             </dd>
           </div>
         )}
@@ -124,9 +145,14 @@ export function MissionPicker({
 }) {
   const { t } = useI18n();
   return (
-    <section className="status-card">
-      <h2>{t('picker.title')}</h2>
-      <p>{t('picker.ready', { count: levels.length })}</p>
+    <section className="status-card mission-selection">
+      <p className="selection-intro">
+        {t('picker.ready', { count: levels.length })}
+      </p>
+      <div className="selection-heading">
+        <span aria-hidden="true">1</span>
+        <h2>{t('picker.title')}</h2>
+      </div>
       <div className="mission-picker" aria-label={t('picker.missions')}>
         {levels.map((level) => (
           <button
@@ -141,7 +167,10 @@ export function MissionPicker({
           </button>
         ))}
       </div>
-      <h3>{t('picker.tank')}</h3>
+      <div className="selection-heading">
+        <span aria-hidden="true">2</span>
+        <h3>{t('picker.tank')}</h3>
+      </div>
       <div className="tank-picker" aria-label={t('picker.ownedTanks')}>
         {tanks.map((tank) => {
           const profile = combatProfileForStats(tank.stats);
@@ -185,6 +214,10 @@ export function MissionPicker({
           );
         })}
       </div>
+      <div className="selection-heading compact">
+        <span aria-hidden="true">3</span>
+        <h3>{t('picker.skins')}</h3>
+      </div>
       <div className="skin-picker" aria-label={t('picker.skins')}>
         {skins.map((skin) => (
           <button
@@ -212,8 +245,12 @@ export function MissionPicker({
           })}
         </p>
       )}
-      <button disabled={busy || !online} onClick={onStart}>
-        {t('action.start')}
+      <button
+        className="primary-start"
+        disabled={busy || !online}
+        onClick={onStart}
+      >
+        <span aria-hidden="true">▶</span> {t('action.start')}
       </button>
     </section>
   );
@@ -253,43 +290,45 @@ export function ActiveTraining({
   const { t } = useI18n();
   return (
     <>
-      <p className="mission-status">
-        {contentName(session.level.code, t)} · {t('stat.firepower')}{' '}
-        {session.tank.stats.firepower} · {t('stat.mobility')}{' '}
-        {session.tank.stats.mobility} · {t('stat.armor')}{' '}
-        {session.tank.stats.armor} · {t('stat.stealth')}{' '}
-        {session.tank.stats.stealth} · {t('stat.vision')}{' '}
-        {session.tank.stats.vision}
-      </p>
-      <p className="combat-readout">
-        {t('stat.shell')} {config.player.projectileDamage} ·{' '}
-        {t('stat.penetration')} {config.player.projectilePenetration} ·{' '}
-        {t('stat.armor')} {config.player.armorProfile.front}/
-        {config.player.armorProfile.side}/{config.player.armorProfile.rear} ·{' '}
-        {t('stat.speed')} {config.player.speed} · {t('stat.mass')}{' '}
-        {config.player.mass} · {t('stat.detection')}{' '}
-        {config.player.detectionRange}
-      </p>
-      <div className="threat-profiles" aria-label={t('battle.threats')}>
-        <strong>{t('battle.threats')}</strong>
-        {enemyThreatProfiles(config.enemies).map((profile) => (
-          <span
-            key={`${profile.role}:${profile.elite ? 'elite' : 'standard'}`}
-            data-role={profile.role}
-          >
-            {t('battle.enemyProfile', {
-              armor: profile.frontArmor,
-              damage: profile.damage,
-              detection: profile.detectionRange,
-              health: profile.health,
-              reload: profile.reloadSeconds,
-              role: profile.elite
-                ? t('role.elite', { role: t(`role.${profile.role}`) })
-                : t(`role.${profile.role}`),
-              speed: profile.topSpeed,
-            })}
-          </span>
-        ))}
+      <div className="battle-briefing">
+        <p className="mission-status">
+          {contentName(session.level.code, t)} · {t('stat.firepower')}{' '}
+          {session.tank.stats.firepower} · {t('stat.mobility')}{' '}
+          {session.tank.stats.mobility} · {t('stat.armor')}{' '}
+          {session.tank.stats.armor} · {t('stat.stealth')}{' '}
+          {session.tank.stats.stealth} · {t('stat.vision')}{' '}
+          {session.tank.stats.vision}
+        </p>
+        <p className="combat-readout">
+          {t('stat.shell')} {config.player.projectileDamage} ·{' '}
+          {t('stat.penetration')} {config.player.projectilePenetration} ·{' '}
+          {t('stat.armor')} {config.player.armorProfile.front}/
+          {config.player.armorProfile.side}/{config.player.armorProfile.rear} ·{' '}
+          {t('stat.speed')} {config.player.speed} · {t('stat.mass')}{' '}
+          {config.player.mass} · {t('stat.detection')}{' '}
+          {config.player.detectionRange}
+        </p>
+        <div className="threat-profiles" aria-label={t('battle.threats')}>
+          <strong>{t('battle.threats')}</strong>
+          {enemyThreatProfiles(config.enemies).map((profile) => (
+            <span
+              key={`${profile.role}:${profile.elite ? 'elite' : 'standard'}`}
+              data-role={profile.role}
+            >
+              {t('battle.enemyProfile', {
+                armor: profile.frontArmor,
+                damage: profile.damage,
+                detection: profile.detectionRange,
+                health: profile.health,
+                reload: profile.reloadSeconds,
+                role: profile.elite
+                  ? t('role.elite', { role: t(`role.${profile.role}`) })
+                  : t(`role.${profile.role}`),
+                speed: profile.topSpeed,
+              })}
+            </span>
+          ))}
+        </div>
       </div>
       <GameCanvas config={config} onState={onRuntime} />
       {runtime.playerDestroyed ? (
@@ -389,6 +428,9 @@ function LearningConsole({
       </div>
       {feedback && (
         <div className={feedback.correct ? 'feedback good' : 'feedback'}>
+          <span className="feedback-mark" aria-hidden="true">
+            {feedback.correct ? '✓' : '↻'}
+          </span>
           <strong>
             {feedback.correct ? t('learning.correct') : t('learning.retry')}
           </strong>
