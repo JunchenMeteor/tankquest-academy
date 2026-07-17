@@ -5,6 +5,7 @@ import {
   assetManifestSchema,
   levelEnemyConfigSchema,
   levelMapConfigSchema,
+  levelRuntimeContentSchema,
   startSessionRequestSchema,
   submitAnswerRequestSchema,
   tankStatsSchema,
@@ -152,6 +153,114 @@ describe('shared contracts', () => {
         obstacles: [{ x: 360, y: 120, width: 50, height: 170 }],
       })
     ).toMatchObject({ style: 'gate' });
+  });
+
+  it('validates objective references against the battlefield content', () => {
+    const enemy = {
+      id: 'elite_1',
+      role: 'heavy' as const,
+      elite: true,
+      x: 720,
+      y: 150,
+      stats: { firepower: 4, mobility: 2, armor: 5, stealth: 1, vision: 3 },
+      ai: {
+        detectionRange: 300,
+        attackRange: 210,
+        fireCooldownMs: 1800,
+        speedMultiplier: 0.4,
+      },
+    };
+    expect(
+      levelRuntimeContentSchema.parse({
+        theme: 'snow-field',
+        enemyTanks: [enemy],
+        map: {
+          style: 'range',
+          playerSpawn: { x: 120, y: 270 },
+          obstacles: [],
+        },
+        objectiveSet: {
+          completion: 'all',
+          objectives: [
+            {
+              id: 'elite_hunt',
+              type: 'elite-hunt',
+              targetEnemyIds: ['elite_1'],
+            },
+          ],
+        },
+      }).theme
+    ).toBe('snow-field');
+
+    expect(() =>
+      levelRuntimeContentSchema.parse({
+        enemyTanks: [enemy],
+        map: {
+          style: 'range',
+          playerSpawn: { x: 120, y: 270 },
+          obstacles: [],
+        },
+        objectiveSet: {
+          completion: 'all',
+          objectives: [
+            {
+              id: 'bad_wave',
+              type: 'defend-waves',
+              waves: [
+                { id: 'one', enemyIds: ['elite_1'] },
+                { id: 'two', enemyIds: ['missing'] },
+              ],
+            },
+          ],
+        },
+      })
+    ).toThrow();
+  });
+
+  it('rejects objective points placed inside solid obstacles', () => {
+    expect(() =>
+      levelRuntimeContentSchema.parse({
+        enemyTanks: [
+          {
+            id: 'guard_1',
+            role: 'medium',
+            x: 720,
+            y: 150,
+            stats: {
+              firepower: 3,
+              mobility: 3,
+              armor: 3,
+              stealth: 2,
+              vision: 3,
+            },
+            ai: {
+              detectionRange: 300,
+              attackRange: 210,
+              fireCooldownMs: 1800,
+              speedMultiplier: 0.4,
+            },
+          },
+        ],
+        map: {
+          style: 'gate',
+          playerSpawn: { x: 120, y: 270 },
+          obstacles: [{ x: 480, y: 270, width: 80, height: 180 }],
+        },
+        objectiveSet: {
+          completion: 'all',
+          objectives: [
+            {
+              id: 'blocked_route',
+              type: 'route-choice',
+              checkpoints: [
+                { id: 'start', x: 200, y: 270 },
+                { id: 'blocked', x: 480, y: 270 },
+              ],
+            },
+          ],
+        },
+      })
+    ).toThrow(/inside solid obstacles/u);
   });
 
   it('accepts a strict, same-origin versioned asset manifest', () => {

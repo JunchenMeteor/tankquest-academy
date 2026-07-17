@@ -8,6 +8,7 @@ export type CombatLogEvent =
   | 'enemy_engaged'
   | 'enemy_awareness_expired'
   | 'enemy_destroyed'
+  | 'objective_progressed'
   | 'player_destroyed';
 
 export interface CombatLogEntry {

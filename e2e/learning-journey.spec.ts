@@ -60,6 +60,39 @@ test('completes the authoritative learning and upgrade journey', async ({
     );
   }
 
+  const levelCatalog = await request.get('http://127.0.0.1:3000/api/levels');
+  const levelPayload = (await levelCatalog.json()) as ApiResponse<LevelDto[]>;
+  expect(levelPayload.data).toHaveLength(12);
+  expect(new Set(levelPayload.data?.map((level) => level.subject))).toEqual(
+    new Set(['math', 'english', 'direction'])
+  );
+  expect(
+    new Set(levelPayload.data?.map((level) => level.baseDifficulty))
+  ).toEqual(new Set([1, 2, 3, 4]));
+  expect(
+    new Set(levelPayload.data?.map((level) => level.config.theme))
+  ).toEqual(new Set(['training-base', 'forest-camp', 'snow-field']));
+  expect(
+    new Set(
+      levelPayload.data?.flatMap((level) => {
+        const objectiveSet = level.config.objectiveSet as {
+          objectives?: Array<{ type?: string }>;
+        };
+        return (
+          objectiveSet.objectives?.map((objective) => objective.type) ?? []
+        );
+      })
+    )
+  ).toEqual(
+    new Set([
+      'eliminate',
+      'defend-waves',
+      'supply-run',
+      'route-choice',
+      'elite-hunt',
+    ])
+  );
+
   const consoleErrors: string[] = [];
   page.on('console', (message) => {
     if (message.type() === 'error') consoleErrors.push(message.text());
@@ -253,6 +286,79 @@ test('continues combat after repeated enemy projectile impacts', async ({
   expect(pageErrors).toEqual([]);
 });
 
+test('advances and completes configured enemy waves', async ({ page }) => {
+  await page.route('**/api/game-sessions', async (route) => {
+    const response = await route.fetch();
+    const payload =
+      (await response.json()) as ApiResponse<StartSessionResponse>;
+    const enemies = payload.data?.level.config.enemyTanks as
+      EnemyTankConfigDto[] | undefined;
+    if (!payload.data || enemies?.length !== 2) {
+      throw new Error('Expected the two-enemy addition mission');
+    }
+    payload.data.level.config = {
+      ...payload.data.level.config,
+      enemyTanks: enemies.map((enemy) => ({
+        ...enemy,
+        ai: {
+          ...enemy.ai,
+          attackRange: 80,
+          detectionRange: 100,
+          speedMultiplier: 0.1,
+        },
+      })),
+      map: {
+        style: 'range',
+        playerSpawn: { x: 120, y: 270 },
+        obstacles: [],
+      },
+      objectiveSet: {
+        completion: 'all',
+        objectives: [
+          {
+            id: 'e2e_waves',
+            type: 'defend-waves',
+            waves: [
+              { id: 'wave_one', enemyIds: [enemies[0]!.id] },
+              { id: 'wave_two', enemyIds: [enemies[1]!.id] },
+            ],
+          },
+        ],
+      },
+    };
+    await route.fulfill({ response, json: payload });
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Start training' }).click();
+  for (let index = 0; index < 3; index += 1) {
+    const prompt = await page.locator('.learning-console h2').textContent();
+    const answer = prompt ? correctAnswerForPrompt(prompt) : undefined;
+    expect(answer, `known seed answer for ${prompt}`).toBeTruthy();
+    await page.getByRole('button', { name: answer, exact: true }).click();
+    await page
+      .getByRole('button', {
+        name: index === 2 ? 'Return to battle' : 'Next challenge',
+      })
+      .click();
+  }
+
+  await expect(
+    page.getByRole('heading', { name: 'Defend against waves · 0/2' })
+  ).toBeVisible();
+  await fireAt(page, 720, 145, 4);
+  await expect(
+    page.getByRole('heading', { name: 'Defend against waves · 1/2' })
+  ).toBeVisible({ timeout: 10_000 });
+  await fireAt(page, 790, 390, 4);
+  await expect(
+    page.getByRole('heading', { name: 'Defend against waves · 2/2' })
+  ).toBeVisible({ timeout: 10_000 });
+  await expect(
+    page.getByRole('button', { name: 'Complete mission' })
+  ).toBeVisible({ timeout: 10_000 });
+});
+
 test('starts a mission with the selected owned tank', async ({ page }) => {
   await page.goto('/');
   const starShield = page.getByRole('button', { name: /Star Shield/ });
@@ -307,6 +413,15 @@ test('persists language and theme preferences', async ({ page }) => {
   await expect(
     page.getByRole('heading', { name: 'Choose a training mission' })
   ).toBeVisible();
+  await expect(page.getByLabel('Theme')).toHaveValue('mission');
+  await page.getByRole('button', { name: /Robot patrol/ }).click();
+  await expect
+    .poll(() => page.locator('html').getAttribute('data-theme'))
+    .toBe('snow-field');
+  await page.getByRole('button', { name: /Word match camp/ }).click();
+  await expect
+    .poll(() => page.locator('html').getAttribute('data-theme'))
+    .toBe('forest-camp');
 
   await page.getByLabel('Language').selectOption('zh-CN');
   await expect(

@@ -19,6 +19,7 @@ export const localTrainingConfig: RuntimeLevelConfig = {
     {
       id: 'robot_alpha',
       role: 'scout',
+      elite: false,
       x: 720,
       y: 150,
       maxHealth: 90,
@@ -40,6 +41,7 @@ export const localTrainingConfig: RuntimeLevelConfig = {
     {
       id: 'robot_bravo',
       role: 'medium',
+      elite: false,
       x: 760,
       y: 390,
       maxHealth: 110,
@@ -63,4 +65,10 @@ export const localTrainingConfig: RuntimeLevelConfig = {
     { x: 360, y: 170, width: 50, height: 180 },
     { x: 560, y: 370, width: 180, height: 45 },
   ],
+  objectiveSet: {
+    completion: 'all',
+    objectives: [
+      { id: 'fallback_eliminate', type: 'eliminate', targetCount: 2 },
+    ],
+  },
 };

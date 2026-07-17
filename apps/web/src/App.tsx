@@ -16,6 +16,10 @@ import { platformClient } from './client/platform/create-platform-client.js';
 import { clientConfig } from './client/runtime-config.js';
 import { levelRuntimeConfig } from './game/config/level-runtime-config.js';
 import type { RuntimeState } from './game/runtime/types.js';
+import {
+  createMissionObjectiveState,
+  objectiveRuntimeSummary,
+} from './game/systems/mission-objectives.js';
 import { useI18n } from './i18n/I18nProvider.js';
 import { MissionResult } from './MissionResult.js';
 import { useTheme } from './theme/ThemeProvider.js';
@@ -29,7 +33,7 @@ type Phase = 'loading' | 'ready' | 'active' | 'finished';
 
 export function App() {
   const { locale, t } = useI18n();
-  const { theme } = useTheme();
+  const { setMissionTheme, theme } = useTheme();
   const [phase, setPhase] = useState<Phase>('loading');
   const [levels, setLevels] = useState<LevelDto[]>([]);
   const [tanks, setTanks] = useState<OwnedTankDto[]>([]);
@@ -141,11 +145,18 @@ export function App() {
             previewVisualResources?.manifest.levelId === selectedLevel.id
               ? previewVisualResources
               : undefined,
-            theme
+            theme === 'mission' ? undefined : theme
           )
         : undefined,
     [locale, previewVisualResources, selectedLevel, selectedOwnedTank, theme]
   );
+
+  useEffect(() => {
+    if (theme === 'mission' && missionPreview) {
+      setMissionTheme(missionPreview.theme);
+    }
+  }, [missionPreview, setMissionTheme, theme]);
+
   const currentQuestion = session?.questions[questionIndex];
   const selectedTank = session?.tank ?? selectedOwnedTank;
 
@@ -176,17 +187,23 @@ export function App() {
       const startedRuntimeConfig = levelRuntimeConfig(
         started.level,
         started.tank,
-        locale
+        locale,
+        undefined,
+        theme === 'mission' ? undefined : theme
       );
       setVisualResources(preparedVisualResources);
-      setSessionTheme(theme);
+      setSessionTheme(startedRuntimeConfig.theme);
       setSession(started);
+      const initialObjective = objectiveRuntimeSummary(
+        createMissionObjectiveState(startedRuntimeConfig.objectiveSet)
+      );
       setRuntime({
         enemiesRemaining: startedRuntimeConfig.enemies.length,
         shotsFired: 0,
         playerHealth: startedRuntimeConfig.player.maxHealth,
         playerMaxHealth: startedRuntimeConfig.player.maxHealth,
         playerDestroyed: false,
+        ...initialObjective,
       });
       setQuestionIndex(0);
       setLearningComplete(false);
@@ -270,7 +287,7 @@ export function App() {
       questionStartedAt.current = performance.now();
       return;
     }
-    if (runtime.enemiesRemaining > 0) {
+    if (!runtime.objectiveComplete) {
       setLearningComplete(true);
       setFeedback(null);
       return;
@@ -289,6 +306,9 @@ export function App() {
         payload: {
           enemiesRemaining: runtime.enemiesRemaining,
           shotsFired: runtime.shotsFired,
+          objectiveType: runtime.objectiveType,
+          objectiveCurrent: runtime.objectiveCurrent,
+          objectiveTarget: runtime.objectiveTarget,
         },
         clientTimeMs: Math.max(
           0,

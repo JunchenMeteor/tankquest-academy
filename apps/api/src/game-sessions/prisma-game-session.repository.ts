@@ -440,6 +440,7 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
     code: string;
     titleKey: string;
     mode: string;
+    subjectFocus: string;
     baseDifficulty: number;
     configJson: Prisma.JsonValue;
   }): LevelDto {
@@ -448,6 +449,7 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
       code: level.code,
       titleKey: level.titleKey,
       mode: gameModeSchema.parse(level.mode),
+      subject: subjectSchema.parse(level.subjectFocus),
       baseDifficulty: level.baseDifficulty,
       config: this.asRecord(level.configJson),
     };

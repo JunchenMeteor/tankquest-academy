@@ -80,6 +80,7 @@ export interface LevelDto {
   code: string;
   titleKey: string;
   mode: GameMode;
+  subject?: Subject;
   baseDifficulty: number;
   config: Record<string, unknown>;
 }
@@ -87,6 +88,7 @@ export interface LevelDto {
 export interface EnemyTankConfigDto {
   id: string;
   role: EnemyTankRole;
+  elite?: boolean;
   x: number;
   y: number;
   stats: TankStats;
@@ -100,6 +102,49 @@ export interface EnemyTankConfigDto {
     allyAlertRadius: number;
     searchLeashRange: number;
   };
+}
+
+export interface EliminateObjectiveDto {
+  id: string;
+  type: 'eliminate';
+  targetCount: number;
+}
+
+export interface DefendWavesObjectiveDto {
+  id: string;
+  type: 'defend-waves';
+  waves: Array<{ id: string; enemyIds: string[] }>;
+}
+
+export interface SupplyRunObjectiveDto {
+  id: string;
+  type: 'supply-run';
+  required: number;
+  points: Array<{ id: string; x: number; y: number }>;
+}
+
+export interface RouteChoiceObjectiveDto {
+  id: string;
+  type: 'route-choice';
+  checkpoints: Array<{ id: string; x: number; y: number }>;
+}
+
+export interface EliteHuntObjectiveDto {
+  id: string;
+  type: 'elite-hunt';
+  targetEnemyIds: string[];
+}
+
+export type MissionObjectiveDto =
+  | EliminateObjectiveDto
+  | DefendWavesObjectiveDto
+  | SupplyRunObjectiveDto
+  | RouteChoiceObjectiveDto
+  | EliteHuntObjectiveDto;
+
+export interface LevelObjectiveSetDto {
+  completion: 'all';
+  objectives: MissionObjectiveDto[];
 }
 
 export interface LevelMapConfigDto {

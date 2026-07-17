@@ -1,4 +1,5 @@
 import type { AssetBundle } from '../../client/assets/index.js';
+import type { LevelObjectiveSetDto } from '@tankquest/shared';
 
 export type ArmorZone = 'front' | 'side' | 'rear';
 
@@ -33,6 +34,7 @@ export interface PlayerRuntimeConfig extends PlayerCombatRuntimeConfig {
 export interface EnemyRuntimeConfig {
   id: string;
   role: 'scout' | 'medium' | 'heavy';
+  elite: boolean;
   x: number;
   y: number;
   maxHealth: number;
@@ -69,6 +71,7 @@ export interface RuntimeLevelConfig {
   player: PlayerRuntimeConfig;
   enemies: EnemyRuntimeConfig[];
   obstacles: ObstacleRuntimeConfig[];
+  objectiveSet: LevelObjectiveSetDto;
   visualResources?: AssetBundle;
 }
 
@@ -78,4 +81,9 @@ export interface RuntimeState {
   playerHealth: number;
   playerMaxHealth: number;
   playerDestroyed: boolean;
+  objectiveComplete: boolean;
+  objectiveType:
+    'eliminate' | 'defend-waves' | 'supply-run' | 'route-choice' | 'elite-hunt';
+  objectiveCurrent: number;
+  objectiveTarget: number;
 }
