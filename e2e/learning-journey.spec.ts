@@ -160,6 +160,15 @@ test('completes the authoritative learning and upgrade journey', async ({
   ).toBeVisible();
   await expect(page.getByText('3 cannon parts earned')).toBeVisible();
   await expect(
+    page.getByRole('heading', { name: 'Learning performance' })
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Battle performance' })
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Reward sources' })
+  ).toBeVisible();
+  await expect(
     page.getByRole('button', { name: 'Replay mission' })
   ).toBeVisible();
   await expect(
@@ -174,6 +183,9 @@ test('completes the authoritative learning and upgrade journey', async ({
   await expect(
     page.getByText(/cannon parts remain/, { exact: false })
   ).toBeVisible();
+  await expect(page.locator('.upgrade-deltas')).toContainText('→');
+  await expect(page.locator('.upgrade-deltas')).toContainText('Shell');
+  await expect(page.locator('.upgrade-deltas')).toContainText('Reload');
   await page
     .getByRole('button', { name: 'Use upgrade in another mission' })
     .click();
@@ -363,11 +375,28 @@ test('starts a mission with the selected owned tank', async ({ page }) => {
   await page.goto('/');
   const starShield = page.getByRole('button', { name: /Star Shield/ });
   const swiftFox = page.getByRole('button', { name: /Swift Fox/ });
+  const ironMountain = page.getByRole('button', { name: /Iron Mountain/ });
   await expect(starShield).toBeVisible();
   await expect(swiftFox).toBeVisible();
-  await expect(
-    page.getByRole('button', { name: /Iron Mountain/ })
-  ).toBeVisible();
+  await expect(ironMountain).toBeVisible();
+  const swiftProfile = swiftFox.locator('.tank-combat-profile');
+  const ironProfile = ironMountain.locator('.tank-combat-profile');
+  for (const label of [
+    'Shell',
+    'Penetration',
+    'Reload',
+    'Speed',
+    'HP',
+    'Front armor',
+    'Detection',
+    'Visibility',
+  ]) {
+    await expect(swiftProfile).toContainText(label);
+    await expect(ironProfile).toContainText(label);
+  }
+  expect(await swiftProfile.textContent()).not.toBe(
+    await ironProfile.textContent()
+  );
   await expect(
     starShield.locator('[data-tank-visual="star-shield"]')
   ).toBeVisible();

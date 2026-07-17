@@ -166,6 +166,10 @@
   color: var(--theme-muted);
 }
 
+:root[data-theme] .tank-picker .tank-combat-profile {
+  color: var(--theme-accent);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -226,7 +230,7 @@ button:disabled {
 }
 
 .hud dt {
-  color: #a9b6a2;
+  color: var(--theme-muted);
   font-size: 0.8rem;
 }
 
@@ -440,6 +444,11 @@ button:disabled {
   font-weight: 500;
 }
 
+.tank-picker .tank-combat-profile {
+  margin-top: 0.25rem;
+  color: var(--theme-accent);
+}
+
 .skin-picker {
   display: flex;
   flex-wrap: wrap;
@@ -488,7 +497,7 @@ button:disabled {
 
 .combat-readout,
 .mission-preview {
-  color: #a9b6a2;
+  color: var(--theme-muted);
   text-align: center;
 }
 
@@ -496,6 +505,22 @@ button:disabled {
   width: min(960px, 100%);
   margin: -0.35rem auto 0.75rem;
   font-size: 0.9rem;
+}
+
+.threat-profiles {
+  display: flex;
+  width: min(960px, 100%);
+  margin: -0.25rem auto 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem 0.75rem;
+  color: var(--theme-muted);
+  font-size: 0.82rem;
+}
+
+.threat-profiles strong {
+  width: 100%;
+  color: var(--theme-text);
 }
 
 .learning-console h2 {
@@ -533,6 +558,32 @@ button:disabled {
   letter-spacing: 0.2em;
 }
 
+.result-breakdown {
+  display: grid;
+  width: min(840px, 100%);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  text-align: left;
+}
+
+.result-breakdown section {
+  border: 1px solid var(--theme-border);
+  border-radius: 0.75rem;
+  padding: 0.85rem;
+  background: color-mix(in srgb, var(--theme-accent) 7%, var(--theme-surface));
+}
+
+.result-breakdown h3,
+.result-breakdown p {
+  margin: 0;
+}
+
+.result-breakdown p,
+.result-breakdown ul {
+  margin-top: 0.45rem;
+  color: var(--theme-muted);
+}
+
 .upgrade-confirmation {
   display: grid;
   border: 1px solid #7eb668;
@@ -548,14 +599,40 @@ button:disabled {
   font-size: 1.1rem;
 }
 
+.upgrade-deltas {
+  display: grid;
+  margin: 0.35rem 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.upgrade-deltas div {
+  display: flex;
+  border-radius: 0.45rem;
+  padding: 0.45rem 0.6rem;
+  justify-content: space-between;
+  background: #152714;
+  gap: 0.75rem;
+}
+
+.upgrade-deltas dt,
+.upgrade-deltas dd {
+  margin: 0;
+}
+
+.upgrade-deltas dd {
+  color: #f1d997;
+  font-variant-numeric: tabular-nums;
+}
+
 .next-practice {
   display: grid;
   gap: 0.55rem;
   margin-top: 1rem;
   padding: 1rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--theme-border);
   border-radius: 0.9rem;
-  background: color-mix(in srgb, var(--accent) 10%, var(--panel));
+  background: color-mix(in srgb, var(--theme-accent) 10%, var(--theme-surface));
 }
 
 .next-practice p {
@@ -629,6 +706,11 @@ button:disabled {
   }
 
   .tank-picker {
+    grid-template-columns: 1fr;
+  }
+
+  .result-breakdown,
+  .upgrade-deltas {
     grid-template-columns: 1fr;
   }
 

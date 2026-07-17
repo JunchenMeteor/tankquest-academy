@@ -8,6 +8,10 @@ import type {
 } from '@tankquest/shared';
 
 import { GameCanvas } from './game/GameCanvas.js';
+import {
+  combatProfileForStats,
+  enemyThreatProfiles,
+} from './game/presentation/combat-profile.js';
 import { TankPreview } from './game/presentation/TankPreview.js';
 import type { RuntimeLevelConfig, RuntimeState } from './game/runtime/types.js';
 import { useI18n } from './i18n/I18nProvider.js';
@@ -139,32 +143,47 @@ export function MissionPicker({
       </div>
       <h3>{t('picker.tank')}</h3>
       <div className="tank-picker" aria-label={t('picker.ownedTanks')}>
-        {tanks.map((tank) => (
-          <button
-            key={tank.id}
-            className={tank.id === selectedTankId ? 'selected' : ''}
-            aria-pressed={tank.id === selectedTankId}
-            onClick={() => onSelectTank(tank.id)}
-          >
-            <TankPreview
-              code={tank.code}
-              primaryColor={tank.skin?.primaryColor}
-              secondaryColor={tank.skin?.secondaryColor}
-              visualResources={preview?.visualResources}
-            />
-            <strong>{contentName(tank.code, t)}</strong>
-            <span>
-              {t(`role.${tank.role}`)} ·{' '}
-              {t('picker.level', { value: tank.level })}
-            </span>
-            <span>
-              {t('stat.firepower')} {tank.stats.firepower} ·{' '}
-              {t('stat.mobility')} {tank.stats.mobility} · {t('stat.armor')}{' '}
-              {tank.stats.armor} · {t('stat.stealth')} {tank.stats.stealth} ·{' '}
-              {t('stat.vision')} {tank.stats.vision}
-            </span>
-          </button>
-        ))}
+        {tanks.map((tank) => {
+          const profile = combatProfileForStats(tank.stats);
+          return (
+            <button
+              key={tank.id}
+              className={tank.id === selectedTankId ? 'selected' : ''}
+              aria-pressed={tank.id === selectedTankId}
+              onClick={() => onSelectTank(tank.id)}
+            >
+              <TankPreview
+                code={tank.code}
+                primaryColor={tank.skin?.primaryColor}
+                secondaryColor={tank.skin?.secondaryColor}
+                visualResources={preview?.visualResources}
+              />
+              <strong>{contentName(tank.code, t)}</strong>
+              <span>
+                {t(`role.${tank.role}`)} · {t(`role.hint.${tank.role}`)} ·{' '}
+                {t('picker.level', { value: tank.level })}
+              </span>
+              <span>
+                {t('stat.firepower')} {tank.stats.firepower} ·{' '}
+                {t('stat.mobility')} {tank.stats.mobility} · {t('stat.armor')}{' '}
+                {tank.stats.armor} · {t('stat.stealth')} {tank.stats.stealth} ·{' '}
+                {t('stat.vision')} {tank.stats.vision}
+              </span>
+              <span className="tank-combat-profile">
+                {t('picker.combatProfile', {
+                  armor: profile.frontArmor,
+                  damage: profile.damage,
+                  detection: profile.detectionRange,
+                  health: profile.health,
+                  penetration: profile.penetration,
+                  reload: profile.reloadSeconds,
+                  speed: profile.topSpeed,
+                  visibility: profile.visibilityPercent,
+                })}
+              </span>
+            </button>
+          );
+        })}
       </div>
       <div className="skin-picker" aria-label={t('picker.skins')}>
         {skins.map((skin) => (
@@ -251,6 +270,27 @@ export function ActiveTraining({
         {config.player.mass} · {t('stat.detection')}{' '}
         {config.player.detectionRange}
       </p>
+      <div className="threat-profiles" aria-label={t('battle.threats')}>
+        <strong>{t('battle.threats')}</strong>
+        {enemyThreatProfiles(config.enemies).map((profile) => (
+          <span
+            key={`${profile.role}:${profile.elite ? 'elite' : 'standard'}`}
+            data-role={profile.role}
+          >
+            {t('battle.enemyProfile', {
+              armor: profile.frontArmor,
+              damage: profile.damage,
+              detection: profile.detectionRange,
+              health: profile.health,
+              reload: profile.reloadSeconds,
+              role: profile.elite
+                ? t('role.elite', { role: t(`role.${profile.role}`) })
+                : t(`role.${profile.role}`),
+              speed: profile.topSpeed,
+            })}
+          </span>
+        ))}
+      </div>
       <GameCanvas config={config} onState={onRuntime} />
       {runtime.playerDestroyed ? (
         <section className="battle-alert" aria-live="assertive">

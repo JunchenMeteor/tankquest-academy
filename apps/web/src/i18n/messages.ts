@@ -30,6 +30,8 @@ export const messages: Record<Locale, Record<string, string>> = {
     'picker.difficulty': 'difficulty {{value}}',
     'picker.level': 'level {{value}}',
     'picker.preview': '{{map}} map · {{enemies}}',
+    'picker.combatProfile':
+      'Shell {{damage}} · Penetration {{penetration}} · Reload {{reload}}s · Speed {{speed}} · HP {{health}} · Front armor {{armor}} · Detection {{detection}} · Visibility {{visibility}}%',
     'stat.firepower': 'Firepower',
     'stat.mobility': 'Mobility',
     'stat.armor': 'Armor',
@@ -40,6 +42,13 @@ export const messages: Record<Locale, Record<string, string>> = {
     'stat.speed': 'Speed',
     'stat.mass': 'Mass',
     'stat.detection': 'Detection',
+    'stat.health': 'Health',
+    'stat.reload': 'Reload',
+    'stat.projectileSpeed': 'Shell speed',
+    'stat.visibility': 'Visibility',
+    'battle.threats': 'Enemy role profiles',
+    'battle.enemyProfile':
+      '{{role}} · Speed {{speed}} · HP {{health}} · Front armor {{armor}} · Shell {{damage}} · Reload {{reload}}s · Detection {{detection}}',
     'action.start': 'Start training',
     'action.restart': 'Restart mission',
     'action.return': 'Return to mission selection',
@@ -86,6 +95,17 @@ export const messages: Record<Locale, Record<string, string>> = {
     'result.complete': 'Mission complete',
     'result.summary':
       '{{correct}}/{{total}} challenges correct · {{parts}} cannon parts earned',
+    'result.learning': 'Learning performance',
+    'result.learningSummary':
+      '{{correct}}/{{total}} correct · {{accuracy}}% accuracy · {{stars}} stars',
+    'result.battle': 'Battle performance',
+    'result.battleSummary':
+      '{{defeated}} enemies defeated · {{shots}} shots · Hull {{health}}/{{maxHealth}} · Objective {{current}}/{{target}}',
+    'result.rewards': 'Reward sources',
+    'result.reward.part':
+      '{{amount}} cannon parts · awarded for this {{stars}}-star mission',
+    'result.reward.training_point':
+      '{{amount}} training points · awarded for this {{stars}}-star mission',
     'result.max': 'Firepower is at maximum ({{max}}/{{max}})',
     'result.upgrade': 'Spend 2 parts: upgrade firepower',
     'result.saved':
@@ -161,6 +181,10 @@ export const messages: Record<Locale, Record<string, string>> = {
     'role.scout': 'scout',
     'role.medium': 'medium',
     'role.heavy': 'heavy',
+    'role.hint.scout': 'fast and hard to spot',
+    'role.hint.medium': 'balanced all-rounder',
+    'role.hint.heavy': 'slow armored hitter',
+    'role.elite': 'Elite {{role}}',
   },
   'zh-CN': {
     'app.base': '训练基地',
@@ -189,6 +213,8 @@ export const messages: Record<Locale, Record<string, string>> = {
     'picker.difficulty': '难度 {{value}}',
     'picker.level': '等级 {{value}}',
     'picker.preview': '{{map}}地图 · {{enemies}}',
+    'picker.combatProfile':
+      '炮弹 {{damage}} · 穿深 {{penetration}} · 装填 {{reload}} 秒 · 速度 {{speed}} · 生命 {{health}} · 正面装甲 {{armor}} · 探测 {{detection}} · 可见度 {{visibility}}%',
     'stat.firepower': '火力',
     'stat.mobility': '机动',
     'stat.armor': '装甲',
@@ -199,6 +225,13 @@ export const messages: Record<Locale, Record<string, string>> = {
     'stat.speed': '速度',
     'stat.mass': '重量',
     'stat.detection': '探测距离',
+    'stat.health': '生命',
+    'stat.reload': '装填',
+    'stat.projectileSpeed': '炮弹速度',
+    'stat.visibility': '可见度',
+    'battle.threats': '敌方角色参数',
+    'battle.enemyProfile':
+      '{{role}} · 速度 {{speed}} · 生命 {{health}} · 正面装甲 {{armor}} · 炮弹 {{damage}} · 装填 {{reload}} 秒 · 探测 {{detection}}',
     'action.start': '开始训练',
     'action.restart': '重新开始',
     'action.return': '返回任务选择',
@@ -242,6 +275,16 @@ export const messages: Record<Locale, Record<string, string>> = {
     'result.complete': '任务完成',
     'result.summary':
       '答对 {{correct}}/{{total}} 题 · 获得 {{parts}} 个炮管零件',
+    'result.learning': '学习表现',
+    'result.learningSummary':
+      '答对 {{correct}}/{{total}} 题 · 正确率 {{accuracy}}% · {{stars}} 颗星',
+    'result.battle': '战斗表现',
+    'result.battleSummary':
+      '击毁 {{defeated}} 辆 · 发射 {{shots}} 次 · 车体 {{health}}/{{maxHealth}} · 目标 {{current}}/{{target}}',
+    'result.rewards': '奖励来源',
+    'result.reward.part': '{{amount}} 个炮管零件 · 来自本次 {{stars}} 星任务',
+    'result.reward.training_point':
+      '{{amount}} 点训练点 · 来自本次 {{stars}} 星任务',
     'result.max': '火力已满级（{{max}}/{{max}}）',
     'result.upgrade': '消耗 2 个零件：升级火力',
     'result.saved': '没有消耗零件，已保存的零件之后还能用于其他升级。',
@@ -315,5 +358,9 @@ export const messages: Record<Locale, Record<string, string>> = {
     'role.scout': '侦察型',
     'role.medium': '中型',
     'role.heavy': '重型',
+    'role.hint.scout': '速度快、难发现',
+    'role.hint.medium': '能力均衡',
+    'role.hint.heavy': '速度慢、装甲火力强',
+    'role.elite': '精英{{role}}',
   },
 };
