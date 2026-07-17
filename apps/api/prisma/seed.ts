@@ -1,6 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 
 import assetCatalog from './asset-catalog.json' with { type: 'json' };
+import {
+  officialQuestionSeeds,
+  validateOfficialQuestions,
+} from './content/official-questions.js';
 
 const prisma = new PrismaClient();
 
@@ -121,12 +125,24 @@ function getQuestionId(questions: Map<string, string>, code: string) {
   return questionId;
 }
 
+function officialQuestionCodes(
+  subject: (typeof officialQuestionSeeds)[number]['subject'],
+  difficulty: 1 | 2 | 3 | 4
+) {
+  return officialQuestionSeeds
+    .filter(
+      (question) =>
+        question.subject === subject && question.difficulty === difficulty
+    )
+    .map((question) => question.code);
+}
+
 const levelSeeds = [
   {
     code: 'addition-range',
     titleKey: 'level.additionRange.title',
     subject: 'math',
-    questionCodes: ['math-addition-1', 'math-addition-2', 'math-subtraction-1'],
+    questionCodes: officialQuestionCodes('math', 1),
     difficulty: 1,
     map: {
       style: 'range',
@@ -145,7 +161,7 @@ const levelSeeds = [
     code: 'supply-gate',
     titleKey: 'level.supplyGate.title',
     subject: 'math',
-    questionCodes: ['math-addition-1', 'math-addition-2', 'math-subtraction-1'],
+    questionCodes: officialQuestionCodes('math', 2),
     difficulty: 2,
     map: {
       style: 'gate',
@@ -168,7 +184,7 @@ const levelSeeds = [
     code: 'robot-patrol',
     titleKey: 'level.robotPatrol.title',
     subject: 'math',
-    questionCodes: ['math-addition-1', 'math-addition-2', 'math-subtraction-1'],
+    questionCodes: officialQuestionCodes('math', 3),
     difficulty: 3,
     map: {
       style: 'patrol',
@@ -193,7 +209,7 @@ const levelSeeds = [
     code: 'word-match-camp',
     titleKey: 'level.wordMatchCamp.title',
     subject: 'english',
-    questionCodes: ['english-kitten', 'english-quick', 'english-library'],
+    questionCodes: officialQuestionCodes('english', 1),
     difficulty: 1,
     map: {
       style: 'range',
@@ -212,11 +228,7 @@ const levelSeeds = [
     code: 'compass-trail',
     titleKey: 'level.compassTrail.title',
     subject: 'direction',
-    questionCodes: [
-      'direction-left-turn',
-      'direction-opposite',
-      'direction-right',
-    ],
+    questionCodes: officialQuestionCodes('direction', 1),
     difficulty: 1,
     map: {
       style: 'patrol',
@@ -564,6 +576,119 @@ async function seed() {
             create: [
               { locale: 'en', text: choice },
               { locale: 'zh-CN', text: translatedChoice },
+            ],
+          },
+        },
+      });
+    }
+    questions.set(item.code, question.id);
+  }
+
+  validateOfficialQuestions(officialQuestionSeeds);
+  for (const item of officialQuestionSeeds) {
+    const question = await prisma.question.upsert({
+      where: { id: item.id },
+      update: {
+        subject: item.subject,
+        mode: 'child_learning',
+        difficulty: item.difficulty,
+        skillKey: item.skillKey,
+        prompt: item.prompt.en,
+        explanation: item.explanation.en,
+        status: 'published',
+        translations: {
+          upsert: [
+            {
+              where: {
+                questionId_locale: { questionId: item.id, locale: 'en' },
+              },
+              update: {
+                prompt: item.prompt.en,
+                explanation: item.explanation.en,
+              },
+              create: {
+                locale: 'en',
+                prompt: item.prompt.en,
+                explanation: item.explanation.en,
+              },
+            },
+            {
+              where: {
+                questionId_locale: { questionId: item.id, locale: 'zh-CN' },
+              },
+              update: {
+                prompt: item.prompt['zh-CN'],
+                explanation: item.explanation['zh-CN'],
+              },
+              create: {
+                locale: 'zh-CN',
+                prompt: item.prompt['zh-CN'],
+                explanation: item.explanation['zh-CN'],
+              },
+            },
+          ],
+        },
+      },
+      create: {
+        id: item.id,
+        subject: item.subject,
+        mode: 'child_learning',
+        difficulty: item.difficulty,
+        skillKey: item.skillKey,
+        prompt: item.prompt.en,
+        explanation: item.explanation.en,
+        status: 'published',
+        translations: {
+          create: [
+            {
+              locale: 'en',
+              prompt: item.prompt.en,
+              explanation: item.explanation.en,
+            },
+            {
+              locale: 'zh-CN',
+              prompt: item.prompt['zh-CN'],
+              explanation: item.explanation['zh-CN'],
+            },
+          ],
+        },
+      },
+    });
+
+    for (const [choiceIndex, choice] of item.choices.entries()) {
+      const answerId = `${item.id}_answer_${choiceIndex + 1}`;
+      const isCorrect = choiceIndex === item.correctIndex;
+      await prisma.questionAnswer.upsert({
+        where: { id: answerId },
+        update: {
+          text: choice.en,
+          isCorrect,
+          sortOrder: choiceIndex,
+          translations: {
+            upsert: [
+              {
+                where: { answerId_locale: { answerId, locale: 'en' } },
+                update: { text: choice.en },
+                create: { locale: 'en', text: choice.en },
+              },
+              {
+                where: { answerId_locale: { answerId, locale: 'zh-CN' } },
+                update: { text: choice['zh-CN'] },
+                create: { locale: 'zh-CN', text: choice['zh-CN'] },
+              },
+            ],
+          },
+        },
+        create: {
+          id: answerId,
+          questionId: question.id,
+          text: choice.en,
+          isCorrect,
+          sortOrder: choiceIndex,
+          translations: {
+            create: [
+              { locale: 'en', text: choice.en },
+              { locale: 'zh-CN', text: choice['zh-CN'] },
             ],
           },
         },
