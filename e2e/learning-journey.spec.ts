@@ -11,8 +11,9 @@ import {
   type APIRequestContext,
   type Page,
 } from '@playwright/test';
+import { officialQuestionSeeds } from '../apps/api/prisma/content/official-questions.js';
 
-const correctAnswers: Record<string, string> = {
+const legacyCorrectAnswers: Record<string, string> = {
   '8 + 7 = ?': '15',
   '9 + 6 = ?': '15',
   '13 - 5 = ?': '8',
@@ -23,6 +24,15 @@ const correctAnswers: Record<string, string> = {
   'Which direction is opposite east?': 'West',
   'The supply crate is on your right. Which way should you turn?': 'Right',
 };
+
+function correctAnswerForPrompt(prompt: string): string | undefined {
+  const official = officialQuestionSeeds.find(
+    (question) => question.prompt.en === prompt
+  );
+  return (
+    official?.choices[official.correctIndex]?.en ?? legacyCorrectAnswers[prompt]
+  );
+}
 
 test('completes the authoritative learning and upgrade journey', async ({
   page,
@@ -74,7 +84,7 @@ test('completes the authoritative learning and upgrade journey', async ({
 
   for (let index = 0; index < 3; index += 1) {
     const prompt = await page.locator('.learning-console h2').textContent();
-    const answer = prompt ? correctAnswers[prompt] : undefined;
+    const answer = prompt ? correctAnswerForPrompt(prompt) : undefined;
     expect(answer, `known seed answer for ${prompt}`).toBeTruthy();
     await page.getByRole('button', { name: answer, exact: true }).click();
     await expect(page.locator('.feedback strong')).toHaveText(
@@ -98,11 +108,6 @@ test('completes the authoritative learning and upgrade journey', async ({
         skillKey: 'addition-within-20',
         correctCount: expect.any(Number),
         accuracy: expect.any(Number),
-      }),
-      expect.objectContaining({
-        subject: 'math',
-        skillKey: 'subtraction-within-20',
-        averageAnswerTimeMs: expect.any(Number),
       }),
     ]),
   });
@@ -358,18 +363,13 @@ test('completes English and direction missions through the shared API', async ({
     data: expect.arrayContaining([
       expect.objectContaining({
         subject: 'english',
-        skillKey: 'basic-word-meaning',
+        skillKey: 'word-meaning',
         attempts: 3,
       }),
       expect.objectContaining({
         subject: 'direction',
         skillKey: 'cardinal-directions',
-        attempts: 2,
-      }),
-      expect.objectContaining({
-        subject: 'direction',
-        skillKey: 'left-and-right',
-        attempts: 1,
+        attempts: 3,
       }),
     ]),
   });
@@ -397,7 +397,7 @@ async function completeMission(request: APIRequestContext, levelCode: string) {
   if (!started.data) return;
 
   for (const question of started.data.questions) {
-    const correctText = correctAnswers[question.prompt];
+    const correctText = correctAnswerForPrompt(question.prompt);
     const answer = question.choices.find(
       (choice) => choice.text === correctText
     );
