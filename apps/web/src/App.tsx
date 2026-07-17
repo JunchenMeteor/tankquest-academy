@@ -171,6 +171,7 @@ export function App() {
         childId: clientConfig.demoChildId,
         levelId: level.id,
         tankId: tank.id,
+        locale,
       });
       const startedRuntimeConfig = levelRuntimeConfig(
         started.level,

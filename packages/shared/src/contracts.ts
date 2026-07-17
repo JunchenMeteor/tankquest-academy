@@ -117,6 +117,7 @@ export interface StartSessionRequest {
   childId: string;
   levelId: string;
   tankId: string;
+  locale?: 'en' | 'zh-CN';
 }
 
 export interface StartSessionResponse {
