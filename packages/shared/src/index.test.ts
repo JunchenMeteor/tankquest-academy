@@ -286,6 +286,34 @@ describe('shared contracts', () => {
     ).toHaveLength(2);
   });
 
+  it('accepts versioned theme textures and sound effects', () => {
+    const assets = [
+      {
+        ...tankVisualAsset,
+        assetId: 'training_base_ground_v2',
+        type: 'theme-texture' as const,
+        version: '2.0.0',
+        url: '/assets/phase4/v2/experience/training-base-ground-v2.webp',
+      },
+      {
+        ...tankVisualAsset,
+        assetId: 'cannon_fire_v1',
+        type: 'sound-effect' as const,
+        url: '/assets/phase4/v2/experience/cannon-fire-v1.ogg',
+      },
+    ];
+
+    expect(
+      assetManifestSchema
+        .parse({
+          levelId: 'level_addition_range',
+          levelVersion: 2,
+          assets,
+        })
+        .assets.map(({ type }) => type)
+    ).toEqual(['theme-texture', 'sound-effect']);
+  });
+
   it('rejects cross-origin paths and unexpected manifest fields', () => {
     expect(() =>
       assetManifestEntrySchema.parse({

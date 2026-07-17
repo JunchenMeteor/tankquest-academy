@@ -108,12 +108,18 @@ test('completes the authoritative learning and upgrade journey', async ({
       );
     });
   await expect(page.getByText('Range map · 2 scouts')).toBeVisible();
+  await expect(page.locator('main[data-phase="ready"]')).toBeVisible();
+  await expect(page.locator('.selection-heading')).toHaveCount(3);
   await startButton.click();
   await expect(page.locator('.mission-status')).toContainText(
     /Addition range · Firepower [3-5]/
   );
   await expect(page.locator('.game-canvas canvas')).toBeVisible();
   await expect(page.getByText('150/150')).toBeVisible();
+  await expect(page.locator('.hud-health meter')).toHaveAttribute(
+    'value',
+    '150'
+  );
 
   for (let index = 0; index < 3; index += 1) {
     const prompt = await page.locator('.learning-console h2').textContent();
@@ -153,6 +159,20 @@ test('completes the authoritative learning and upgrade journey', async ({
   await expect(
     page.getByRole('heading', { name: 'Training field secured' })
   ).toBeVisible({ timeout: 10_000 });
+  const feedbackCues = await page.evaluate(() => {
+    const target = globalThis as typeof globalThis & {
+      __TANKQUEST_COMBAT_LOGS__?: Array<{
+        event: string;
+        details: Record<string, number | string>;
+      }>;
+    };
+    return (target.__TANKQUEST_COMBAT_LOGS__ ?? [])
+      .filter((entry) => entry.event === 'feedback_cue')
+      .map((entry) => entry.details.cue);
+  });
+  expect(feedbackCues).toEqual(
+    expect.arrayContaining(['fire', 'penetrated', 'destroyed'])
+  );
   await page.getByRole('button', { name: 'Complete mission' }).click();
 
   await expect(
@@ -295,6 +315,24 @@ test('continues combat after repeated enemy projectile impacts', async ({
   await expect(page.locator('.game-canvas canvas')).toBeVisible();
   expect(impacts.length).toBeGreaterThanOrEqual(2);
   expect(impacts.every((impact) => impact.outcome === 'penetrated')).toBe(true);
+  expect(pageErrors).toEqual([]);
+});
+
+test('keeps the full journey usable when experience assets fail', async ({
+  page,
+}) => {
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+  await page.route('**/assets/phase4/v2/**', async (route) => {
+    await route.fulfill({ status: 404, body: 'asset unavailable' });
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Start training' }).click();
+  await expect(page.locator('.game-canvas canvas')).toBeVisible();
+  await expect(page.locator('.learning-console')).toBeVisible();
+  await fireAt(page, 720, 145, 1);
+  await expect(page.locator('.game-canvas canvas')).toBeVisible();
   expect(pageErrors).toEqual([]);
 });
 

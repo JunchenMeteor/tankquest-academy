@@ -41,7 +41,49 @@ describe('2.5D training-ground presentation', () => {
 
     drawTrainingGround(scene as never, 960, 540, 'range', palette);
 
-    expect(calls).toContainEqual(['fillStyle', [palette.floor.base]]);
+    expect(calls).toContainEqual(['fillStyle', [palette.floor.base, 1]]);
     expect(calls).toContainEqual(['lineStyle', [1, palette.floor.grid, 0.38]]);
+  });
+
+  it('layers a verified theme texture beneath deterministic map markings', () => {
+    const textureCalls: Array<[string, unknown[]]> = [];
+    const texture = new Proxy(
+      {},
+      {
+        get:
+          (_target, property) =>
+          (...args: unknown[]) => {
+            textureCalls.push([String(property), args]);
+            return texture;
+          },
+      }
+    );
+    const graphics = new Proxy({}, { get: () => () => graphics });
+    const scene = {
+      add: {
+        graphics: () => graphics,
+        tileSprite: (...args: unknown[]) => {
+          textureCalls.push(['tileSprite', args]);
+          return texture;
+        },
+      },
+      textures: { exists: () => true },
+    };
+
+    drawTrainingGround(
+      scene as never,
+      960,
+      540,
+      'gate',
+      resolveScenePalette('forest-camp'),
+      'experience-ground-texture'
+    );
+
+    expect(textureCalls).toContainEqual([
+      'tileSprite',
+      [480, 270, 960, 540, 'experience-ground-texture'],
+    ]);
+    expect(textureCalls).toContainEqual(['setDepth', [-21]]);
+    expect(textureCalls).toContainEqual(['setAlpha', [0.72]]);
   });
 });
