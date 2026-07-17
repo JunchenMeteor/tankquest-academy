@@ -11,6 +11,7 @@ import {
 } from './domain.js';
 
 const identifierSchema = z.string().trim().min(1).max(100);
+export const localeSchema = z.enum(['en', 'zh-CN']);
 
 export const assetManifestMaxAssets = 32;
 export const assetMaxSizeBytes = 256 * 1024;
@@ -180,12 +181,13 @@ export const startSessionRequestSchema = z.object({
   childId: identifierSchema,
   levelId: identifierSchema,
   tankId: identifierSchema,
+  locale: localeSchema.default('en'),
 });
 
 export const submitAnswerRequestSchema = z.object({
   questionId: identifierSchema,
   selectedAnswerId: identifierSchema,
-  locale: z.enum(['en', 'zh-CN']).default('en'),
+  locale: localeSchema.default('en'),
   answerTimeMs: z
     .number()
     .int()

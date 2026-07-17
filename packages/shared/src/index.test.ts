@@ -34,7 +34,19 @@ describe('shared contracts', () => {
       childId: 'child_001',
       levelId: 'level_001',
       tankId: 'tank_001',
+      locale: 'en',
     });
+  });
+
+  it('accepts a supported session locale', () => {
+    expect(
+      startSessionRequestSchema.parse({
+        childId: 'child_001',
+        levelId: 'level_001',
+        tankId: 'tank_001',
+        locale: 'zh-CN',
+      }).locale
+    ).toBe('zh-CN');
   });
 
   it('rejects invalid tank stats', () => {

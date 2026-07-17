@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client';
 import {
   ageGroupSchema,
   gameModeSchema,
+  localeSchema,
   subjectSchema,
   type FinishSessionResponse,
   type GameEventRequest,
@@ -21,6 +22,8 @@ import type {
   SessionState,
 } from './game-session.models.js';
 import { GameSessionRepository } from './game-session.repository.js';
+import { localizeQuestion } from './localized-question.js';
+import { allocateSessionQuestions } from './question-allocation.js';
 import { applyTankUpgrades } from './tank-upgrades.js';
 
 const setupInclude = {
@@ -28,14 +31,37 @@ const setupInclude = {
   level: {
     include: {
       questions: {
+        where: { question: { status: 'published' } },
         include: {
-          question: { include: { answers: { orderBy: { sortOrder: 'asc' } } } },
+          question: {
+            include: {
+              translations: true,
+              answers: {
+                orderBy: { sortOrder: 'asc' },
+                include: { translations: true },
+              },
+            },
+          },
         },
       },
     },
   },
   tank: { include: { stats: true } },
   answers: true,
+  questions: {
+    orderBy: { sortOrder: 'asc' },
+    include: {
+      question: {
+        include: {
+          translations: true,
+          answers: {
+            orderBy: { sortOrder: 'asc' },
+            include: { translations: true },
+          },
+        },
+      },
+    },
+  },
 } satisfies Prisma.GameSessionInclude;
 
 @Injectable()
@@ -64,7 +90,8 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
   }
 
   async loadSetup(request: StartSessionRequest): Promise<SessionSetup | null> {
-    const [child, level, tank] = await Promise.all([
+    const locale = request.locale ?? 'en';
+    const [child, level, tank, recentSessions] = await Promise.all([
       this.prisma.child.findUnique({
         where: { id: request.childId },
         include: {
@@ -79,9 +106,21 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
         where: { id: request.levelId },
         include: {
           questions: {
+            where: { question: { status: 'published' } },
+            orderBy: { questionId: 'asc' },
             include: {
               question: {
-                include: { answers: { orderBy: { sortOrder: 'asc' } } },
+                include: {
+                  translations: { where: { locale: { in: [locale, 'en'] } } },
+                  answers: {
+                    orderBy: { sortOrder: 'asc' },
+                    include: {
+                      translations: {
+                        where: { locale: { in: [locale, 'en'] } },
+                      },
+                    },
+                  },
+                },
               },
             },
           },
@@ -93,6 +132,15 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
           stats: true,
           skins: { where: { isDefault: true, isActive: true }, take: 1 },
         },
+      }),
+      this.prisma.gameSession.findMany({
+        where: {
+          childId: request.childId,
+          status: { in: ['active', 'finished'] },
+        },
+        orderBy: { startedAt: 'desc' },
+        take: 2,
+        include: { questions: { select: { questionId: true } } },
       }),
     ]);
 
@@ -113,6 +161,18 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
       return null;
     }
 
+    const recentlyUsedQuestionIds = new Set(
+      recentSessions.flatMap((session) =>
+        session.questions.map((question) => question.questionId)
+      )
+    );
+    const questions = allocateSessionQuestions(
+      level.questions.map(({ question }) => question),
+      recentlyUsedQuestionIds,
+      Math.min(3, level.questions.length)
+    );
+    if (questions.length === 0) return null;
+
     return {
       level: this.toLevel(level),
       tank: this.toTank(
@@ -120,8 +180,8 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
         applyTankUpgrades(tank.stats, ownedTank.upgrades),
         ownedTank.selectedSkin ?? tank.skins[0]
       ),
-      questions: level.questions.map(({ question }) =>
-        this.toInternalQuestion(question)
+      questions: questions.map((question) =>
+        this.toInternalQuestion(question, locale)
       ),
       learner: {
         ageGroup: ageGroupSchema.parse(child.ageGroup),
@@ -137,7 +197,14 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
         levelId: session.levelId,
         tankId: session.tankId,
         mode: session.mode,
+        locale: session.locale,
         difficultySnapshot: { questionDifficulty: session.difficulty },
+        questions: {
+          create: session.questionIds.map((questionId, sortOrder) => ({
+            questionId,
+            sortOrder,
+          })),
+        },
       },
       select: { id: true },
     });
@@ -152,16 +219,22 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
     if (!session?.tank.stats) {
       return null;
     }
+    const locale = localeSchema.parse(session.locale);
+    const assignedQuestions =
+      session.questions.length > 0
+        ? session.questions.map(({ question }) => question)
+        : session.level.questions.map(({ question }) => question);
 
     return {
       id: session.id,
       childId: session.childId,
+      locale,
       status: session.status,
       setup: {
         level: this.toLevel(session.level),
         tank: this.toTank(session.tank, session.tank.stats),
-        questions: session.level.questions.map(({ question }) =>
-          this.toInternalQuestion(question)
+        questions: assignedQuestions.map((question) =>
+          this.toInternalQuestion(question, locale)
         ),
         learner: {
           ageGroup: ageGroupSchema.parse(session.child.ageGroup),
@@ -203,6 +276,7 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
         },
         include: {
           questions: {
+            where: { question: { status: 'published' } },
             include: {
               question: { select: { skillKey: true } },
             },
@@ -422,33 +496,47 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
     };
   }
 
-  private toInternalQuestion(question: {
-    id: string;
-    subject: string;
-    difficulty: number;
-    skillKey: string;
-    prompt: string;
-    explanation: string;
-    answers: Array<{ id: string; text: string; isCorrect: boolean }>;
-  }): InternalQuestion {
+  private toInternalQuestion(
+    question: {
+      id: string;
+      subject: string;
+      difficulty: number;
+      skillKey: string;
+      prompt: string;
+      explanation: string;
+      translations: Array<{
+        locale: string;
+        prompt: string;
+        explanation: string;
+      }>;
+      answers: Array<{
+        id: string;
+        text: string;
+        isCorrect: boolean;
+        translations: Array<{ locale: string; text: string }>;
+      }>;
+    },
+    locale: 'en' | 'zh-CN'
+  ): InternalQuestion {
     const correctAnswer = question.answers.find((answer) => answer.isCorrect);
     if (!correctAnswer) {
       throw new Error(
         `Published question ${question.id} has no correct answer`
       );
     }
+    const localized = localizeQuestion(question, locale);
     return {
       id: question.id,
       subject: subjectSchema.parse(question.subject),
       difficulty: question.difficulty,
       skillKey: question.skillKey,
-      prompt: question.prompt,
-      choices: question.answers.map((answer) => ({
+      prompt: localized.prompt,
+      choices: question.answers.map((answer, index) => ({
         id: answer.id,
-        text: answer.text,
+        text: localized.choiceTexts[index] ?? answer.text,
       })),
       correctAnswerId: correctAnswer.id,
-      explanation: question.explanation,
+      explanation: localized.explanation,
     };
   }
 

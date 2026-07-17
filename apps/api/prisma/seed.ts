@@ -241,9 +241,12 @@ const questionSeeds = [
     difficulty: 1,
     skillKey: 'addition-within-20',
     prompt: '8 + 7 = ?',
+    promptZh: '8 + 7 = 多少？',
     correct: '15',
     choices: ['12', '15', '17'],
+    choicesZh: ['12', '15', '17'],
     explanation: '8 + 7 = 15.',
+    explanationZh: '8 加 7 等于 15。',
   },
   {
     id: 'question_math_2',
@@ -252,9 +255,12 @@ const questionSeeds = [
     difficulty: 1,
     skillKey: 'addition-within-20',
     prompt: '9 + 6 = ?',
+    promptZh: '9 + 6 = 多少？',
     correct: '15',
     choices: ['14', '15', '16'],
+    choicesZh: ['14', '15', '16'],
     explanation: '9 + 6 = 15.',
+    explanationZh: '9 加 6 等于 15。',
   },
   {
     id: 'question_math_3',
@@ -263,9 +269,12 @@ const questionSeeds = [
     difficulty: 2,
     skillKey: 'subtraction-within-20',
     prompt: '13 - 5 = ?',
+    promptZh: '13 - 5 = 多少？',
     correct: '8',
     choices: ['7', '8', '9'],
+    choicesZh: ['7', '8', '9'],
     explanation: '13 - 5 = 8.',
+    explanationZh: '13 减 5 等于 8。',
   },
   {
     id: 'question_english_1',
@@ -274,9 +283,12 @@ const questionSeeds = [
     difficulty: 1,
     skillKey: 'basic-word-meaning',
     prompt: 'Which word means a young cat?',
+    promptZh: '哪个英文单词表示“小猫”？',
     correct: 'kitten',
     choices: ['kitten', 'river', 'chair'],
+    choicesZh: ['kitten（小猫）', 'river（河流）', 'chair（椅子）'],
     explanation: 'A kitten is a young cat.',
+    explanationZh: 'kitten 指年幼的猫，也就是小猫。',
   },
   {
     id: 'question_english_2',
@@ -285,9 +297,12 @@ const questionSeeds = [
     difficulty: 1,
     skillKey: 'basic-word-meaning',
     prompt: 'Which word means fast?',
+    promptZh: '哪个英文单词表示“快速的”？',
     correct: 'quick',
     choices: ['quiet', 'round', 'quick'],
+    choicesZh: ['quiet（安静的）', 'round（圆的）', 'quick（快速的）'],
     explanation: 'Quick means fast.',
+    explanationZh: 'quick 的意思是“快速的”。',
   },
   {
     id: 'question_english_3',
@@ -296,9 +311,12 @@ const questionSeeds = [
     difficulty: 1,
     skillKey: 'basic-word-meaning',
     prompt: 'Where can you borrow books?',
+    promptZh: '你可以在哪里借书？',
     correct: 'library',
     choices: ['garden', 'library', 'kitchen'],
+    choicesZh: ['garden（花园）', 'library（图书馆）', 'kitchen（厨房）'],
     explanation: 'A library is a place where you can borrow books.',
+    explanationZh: 'library 是图书馆，可以在那里借书。',
   },
   {
     id: 'question_direction_1',
@@ -307,9 +325,12 @@ const questionSeeds = [
     difficulty: 1,
     skillKey: 'cardinal-directions',
     prompt: 'You face north and turn left. Which direction do you face?',
+    promptZh: '你面朝北方，然后向左转。现在面朝哪个方向？',
     correct: 'West',
     choices: ['East', 'South', 'West'],
+    choicesZh: ['东', '南', '西'],
     explanation: 'Turning left from north points west.',
+    explanationZh: '面朝北方时向左转，会面朝西方。',
   },
   {
     id: 'question_direction_2',
@@ -318,9 +339,12 @@ const questionSeeds = [
     difficulty: 1,
     skillKey: 'cardinal-directions',
     prompt: 'Which direction is opposite east?',
+    promptZh: '哪个方向与东方相反？',
     correct: 'West',
     choices: ['North', 'West', 'South'],
+    choicesZh: ['北', '西', '南'],
     explanation: 'West is opposite east.',
+    explanationZh: '西方与东方相反。',
   },
   {
     id: 'question_direction_3',
@@ -329,9 +353,12 @@ const questionSeeds = [
     difficulty: 1,
     skillKey: 'left-and-right',
     prompt: 'The supply crate is on your right. Which way should you turn?',
+    promptZh: '补给箱在你的右边。你应该向哪边转？',
     correct: 'Right',
     choices: ['Left', 'Right', 'Straight'],
+    choicesZh: ['左转', '右转', '直行'],
     explanation: 'Turn right to move toward an object on your right.',
+    explanationZh: '目标在右边时，应该向右转。',
   },
 ];
 
@@ -445,6 +472,35 @@ async function seed() {
         prompt: item.prompt,
         explanation: item.explanation,
         status: 'published',
+        translations: {
+          upsert: [
+            {
+              where: {
+                questionId_locale: { questionId: item.id, locale: 'en' },
+              },
+              update: { prompt: item.prompt, explanation: item.explanation },
+              create: {
+                locale: 'en',
+                prompt: item.prompt,
+                explanation: item.explanation,
+              },
+            },
+            {
+              where: {
+                questionId_locale: { questionId: item.id, locale: 'zh-CN' },
+              },
+              update: {
+                prompt: item.promptZh,
+                explanation: item.explanationZh,
+              },
+              create: {
+                locale: 'zh-CN',
+                prompt: item.promptZh,
+                explanation: item.explanationZh,
+              },
+            },
+          ],
+        },
       },
       create: {
         id: item.id,
@@ -455,16 +511,64 @@ async function seed() {
         prompt: item.prompt,
         explanation: item.explanation,
         status: 'published',
-        answers: {
-          create: item.choices.map((choice, choiceIndex) => ({
-            id: `${item.id}_answer_${choiceIndex + 1}`,
-            text: choice,
-            isCorrect: choice === item.correct,
-            sortOrder: choiceIndex,
-          })),
+        translations: {
+          create: [
+            {
+              locale: 'en',
+              prompt: item.prompt,
+              explanation: item.explanation,
+            },
+            {
+              locale: 'zh-CN',
+              prompt: item.promptZh,
+              explanation: item.explanationZh,
+            },
+          ],
         },
       },
     });
+    for (const [choiceIndex, choice] of item.choices.entries()) {
+      const answerId = `${item.id}_answer_${choiceIndex + 1}`;
+      const translatedChoice = item.choicesZh[choiceIndex] ?? choice;
+      await prisma.questionAnswer.upsert({
+        where: { id: answerId },
+        update: {
+          text: choice,
+          isCorrect: choice === item.correct,
+          sortOrder: choiceIndex,
+          translations: {
+            upsert: [
+              {
+                where: { answerId_locale: { answerId, locale: 'en' } },
+                update: { text: choice },
+                create: { locale: 'en', text: choice },
+              },
+              {
+                where: { answerId_locale: { answerId, locale: 'zh-CN' } },
+                update: { text: translatedChoice },
+                create: {
+                  locale: 'zh-CN',
+                  text: translatedChoice,
+                },
+              },
+            ],
+          },
+        },
+        create: {
+          id: answerId,
+          questionId: question.id,
+          text: choice,
+          isCorrect: choice === item.correct,
+          sortOrder: choiceIndex,
+          translations: {
+            create: [
+              { locale: 'en', text: choice },
+              { locale: 'zh-CN', text: translatedChoice },
+            ],
+          },
+        },
+      });
+    }
     questions.set(item.code, question.id);
   }
 
