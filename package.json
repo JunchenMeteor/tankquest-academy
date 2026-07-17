@@ -21,6 +21,7 @@
     "db:migrate": "npm run db:migrate --workspace @tankquest/api",
     "db:seed": "npm run db:seed --workspace @tankquest/api",
     "db:validate": "npm run db:validate --workspace @tankquest/api",
+    "content:verify": "npm run content:verify --workspace @tankquest/api",
     "assets:verify": "node scripts/verify-visual-assets.mjs",
     "pwa:verify": "node scripts/verify-pwa.mjs",
     "ai-wheelhouse:verify": "node scripts/verify-ai-wheelhouse.mjs",

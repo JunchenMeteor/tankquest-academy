@@ -46,4 +46,29 @@ describe('allocateSessionQuestions', () => {
   it('returns no questions for an invalid requested count', () => {
     expect(allocateSessionQuestions(candidates, new Set(), 0)).toEqual([]);
   });
+
+  it('produces different groups for three sessions when ten questions exist', () => {
+    const pool = Array.from({ length: 10 }, (_, index) => ({
+      id: `official_${index + 1}`,
+    }));
+    const first = allocateSessionQuestions(pool, new Set(), 3);
+    const second = allocateSessionQuestions(
+      pool,
+      new Set(first.map((question) => question.id)),
+      3
+    );
+    const third = allocateSessionQuestions(
+      pool,
+      new Set([...first, ...second].map((question) => question.id)),
+      3
+    );
+
+    expect(
+      [first, second, third].map((group) => group.map(({ id }) => id))
+    ).toEqual([
+      ['official_1', 'official_2', 'official_3'],
+      ['official_4', 'official_5', 'official_6'],
+      ['official_7', 'official_8', 'official_9'],
+    ]);
+  });
 });
