@@ -1,17 +1,31 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { GameInputController } from './input/GameInputController.js';
 import { TouchControls } from './input/TouchControls.js';
+import {
+  loadGameRuntime,
+  type GameRuntimeLoader,
+} from './runtime/load-game-runtime.js';
 import type { RuntimeLevelConfig, RuntimeState } from './runtime/types.js';
 import { useI18n } from '../i18n/I18nProvider.js';
 
 interface GameCanvasProps {
   config: RuntimeLevelConfig;
   onState: (state: RuntimeState) => void;
+  loadRuntime?: GameRuntimeLoader;
+  onReload?: () => void;
 }
 
-export function GameCanvas({ config, onState }: GameCanvasProps) {
+const reloadPage = () => globalThis.location.reload();
+
+export function GameCanvas({
+  config,
+  onState,
+  loadRuntime = loadGameRuntime,
+  onReload = reloadPage,
+}: GameCanvasProps) {
   const { t } = useI18n();
+  const [loadFailed, setLoadFailed] = useState(false);
   const hostRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<GameInputController | null>(null);
   inputRef.current ??= new GameInputController();
@@ -34,17 +48,22 @@ export function GameCanvas({ config, onState }: GameCanvasProps) {
     let disposed = false;
     let game: { destroy(removeCanvas?: boolean): void } | undefined;
 
-    void import('./runtime/create-game.js').then(({ createGame }) => {
-      if (!disposed) {
-        game = createGame(host, config, onState, input);
-      }
-    });
+    setLoadFailed(false);
+    void loadRuntime()
+      .then(({ createGame }) => {
+        if (!disposed) {
+          game = createGame(host, config, onState, input);
+        }
+      })
+      .catch(() => {
+        if (!disposed) setLoadFailed(true);
+      });
 
     return () => {
       disposed = true;
       game?.destroy(true);
     };
-  }, [config, input, onState]);
+  }, [config, input, loadRuntime, onState]);
 
   return (
     <div className="game-stage">
@@ -55,7 +74,16 @@ export function GameCanvas({ config, onState }: GameCanvasProps) {
         data-scene-theme={config.theme}
         ref={hostRef}
         aria-label={t('touch.trainingArea')}
-      />
+      >
+        {loadFailed && (
+          <div className="game-load-error" role="alert">
+            <p>{t('game.loadFailed')}</p>
+            <button type="button" onClick={onReload}>
+              {t('action.refreshGame')}
+            </button>
+          </div>
+        )}
+      </div>
       <TouchControls
         input={input}
         labels={{

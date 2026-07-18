@@ -15,6 +15,7 @@ import { AssetClient, type AssetBundle } from './client/assets/index.js';
 import { platformClient } from './client/platform/create-platform-client.js';
 import { clientConfig } from './client/runtime-config.js';
 import { levelRuntimeConfig } from './game/config/level-runtime-config.js';
+import { warmGameRuntime } from './game/runtime/load-game-runtime.js';
 import type { RuntimeState } from './game/runtime/types.js';
 import {
   createMissionObjectiveState,
@@ -120,6 +121,14 @@ export function App() {
       active = false;
     };
   }, [selectedLevelId]);
+
+  useEffect(() => {
+    if (phase !== 'ready') return;
+    const timeout = globalThis.setTimeout(() => {
+      void warmGameRuntime();
+    }, 500);
+    return () => globalThis.clearTimeout(timeout);
+  }, [phase]);
 
   const runtimeConfig = useMemo(
     () =>
