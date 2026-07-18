@@ -57,7 +57,10 @@ export const messages: Record<Locale, Record<string, string>> = {
     'action.next': 'Next challenge',
     'action.battle': 'Return to battle',
     'action.replay': 'Replay mission',
+    'action.refreshGame': 'Refresh game',
     'action.useUpgrade': 'Use upgrade in another mission',
+    'game.loadFailed':
+      'The game update could not load. Refresh and start the mission again.',
     'battle.paused': 'Training paused',
     'battle.disabled': 'Tank disabled',
     'battle.disabledHint':
@@ -241,7 +244,9 @@ export const messages: Record<Locale, Record<string, string>> = {
     'action.next': '下一题',
     'action.battle': '返回战斗',
     'action.replay': '再玩一次',
+    'action.refreshGame': '刷新游戏',
     'action.useUpgrade': '在其他任务中使用升级',
+    'game.loadFailed': '游戏更新未能加载。请刷新后重新开始任务。',
     'battle.paused': '训练已暂停',
     'battle.disabled': '坦克失去行动能力',
     'battle.disabledHint': '利用装甲和机动避开下一次碰撞。',

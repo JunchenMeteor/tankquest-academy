@@ -279,6 +279,24 @@ button:disabled {
   display: block;
 }
 
+.game-load-error {
+  min-height: 100%;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  color: #ffe8df;
+  background: linear-gradient(145deg, #351e1b, #17231d);
+  text-align: center;
+}
+
+.game-load-error button {
+  border-color: #d5c477;
+  color: #182018;
+  background: #d5c477;
+}
+
 .touch-controls {
   display: none;
   margin-top: 0.75rem;
