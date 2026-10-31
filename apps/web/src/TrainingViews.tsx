@@ -345,9 +345,7 @@ export function ActiveTraining({
               }
             >
               <dt>{t('hud.health')}</dt>
-              <dd>
-                {runtime.playerHealth}/{runtime.playerMaxHealth}
-              </dd>
+              <dd>{runtime.playerHealth}</dd>
             </div>
             <div>
               <dt>{t('hud.tanks')}</dt>
