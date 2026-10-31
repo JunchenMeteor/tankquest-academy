@@ -321,42 +321,78 @@ export function ActiveTraining({
   return (
     <>
       <div className="battle-briefing">
-        <p className="mission-status">
-          {contentName(session.level.code, t)} · {t('stat.firepower')}{' '}
-          {session.tank.stats.firepower} · {t('stat.mobility')}{' '}
-          {session.tank.stats.mobility} · {t('stat.armor')}{' '}
-          {session.tank.stats.armor} · {t('stat.stealth')}{' '}
-          {session.tank.stats.stealth} · {t('stat.vision')}{' '}
-          {session.tank.stats.vision}
-        </p>
-        <p className="combat-readout">
-          {t('stat.shell')} {config.player.projectileDamage} ·{' '}
-          {t('stat.penetration')} {config.player.projectilePenetration} ·{' '}
-          {t('stat.armor')} {config.player.armorProfile.front}/
-          {config.player.armorProfile.side}/{config.player.armorProfile.rear} ·{' '}
-          {t('stat.speed')} {config.player.speed} · {t('stat.mass')}{' '}
-          {config.player.mass} · {t('stat.detection')}{' '}
-          {config.player.detectionRange}
-        </p>
+        <div className="briefing-head">
+          <span className="briefing-level">
+            {contentName(session.level.code, t)}
+          </span>
+          <dl className="briefing-stats">
+            {(
+              [
+                ['firepower', session.tank.stats.firepower],
+                ['mobility', session.tank.stats.mobility],
+                ['armor', session.tank.stats.armor],
+                ['stealth', session.tank.stats.stealth],
+                ['vision', session.tank.stats.vision],
+              ] as const
+            ).map(([key, value]) => (
+              <div key={key}>
+                <dt>{t(`stat.${key}`)}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+        <dl className="briefing-readout">
+          {(
+            [
+              ['shell', config.player.projectileDamage],
+              ['penetration', config.player.projectilePenetration],
+              [
+                'armor',
+                `${config.player.armorProfile.front}/${config.player.armorProfile.side}/${config.player.armorProfile.rear}`,
+              ],
+              ['speed', config.player.speed],
+              ['mass', config.player.mass],
+              ['detection', config.player.detectionRange],
+            ] as const
+          ).map(([key, value]) => (
+            <div key={key}>
+              <dt>{t(`stat.${key}`)}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+        </dl>
         <div className="threat-profiles" aria-label={t('battle.threats')}>
           <strong>{t('battle.threats')}</strong>
           {enemyThreatProfiles(config.enemies).map((profile) => (
-            <span
+            <article
+              className="threat"
               key={`${profile.role}:${profile.elite ? 'elite' : 'standard'}`}
               data-role={profile.role}
             >
-              {t('battle.enemyProfile', {
-                armor: profile.frontArmor,
-                damage: profile.damage,
-                detection: profile.detectionRange,
-                health: profile.health,
-                reload: profile.reloadSeconds,
-                role: profile.elite
+              <span className="threat-role">
+                {profile.elite
                   ? t('role.elite', { role: t(`role.${profile.role}`) })
-                  : t(`role.${profile.role}`),
-                speed: profile.topSpeed,
-              })}
-            </span>
+                  : t(`role.${profile.role}`)}
+              </span>
+              <dl>
+                {(
+                  [
+                    ['speed', profile.topSpeed],
+                    ['health', profile.health],
+                    ['armor', profile.frontArmor],
+                    ['shell', profile.damage],
+                    ['reload', profile.reloadSeconds],
+                    ['detection', profile.detectionRange],
+                  ] as const
+                ).map(([key, value]) => (
+                  <div key={key}>
+                    <dt>{t(`stat.${key}`)}</dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </article>
           ))}
         </div>
       </div>

@@ -905,3 +905,238 @@ button:disabled {
   font-weight: 600;
   color: var(--theme-text);
 }
+
+/* ── HUD: instrument chips instead of a cramped row ─────────────────── */
+.hud {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem 1.25rem;
+  max-width: 1180px;
+  margin: 0 auto 1rem;
+  padding: 0.85rem 1.1rem;
+  border: 1px solid var(--theme-border);
+  border-radius: 18px;
+  background: var(--theme-surface);
+}
+
+.hud h1 {
+  font-size: 1.05rem;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.hud .eyebrow {
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+}
+
+.hud dl {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+}
+
+.hud dl > div {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 84px;
+  padding: 0.42rem 0.75rem;
+  border: 1px solid var(--theme-border);
+  border-radius: 12px;
+  background: var(--theme-muted-surface);
+  text-align: center;
+}
+
+.hud dt {
+  font-family: var(--theme-mono, ui-monospace, monospace);
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--theme-muted);
+}
+
+.hud dd {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--theme-text);
+}
+
+.hud div[data-health='normal'] dd.hud-health,
+.hud div[data-health='low'] dd.hud-health {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.hud-health meter {
+  width: 100%;
+  height: 4px;
+  border: 0;
+  border-radius: 999px;
+}
+
+.hud-health meter::-webkit-meter-bar {
+  background: rgba(255, 255, 255, 0.12);
+  border: 0;
+  border-radius: 999px;
+}
+
+.hud-health meter::-webkit-meter-optimum-value {
+  background: #7bd88f;
+  border-radius: 999px;
+}
+
+.hud div[data-health='low'] .hud-health meter::-webkit-meter-optimum-value {
+  background: #ff8f70;
+}
+
+.preference-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.preference-controls label {
+  display: grid;
+  gap: 0.15rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--theme-muted);
+}
+
+.preference-controls select {
+  min-width: 110px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.82rem;
+  border-radius: 10px;
+}
+
+@media (max-width: 1080px) {
+  .hud {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .hud dl {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
+/* ── Battle briefing: chips instead of two run-on lines ─────────────── */
+.briefing-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.briefing-level {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.briefing-stats,
+.briefing-readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.briefing-stats > div,
+.briefing-readout > div {
+  display: grid;
+  gap: 0.05rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--theme-border);
+  border-radius: 10px;
+  background: var(--theme-muted-surface);
+  text-align: center;
+}
+
+.briefing-stats dt,
+.briefing-readout dt {
+  font-family: var(--theme-mono, ui-monospace, monospace);
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--theme-muted);
+}
+
+.briefing-stats dd,
+.briefing-readout dd {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--theme-text);
+}
+
+/* ── Threat profiles: one card per enemy role ───────────────────────── */
+.threat-profiles {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
+.threat-profiles > strong {
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--theme-muted);
+}
+
+.threat {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--theme-border);
+  border-radius: 12px;
+  background: var(--theme-muted-surface);
+}
+
+.threat-role {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--theme-text);
+  min-width: 90px;
+}
+
+.threat dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.threat dl > div {
+  display: grid;
+  gap: 0.02rem;
+  padding: 0.18rem 0.45rem;
+  border-radius: 8px;
+  background: rgba(6, 12, 10, 0.3);
+  text-align: center;
+}
+
+.threat dt {
+  font-family: var(--theme-mono, ui-monospace, monospace);
+  font-size: 0.5rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--theme-muted);
+}
+
+.threat dd {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--theme-text);
+}
