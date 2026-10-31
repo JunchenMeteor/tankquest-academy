@@ -126,3 +126,32 @@ describe('3D battle scene model', () => {
     expect(clamped.position.x).toBeLessThanOrEqual(layout.ground.width / 2);
   });
 });
+
+describe('enemy approach', () => {
+  const bounds = { width: 40, depth: 30 };
+
+  it('closes the distance toward the player and stops at the standoff', () => {
+    const roomy = stepEnemyToward(
+      { position: { x: 10, y: 0, z: 0 } },
+      { x: 0, z: 0 },
+      6,
+      1,
+      2,
+      bounds
+    );
+    expect(roomy.moved).toBe(true);
+    expect(roomy.position.x).toBeCloseTo(4);
+    expect(Math.abs(roomy.heading)).toBeCloseTo(Math.PI);
+
+    const close = stepEnemyToward(
+      { position: { x: 1, y: 0, z: 0 } },
+      { x: 0, z: 0 },
+      6,
+      1,
+      2,
+      bounds
+    );
+    expect(close.moved).toBe(false);
+    expect(close.position.x).toBe(1);
+  });
+});
