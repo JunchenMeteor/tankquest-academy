@@ -82,8 +82,6 @@ describe('shared contracts', () => {
         armor: 3,
         stealth: 3,
         vision: 3,
-        accuracy: 3,
-        turretTraverse: 3,
         accuracy: 5,
         turretTraverse: 1,
       }).turretTraverse
