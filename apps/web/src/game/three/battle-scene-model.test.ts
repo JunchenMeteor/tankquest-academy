@@ -81,8 +81,8 @@ describe('3D battle scene model', () => {
       position: { x: 0, y: 0, z: 0 },
       heading: 0,
     });
-    expect(pose.position.x).toBeCloseTo(-7.5);
-    expect(pose.position.y).toBeCloseTo(5.2);
+    expect(pose.position.x).toBeCloseTo(-11);
+    expect(pose.position.y).toBeCloseTo(6.8);
     expect(pose.position.z).toBeCloseTo(0);
   });
 

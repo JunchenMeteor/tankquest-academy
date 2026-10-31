@@ -330,7 +330,7 @@ export function ActiveTraining({
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('renderer') === '3d';
   return (
-    <>
+    <div className="battle-layout" data-layout={use3DBattle ? '3d' : 'inline'}>
       <div className="battle-briefing">
         <div className="briefing-head">
           <span className="briefing-level">
@@ -463,7 +463,7 @@ export function ActiveTraining({
         />
       )}
       <p className="controls">{t('battle.controls')}</p>
-    </>
+    </div>
   );
 }
 
