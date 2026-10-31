@@ -18,6 +18,7 @@ export interface CombatState {
   shotsFired: number;
   nextShellId: number;
   cooldownMs: number;
+  ammo: number;
 }
 
 export const SHELL_SPEED = 42;
@@ -25,15 +26,33 @@ export const SHELL_RANGE = 30;
 export const SHELL_RADIUS = 0.55;
 export const FIRE_COOLDOWN_MS = 900;
 export const ENEMY_HIT_RADIUS = 1.6;
+export const MAX_AMMO = 5;
+export const WRONG_ANSWER_PENALTY_MS = 2500;
 
-export function createCombatState(enemyCount: number): CombatState {
+export function createCombatState(enemyCount: number, ammo = 1): CombatState {
   return {
     shells: [],
     enemiesRemaining: enemyCount,
     shotsFired: 0,
     nextShellId: 1,
     cooldownMs: 0,
+    ammo: Math.min(MAX_AMMO, Math.max(0, ammo)),
   };
+}
+
+/** A correct answer loads the reward the backend granted, capped by the magazine. */
+export function loadAmmo(state: CombatState, amount: number): CombatState {
+  if (amount <= 0) return state;
+  return { ...state, ammo: Math.min(MAX_AMMO, state.ammo + amount) };
+}
+
+/** A wrong answer costs time rather than a round, so the child can keep trying. */
+export function applyWrongAnswer(state: CombatState): CombatState {
+  return { ...state, cooldownMs: state.cooldownMs + WRONG_ANSWER_PENALTY_MS };
+}
+
+export function canFire(state: CombatState): boolean {
+  return state.ammo > 0 && state.cooldownMs === 0;
 }
 
 /** Spawns a shell from the turret tip so it does not start inside the hull. */
@@ -55,6 +74,7 @@ export function spawnShell(
     shotsFired: state.shotsFired + 1,
     nextShellId: state.nextShellId + 1,
     cooldownMs: FIRE_COOLDOWN_MS,
+    ammo: Math.max(0, state.ammo - 1),
   };
 }
 

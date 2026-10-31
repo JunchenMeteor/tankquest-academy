@@ -34,8 +34,12 @@ import {
 } from './battle-scene-model.js';
 import { driveCommand, normaliseAngle } from './battle-input.js';
 import {
+  MAX_AMMO,
   advanceShells,
+  applyWrongAnswer,
+  canFire,
   createCombatState,
+  loadAmmo,
   muzzlePoint,
   spawnShell,
   tickCooldown,
@@ -47,6 +51,8 @@ import type { RuntimeLevelConfig } from '../runtime/types.js';
 export interface Battle3DHandle {
   setMode(mode: CameraMode): void;
   getMode(): CameraMode;
+  /** Applies a graded answer: rewarded ammo on a hit, a reload penalty otherwise. */
+  applyAnswer(correct: boolean, reward: number): void;
   dispose(): void;
 }
 
@@ -199,7 +205,8 @@ export function createBattleView(
   host: HTMLElement,
   config: RuntimeLevelConfig,
   input?: GameInputController,
-  onState?: (state: RuntimeState) => void
+  onState?: (state: RuntimeState) => void,
+  onAmmo?: (ammo: number, max: number) => void
 ): Battle3DHandle {
   const layout = buildSceneLayout(config);
   const scene = new Scene();
@@ -245,7 +252,7 @@ export function createBattleView(
     roughness: 0.4,
   });
   const shellMeshes = new Map<number, Mesh>();
-  let combat = createCombatState(layout.enemies.length);
+  let combat = createCombatState(layout.enemies.length, 1);
   const totalEnemies = layout.enemies.length;
   let destroyedCount = 0;
 
@@ -263,6 +270,7 @@ export function createBattleView(
     });
   };
   publish();
+  onAmmo?.(combat.ammo, MAX_AMMO);
 
   const camera = new PerspectiveCamera(60, 1, 0.1, 300);
   const state = {
@@ -329,7 +337,7 @@ export function createBattleView(
       }
 
       combat = tickCooldown(combat, delta);
-      if (combat.cooldownMs === 0 && input.consumeFireRequest()) {
+      if (canFire(combat) && input.consumeFireRequest()) {
         const muzzle = muzzlePoint(
           { x: state.position.x, z: state.position.z },
           state.heading,
@@ -338,6 +346,7 @@ export function createBattleView(
         );
         combat = spawnShell(combat, muzzle, state.heading + state.turret);
         publish();
+        onAmmo?.(combat.ammo, MAX_AMMO);
       }
 
       if (combat.shells.length > 0) {
@@ -385,6 +394,10 @@ export function createBattleView(
     setMode(mode) {
       state.mode = mode;
       applyCamera();
+    },
+    applyAnswer(correct, reward) {
+      combat = correct ? loadAmmo(combat, reward) : applyWrongAnswer(combat);
+      onAmmo?.(combat.ammo, MAX_AMMO);
     },
     getMode() {
       return state.mode;

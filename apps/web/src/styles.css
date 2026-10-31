@@ -1384,3 +1384,21 @@ body {
   font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
+
+.battle-ammo {
+  position: absolute;
+  left: 50%;
+  bottom: 74px;
+  transform: translateX(-50%);
+  z-index: 3;
+  margin: 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 148, 164, 0.24);
+  background: rgba(16, 23, 28, 0.92);
+  color: var(--theme-text);
+  font-family: var(--theme-mono, ui-monospace, monospace);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}

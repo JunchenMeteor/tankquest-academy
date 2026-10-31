@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  MAX_AMMO,
   advanceShells,
+  applyWrongAnswer,
+  canFire,
   createCombatState,
+  loadAmmo,
   muzzlePoint,
   spawnShell,
   tickCooldown,
@@ -34,6 +38,29 @@ describe('3D battle combat', () => {
     expect(halfTick.cooldownMs).toBeGreaterThan(0);
     const done = tickCooldown(halfTick, 0.6);
     expect(done.cooldownMs).toBe(0);
+  });
+
+  it('loads rewarded ammo up to the magazine cap', () => {
+    const base = createCombatState(1, 0);
+    expect(loadAmmo(base, 2).ammo).toBe(2);
+    expect(loadAmmo(loadAmmo(base, 4), 4).ammo).toBe(MAX_AMMO);
+    expect(loadAmmo(base, 0)).toBe(base);
+  });
+
+  it('blocks firing without ammo and spends a round when firing', () => {
+    const empty = createCombatState(1, 0);
+    expect(canFire(empty)).toBe(false);
+    const loaded = createCombatState(1, 1);
+    expect(canFire(loaded)).toBe(true);
+    const fired = spawnShell(loaded, { x: 0, z: 0 }, 0);
+    expect(fired.ammo).toBe(0);
+    expect(canFire(fired)).toBe(false);
+  });
+
+  it('adds a reload penalty for a wrong answer', () => {
+    const punished = applyWrongAnswer(createCombatState(1, 1));
+    expect(punished.cooldownMs).toBeGreaterThan(0);
+    expect(canFire(punished)).toBe(false);
   });
 
   it('spawns the shell at the muzzle along the aiming angle', () => {

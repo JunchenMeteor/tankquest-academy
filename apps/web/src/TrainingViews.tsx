@@ -425,7 +425,11 @@ export function ActiveTraining({
       </div>
       {use3DBattle ? (
         <Suspense fallback={<div className="game-canvas" />}>
-          <Battle3DCanvas config={config} onState={onRuntime} />
+          <Battle3DCanvas
+            config={config}
+            onState={onRuntime}
+            answer={feedback}
+          />
         </Suspense>
       ) : (
         <GameCanvas config={config} onState={onRuntime} />

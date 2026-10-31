@@ -5,18 +5,25 @@ import { GameInputController } from '../input/GameInputController.js';
 import { keyToCommand } from './battle-input.js';
 import { TouchControls } from '../input/TouchControls.js';
 import { useI18n } from '../../i18n/I18nProvider.js';
+import type { SubmitAnswerResponse } from '@tankquest/shared';
+
 import type { RuntimeLevelConfig, RuntimeState } from '../runtime/types.js';
 
 interface Battle3DCanvasProps {
   config: RuntimeLevelConfig;
   onState: (state: RuntimeState) => void;
+  answer?: SubmitAnswerResponse | null;
 }
 
 /**
  * Mounts the Three.js battle view and exposes the camera toggle.
  * Session, learning and reward rules stay in the existing React/Phaser pipeline.
  */
-export function Battle3DCanvas({ config, onState }: Battle3DCanvasProps) {
+export function Battle3DCanvas({
+  config,
+  onState,
+  answer,
+}: Battle3DCanvasProps) {
   const { t } = useI18n();
   const hostRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<Battle3DHandle | null>(null);
@@ -24,10 +31,17 @@ export function Battle3DCanvas({ config, onState }: Battle3DCanvasProps) {
   inputRef.current ??= new GameInputController();
   const input = inputRef.current;
   const [mode, setMode] = useState<'third' | 'first'>('third');
+  const [ammo, setAmmo] = useState({ current: 1, max: 5 });
 
   useEffect(() => {
     if (!hostRef.current) return;
-    const view = createBattleView(hostRef.current, config, input, onState);
+    const view = createBattleView(
+      hostRef.current,
+      config,
+      input,
+      onState,
+      (current, max) => setAmmo({ current, max })
+    );
     viewRef.current = view;
     return () => {
       view.dispose();
@@ -38,6 +52,11 @@ export function Battle3DCanvas({ config, onState }: Battle3DCanvasProps) {
   useEffect(() => {
     viewRef.current?.setMode(mode);
   }, [mode]);
+
+  useEffect(() => {
+    if (!answer) return;
+    viewRef.current?.applyAnswer(answer.correct, answer.resourceReward.amount);
+  }, [answer]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -67,6 +86,9 @@ export function Battle3DCanvas({ config, onState }: Battle3DCanvasProps) {
         data-scene-theme={config.theme}
         ref={hostRef}
       >
+        <p className="battle-ammo" role="status">
+          Ammo {ammo.current} / {ammo.max}
+        </p>
         <button
           type="button"
           className="battle-camera-toggle"
