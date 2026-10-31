@@ -36,6 +36,13 @@ export function deriveCombatStats(stats: TankStats): PlayerCombatRuntimeConfig {
     fireCooldownMs: 350 - (firepower - 3) * 35,
     detectionRange: 280 + (vision - 3) * 35,
     visibilityMultiplier: 0.88 - (stealth - 3) * 0.06,
+    /* Turret traverse in radians per second: scouts swing faster than heavies. */
+    turretTraverseSpeed: 1.6 + (mobility - 3) * 0.35,
+    /* Dispersion radius in world units: a bigger gun is less forgiving. */
+    dispersionRadius: Math.max(
+      0.3,
+      0.85 + (firepower - 3) * 0.22 - (mobility - 3) * 0.06
+    ),
   };
 }
 

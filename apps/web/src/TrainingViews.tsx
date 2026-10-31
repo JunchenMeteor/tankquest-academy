@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import type {
   LevelDto,
   OwnedTankDto,
@@ -20,6 +21,12 @@ import {
   type ThemePreference,
   useTheme,
 } from './theme/ThemeProvider.js';
+
+const Battle3DCanvas = lazy(() =>
+  import('./game/three/Battle3DCanvas.js').then((module) => ({
+    default: module.Battle3DCanvas,
+  }))
+);
 
 export function AppHud({
   active,
@@ -318,13 +325,43 @@ export function ActiveTraining({
   onRuntime: (state: RuntimeState) => void;
 }) {
   const { t } = useI18n();
+  /* Opt-in renderer switch so the Phaser scene stays the default until the 3D view is signed off. */
+  const use3DBattle =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('renderer') === '3d';
   return (
-    <>
+    <div className="battle-layout" data-layout={use3DBattle ? '3d' : 'inline'}>
       <div className="battle-briefing">
         <div className="briefing-head">
           <span className="briefing-level">
             {contentName(session.level.code, t)}
           </span>
+          <dl className="briefing-live">
+            <div
+              data-health={
+                runtime.playerHealth / runtime.playerMaxHealth <= 0.35
+                  ? 'low'
+                  : 'normal'
+              }
+            >
+              <dt>{t('hud.health')}</dt>
+              <dd>{runtime.playerHealth}</dd>
+            </div>
+            <div>
+              <dt>{t('hud.tanks')}</dt>
+              <dd>{runtime.enemiesRemaining}</dd>
+            </div>
+            <div>
+              <dt>{t('hud.shots')}</dt>
+              <dd>{runtime.shotsFired}</dd>
+            </div>
+            <div>
+              <dt>{t('hud.objective')}</dt>
+              <dd>
+                {runtime.objectiveCurrent}/{runtime.objectiveTarget}
+              </dd>
+            </div>
+          </dl>
           <dl className="briefing-stats">
             {(
               [
@@ -396,7 +433,17 @@ export function ActiveTraining({
           ))}
         </div>
       </div>
-      <GameCanvas config={config} onState={onRuntime} />
+      {use3DBattle ? (
+        <Suspense fallback={<div className="game-canvas" />}>
+          <Battle3DCanvas
+            config={config}
+            onState={onRuntime}
+            answer={feedback}
+          />
+        </Suspense>
+      ) : (
+        <GameCanvas config={config} onState={onRuntime} />
+      )}
       {runtime.playerDestroyed ? (
         <section className="battle-alert" aria-live="assertive">
           <p className="eyebrow">{t('battle.paused')}</p>
@@ -446,7 +493,7 @@ export function ActiveTraining({
         />
       )}
       <p className="controls">{t('battle.controls')}</p>
-    </>
+    </div>
   );
 }
 
@@ -475,6 +522,9 @@ function LearningConsole({
   return (
     <section className="learning-console" aria-live="polite">
       <p className="eyebrow">
+        <span className={`question-subject subject-${currentQuestion.subject}`}>
+          {t(`subject.${currentQuestion.subject}`)}
+        </span>
         {t('learning.challenge', {
           current: questionIndex + 1,
           total: questionCount,
