@@ -512,6 +512,9 @@ function LearningConsole({
   return (
     <section className="learning-console" aria-live="polite">
       <p className="eyebrow">
+        <span className={`question-subject subject-${currentQuestion.subject}`}>
+          {t(`subject.${currentQuestion.subject}`)}
+        </span>
         {t('learning.challenge', {
           current: questionIndex + 1,
           total: questionCount,
