@@ -75,7 +75,10 @@ export function buildSceneLayout(config: RuntimeLevelConfig): SceneLayout {
   const spawn = toWorld(
     config.playerSpawn.x,
     config.playerSpawn.y,
-    elevation(config.playerSpawn.x / FIELD_SCALE, config.playerSpawn.y / FIELD_SCALE)
+    elevation(
+      config.playerSpawn.x / FIELD_SCALE,
+      config.playerSpawn.y / FIELD_SCALE
+    )
   );
 
   const nearest = config.enemies[0];
@@ -128,7 +131,10 @@ export function buildSceneLayout(config: RuntimeLevelConfig): SceneLayout {
   }));
 
   return {
-    ground: { width: config.width / FIELD_SCALE, depth: config.height / FIELD_SCALE },
+    ground: {
+      width: config.width / FIELD_SCALE,
+      depth: config.height / FIELD_SCALE,
+    },
     player,
     enemies,
     blocks,

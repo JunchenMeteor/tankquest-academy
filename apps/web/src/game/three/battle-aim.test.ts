@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { aimYaw, dispersionOffset, rotateTowards, scatterAimPoint } from './battle-aim.js';
+import {
+  aimYaw,
+  dispersionOffset,
+  rotateTowards,
+  scatterAimPoint,
+} from './battle-aim.js';
 
 describe('3D battle aiming', () => {
   it('points at a target with the same convention as the hull heading', () => {

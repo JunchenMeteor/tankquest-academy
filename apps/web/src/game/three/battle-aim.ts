@@ -5,7 +5,10 @@
 import { normaliseAngle } from './battle-input.js';
 
 /** Heading that points from `from` to `to`, matching the world convention. */
-export function aimYaw(from: { x: number; z: number }, to: { x: number; z: number }): number {
+export function aimYaw(
+  from: { x: number; z: number },
+  to: { x: number; z: number }
+): number {
   return Math.atan2(-(to.z - from.z), to.x - from.x);
 }
 
@@ -13,7 +16,11 @@ export function aimYaw(from: { x: number; z: number }, to: { x: number; z: numbe
  * Turns `current` toward `target` by at most `maxStep` radians, taking the
  * shorter way round. Returns the normalised result.
  */
-export function rotateTowards(current: number, target: number, maxStep: number): number {
+export function rotateTowards(
+  current: number,
+  target: number,
+  maxStep: number
+): number {
   if (!(maxStep > 0)) return normaliseAngle(current);
   const delta = normaliseAngle(target - current);
   if (Math.abs(delta) <= maxStep) return normaliseAngle(target);
