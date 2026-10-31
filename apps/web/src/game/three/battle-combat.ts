@@ -36,14 +36,14 @@ export interface CombatState {
 }
 
 export const SHELL_SPEED = 42;
-export const SHELL_RANGE = 30;
+export const SHELL_RANGE = 46;
 export const SHELL_RADIUS = 0.55;
 export const FIRE_COOLDOWN_MS = 900;
 export const ENEMY_HIT_RADIUS = 1.6;
 export const MAX_AMMO = 5;
 export const WRONG_ANSWER_PENALTY_MS = 2500;
 export const ENEMY_FIRE_INTERVAL_MS = 3200;
-export const ENEMY_FIRE_RANGE = 22;
+export const ENEMY_FIRE_RANGE = 34;
 export const PLAYER_HIT_RADIUS = 1.7;
 
 export function createCombatState(

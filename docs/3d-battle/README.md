@@ -17,7 +17,14 @@ scene is untouched, so removing the query string returns to the 2D view.
 - Information lives on the sides: mission and live counters on the left,
   the graded question on the right.
 - Camera toggle (`V` or the button under the view): chase camera behind the hull,
-  or a first-person camera on the turret roof following the turret aim.
+  or a first-person camera on the turret roof following the view.
+- Aiming follows the pointer in third person and the view direction in first
+  person. Holding the right mouse button locks the turret so the camera can look
+  around; releasing eases the view back behind the hull.
+- Turret traverse speed comes from mobility (`turretTraverseSpeed`), so scouts
+  swing faster than heavies.
+- Every shot scatters: the shell lands anywhere inside a circle whose radius is
+  the tank's `dispersionRadius` (bigger guns scatter more), sampled evenly.
 - Driving uses the same input controller as the Phaser scene (`WASD`, arrows, on
   screen touch controls).
 - Firing spends a round from a five-round magazine. A correct answer loads the

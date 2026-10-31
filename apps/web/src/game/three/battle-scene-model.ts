@@ -57,9 +57,15 @@ const ROLE_SHAPES = {
 
 const PLAYER_HULL: [number, number, number] = [3.6, 1.05, 2.1];
 
+/**
+ * Field pixels per world unit. Smaller values stretch the battlefield, so the
+ * field spans more tank lengths without shrinking the tanks themselves.
+ */
+export const FIELD_SCALE = 26;
+
 /** Converts field coordinates (top-down, y down) into world coordinates (y up). */
 export function toWorld(x: number, y: number, height = 0): Vec3 {
-  return { x: x / 40, y: height, z: y / 40 };
+  return { x: x / FIELD_SCALE, y: height, z: y / FIELD_SCALE };
 }
 
 export function buildSceneLayout(config: RuntimeLevelConfig): SceneLayout {
@@ -69,7 +75,10 @@ export function buildSceneLayout(config: RuntimeLevelConfig): SceneLayout {
   const spawn = toWorld(
     config.playerSpawn.x,
     config.playerSpawn.y,
-    elevation(config.playerSpawn.x / 40, config.playerSpawn.y / 40)
+    elevation(
+      config.playerSpawn.x / FIELD_SCALE,
+      config.playerSpawn.y / FIELD_SCALE
+    )
   );
 
   const nearest = config.enemies[0];
@@ -115,14 +124,17 @@ export function buildSceneLayout(config: RuntimeLevelConfig): SceneLayout {
   const blocks = config.obstacles.map((obstacle) => ({
     position: toWorld(obstacle.x, obstacle.y, 0.55),
     size: [
-      Math.max(1, obstacle.width / 40),
+      Math.max(1, obstacle.width / FIELD_SCALE),
       1.1,
-      Math.max(1, obstacle.height / 40),
+      Math.max(1, obstacle.height / FIELD_SCALE),
     ] as [number, number, number],
   }));
 
   return {
-    ground: { width: config.width / 40, depth: config.height / 40 },
+    ground: {
+      width: config.width / FIELD_SCALE,
+      depth: config.height / FIELD_SCALE,
+    },
     player,
     enemies,
     blocks,
@@ -143,7 +155,8 @@ export interface CameraPose {
 export function cameraPose(
   mode: CameraMode,
   player: Pick<TankPlacement, 'position' | 'heading'>,
-  lookOffset = 0
+  lookOffset = 0,
+  pitch = 0
 ): CameraPose {
   const heading = player.heading + lookOffset;
   if (mode === 'first') {
@@ -151,7 +164,7 @@ export function cameraPose(
       position: { x: player.position.x, y: 2.75, z: player.position.z },
       target: {
         x: player.position.x + Math.cos(heading) * 20,
-        y: 1.6,
+        y: 1.6 + Math.tan(pitch) * 20,
         z: player.position.z - Math.sin(heading) * 20,
       },
     };

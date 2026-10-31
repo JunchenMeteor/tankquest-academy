@@ -24,6 +24,10 @@ export interface PlayerCombatRuntimeConfig {
   fireCooldownMs: number;
   detectionRange: number;
   visibilityMultiplier: number;
+  /** Turret traverse in radians per second. */
+  turretTraverseSpeed: number;
+  /** Radius of the shell impact circle in world units. */
+  dispersionRadius: number;
 }
 
 export interface PlayerRuntimeConfig extends PlayerCombatRuntimeConfig {
