@@ -15,6 +15,7 @@ import {
   HemisphereLight,
   Mesh,
   MeshStandardMaterial,
+  SphereGeometry,
   PCFSoftShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
@@ -32,7 +33,15 @@ import {
   type TankPlacement,
 } from './battle-scene-model.js';
 import { driveCommand, normaliseAngle } from './battle-input.js';
+import {
+  advanceShells,
+  createCombatState,
+  muzzlePoint,
+  spawnShell,
+  tickCooldown,
+} from './battle-combat.js';
 import type { GameInputController } from '../input/GameInputController.js';
+import type { RuntimeState } from '../runtime/types.js';
 import type { RuntimeLevelConfig } from '../runtime/types.js';
 
 export interface Battle3DHandle {
@@ -189,7 +198,8 @@ function buildGround(layout: SceneLayout): Group {
 export function createBattleView(
   host: HTMLElement,
   config: RuntimeLevelConfig,
-  input?: GameInputController
+  input?: GameInputController,
+  onState?: (state: RuntimeState) => void
 ): Battle3DHandle {
   const layout = buildSceneLayout(config);
   const scene = new Scene();
@@ -221,9 +231,38 @@ export function createBattleView(
   const playerRig = buildTank(layout.player, true);
   const playerMesh = playerRig.root;
   scene.add(playerMesh);
+  const enemyRoots = new Map<string, Group>();
   for (const enemy of layout.enemies) {
-    scene.add(buildTank(enemy, false).root);
+    const rig = buildTank(enemy, false);
+    enemyRoots.set(enemy.id, rig.root);
+    scene.add(rig.root);
   }
+
+  const shellGeometry = new SphereGeometry(0.16, 8, 8);
+  const shellMaterial = new MeshStandardMaterial({
+    color: 0xffd27a,
+    emissive: 0x8a5a12,
+    roughness: 0.4,
+  });
+  const shellMeshes = new Map<number, Mesh>();
+  let combat = createCombatState(layout.enemies.length);
+  const totalEnemies = layout.enemies.length;
+  let destroyedCount = 0;
+
+  const publish = () => {
+    onState?.({
+      enemiesRemaining: combat.enemiesRemaining,
+      shotsFired: combat.shotsFired,
+      playerHealth: config.player.maxHealth,
+      playerMaxHealth: config.player.maxHealth,
+      playerDestroyed: false,
+      objectiveComplete: destroyedCount >= totalEnemies,
+      objectiveType: 'eliminate',
+      objectiveCurrent: destroyedCount,
+      objectiveTarget: totalEnemies,
+    });
+  };
+  publish();
 
   const camera = new PerspectiveCamera(60, 1, 0.1, 300);
   const state = {
@@ -287,6 +326,51 @@ export function createBattleView(
           state.turret + command.turret * 1.8 * delta
         );
         playerRig.turret.rotation.y = state.turret;
+      }
+
+      combat = tickCooldown(combat, delta);
+      if (combat.cooldownMs === 0 && input.consumeFireRequest()) {
+        const muzzle = muzzlePoint(
+          { x: state.position.x, z: state.position.z },
+          state.heading,
+          state.turret,
+          layout.player.barrelLength
+        );
+        combat = spawnShell(combat, muzzle, state.heading + state.turret);
+        publish();
+      }
+
+      if (combat.shells.length > 0) {
+        const alive = layout.enemies.filter((enemy) =>
+          enemyRoots.has(enemy.id)
+        );
+        const result = advanceShells(combat, delta, alive);
+        combat = result.state;
+        for (const id of result.destroyed) {
+          const root = enemyRoots.get(id);
+          if (root) {
+            scene.remove(root);
+            enemyRoots.delete(id);
+          }
+          destroyedCount += 1;
+        }
+        if (result.destroyed.length > 0) publish();
+      }
+    }
+
+    for (const shell of combat.shells) {
+      let mesh = shellMeshes.get(shell.id);
+      if (!mesh) {
+        mesh = new Mesh(shellGeometry, shellMaterial);
+        shellMeshes.set(shell.id, mesh);
+        scene.add(mesh);
+      }
+      mesh.position.set(shell.x, 0.9, shell.z);
+    }
+    for (const [id, mesh] of shellMeshes) {
+      if (!combat.shells.some((shell) => shell.id === id)) {
+        scene.remove(mesh);
+        shellMeshes.delete(id);
       }
     }
     applyCamera();

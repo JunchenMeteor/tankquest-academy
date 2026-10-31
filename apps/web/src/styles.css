@@ -1353,3 +1353,34 @@ body {
     bottom: 12px;
   }
 }
+
+.briefing-live {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.briefing-live > div {
+  display: grid;
+  gap: 0.05rem;
+  padding: 0.28rem 0.55rem;
+  border: 1px solid var(--theme-border);
+  border-radius: 10px;
+  background: var(--theme-muted-surface);
+  text-align: center;
+}
+
+.briefing-live dt {
+  font-family: var(--theme-mono, ui-monospace, monospace);
+  font-size: 0.5rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--theme-muted);
+}
+
+.briefing-live dd {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
