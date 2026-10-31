@@ -26,16 +26,14 @@ import {
 import {
   buildSceneLayout,
   cameraPose,
+  stepTank,
   type CameraMode,
   type SceneLayout,
   type TankPlacement,
 } from './battle-scene-model.js';
+import { driveCommand, normaliseAngle } from './battle-input.js';
+import type { GameInputController } from '../input/GameInputController.js';
 import type { RuntimeLevelConfig } from '../runtime/types.js';
-
-export interface Battle3DInput {
-  forward: () => number;
-  turn: () => number;
-}
 
 export interface Battle3DHandle {
   setMode(mode: CameraMode): void;
@@ -45,8 +43,12 @@ export interface Battle3DHandle {
 
 const TRACK_COLOR = 0x1a201d;
 
-function buildTank(placement: TankPlacement, isPlayer: boolean): Group {
+function buildTank(
+  placement: TankPlacement,
+  isPlayer: boolean
+): { root: Group; turret: Group } {
   const group = new Group();
+  const turretGroup = new Group();
   const body = new MeshStandardMaterial({
     color: placement.color,
     roughness: 0.5,
@@ -104,7 +106,7 @@ function buildTank(placement: TankPlacement, isPlayer: boolean): Group {
   );
   turret.position.y = hullHeight + 0.58;
   turret.castShadow = true;
-  group.add(turret);
+  turretGroup.add(turret);
 
   const gun = new Mesh(
     new CylinderGeometry(0.11, 0.13, placement.barrelLength, 10),
@@ -117,7 +119,7 @@ function buildTank(placement: TankPlacement, isPlayer: boolean): Group {
     0
   );
   gun.castShadow = true;
-  group.add(gun);
+  turretGroup.add(gun);
 
   const brake = new Mesh(new CylinderGeometry(0.19, 0.19, 0.42, 10), dark);
   brake.rotation.z = Math.PI / 2;
@@ -127,7 +129,7 @@ function buildTank(placement: TankPlacement, isPlayer: boolean): Group {
     0
   );
   brake.castShadow = true;
-  group.add(brake);
+  turretGroup.add(brake);
 
   group.position.set(
     placement.position.x,
@@ -136,7 +138,9 @@ function buildTank(placement: TankPlacement, isPlayer: boolean): Group {
   );
   group.rotation.y = placement.heading;
   group.userData.isPlayer = isPlayer;
-  return group;
+  turretGroup.position.y = 0;
+  group.add(turretGroup);
+  return { root: group, turret: turretGroup };
 }
 
 function buildGround(layout: SceneLayout): Group {
@@ -184,7 +188,8 @@ function buildGround(layout: SceneLayout): Group {
 
 export function createBattleView(
   host: HTMLElement,
-  config: RuntimeLevelConfig
+  config: RuntimeLevelConfig,
+  input?: GameInputController
 ): Battle3DHandle {
   const layout = buildSceneLayout(config);
   const scene = new Scene();
@@ -213,10 +218,11 @@ export function createBattleView(
   const ground = buildGround(layout);
   scene.add(ground);
 
-  const playerMesh = buildTank(layout.player, true);
+  const playerRig = buildTank(layout.player, true);
+  const playerMesh = playerRig.root;
   scene.add(playerMesh);
   for (const enemy of layout.enemies) {
-    scene.add(buildTank(enemy, false));
+    scene.add(buildTank(enemy, false).root);
   }
 
   const camera = new PerspectiveCamera(60, 1, 0.1, 300);
@@ -224,6 +230,7 @@ export function createBattleView(
     mode: 'third' as CameraMode,
     heading: layout.player.heading,
     position: { ...layout.player.position },
+    turret: 0,
   };
 
   const resize = () => {
@@ -242,7 +249,11 @@ export function createBattleView(
   observer?.observe(host);
 
   const applyCamera = () => {
-    const pose = cameraPose(state.mode, state);
+    const pose = cameraPose(
+      state.mode,
+      state,
+      state.mode === 'first' ? state.turret : 0
+    );
     camera.position.set(pose.position.x, pose.position.y, pose.position.z);
     camera.lookAt(new Vector3(pose.target.x, pose.target.y, pose.target.z));
     playerMesh.visible = state.mode !== 'first';
@@ -253,7 +264,31 @@ export function createBattleView(
   const loop = (now: number) => {
     const delta = Math.min(0.05, (now - previous) / 1000);
     previous = now;
-    void delta;
+    if (input) {
+      const command = driveCommand(input.snapshot());
+      const next = stepTank(
+        state,
+        { forward: command.forward, turn: command.turn },
+        delta,
+        layout
+      );
+      if (next.heading !== state.heading || next.position !== state.position) {
+        state.heading = next.heading;
+        state.position = next.position;
+        playerMesh.position.set(
+          next.position.x,
+          next.position.y,
+          next.position.z
+        );
+        playerMesh.rotation.y = next.heading;
+      }
+      if (command.turret !== 0) {
+        state.turret = normaliseAngle(
+          state.turret + command.turret * 1.8 * delta
+        );
+        playerRig.turret.rotation.y = state.turret;
+      }
+    }
     applyCamera();
     renderer.render(scene, camera);
     frame = requestAnimationFrame(loop);
