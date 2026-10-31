@@ -188,8 +188,8 @@ export function createBattleView(
 ): Battle3DHandle {
   const layout = buildSceneLayout(config);
   const scene = new Scene();
-  scene.background = new Color(0x16211b);
-  scene.fog = new Fog(0x16211b, 60, 140);
+  scene.background = new Color(0x1c2a22);
+  scene.fog = new Fog(0x1c2a22, 70, 160);
 
   const renderer = new WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio ?? 1, 2));
@@ -198,7 +198,7 @@ export function createBattleView(
   renderer.domElement.dataset.renderMode = '3d';
   host.appendChild(renderer.domElement);
 
-  const key = new DirectionalLight(0xfff1c9, 3.4);
+  const key = new DirectionalLight(0xfff4d6, 4.2);
   key.position.set(-14, 18, 10);
   key.castShadow = true;
   key.shadow.mapSize.set(1024, 1024);
@@ -207,8 +207,8 @@ export function createBattleView(
   key.shadow.camera.top = 30;
   key.shadow.camera.bottom = -30;
   scene.add(key);
-  scene.add(new HemisphereLight(0xbcd6ff, 0x4a4030, 1.15));
-  scene.add(new AmbientLight(0xffffff, 0.3));
+  scene.add(new HemisphereLight(0xcfe0ff, 0x5a4c36, 1.6));
+  scene.add(new AmbientLight(0xffffff, 0.45));
 
   const ground = buildGround(layout);
   scene.add(ground);
@@ -229,12 +229,17 @@ export function createBattleView(
   const resize = () => {
     const width = host.clientWidth || 960;
     const height = host.clientHeight || 540;
-    renderer.setSize(width, height, false);
+    renderer.setSize(width, height);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
   };
   resize();
   globalThis.addEventListener('resize', resize);
+  const observer =
+    typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(() => resize());
+  observer?.observe(host);
 
   const applyCamera = () => {
     const pose = cameraPose(state.mode, state);
@@ -268,6 +273,7 @@ export function createBattleView(
     dispose() {
       cancelAnimationFrame(frame);
       globalThis.removeEventListener('resize', resize);
+      observer?.disconnect();
       renderer.dispose();
       renderer.domElement.remove();
     },

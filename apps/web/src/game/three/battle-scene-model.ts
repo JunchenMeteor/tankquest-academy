@@ -72,12 +72,20 @@ export function buildSceneLayout(config: RuntimeLevelConfig): SceneLayout {
     elevation(config.playerSpawn.x / 40, config.playerSpawn.y / 40)
   );
 
+  const nearest = config.enemies[0];
+  const heading = nearest
+    ? Math.atan2(
+        -(toWorld(nearest.x, nearest.y).z - spawn.z),
+        toWorld(nearest.x, nearest.y).x - spawn.x
+      )
+    : -Math.PI / 2;
+
   const player: TankPlacement = {
     id: 'player',
     role: 'medium',
     elite: false,
     position: spawn,
-    heading: -Math.PI / 2,
+    heading,
     hull: PLAYER_HULL,
     turretRadius: 1,
     barrelLength: 2.6,
@@ -150,9 +158,9 @@ export function cameraPose(
   }
   return {
     position: {
-      x: player.position.x - Math.cos(heading) * 7.5,
-      y: 5.2,
-      z: player.position.z + Math.sin(heading) * 7.5,
+      x: player.position.x - Math.cos(heading) * 11,
+      y: 6.8,
+      z: player.position.z + Math.sin(heading) * 11,
     },
     target: {
       x: player.position.x + Math.cos(heading) * 7,
