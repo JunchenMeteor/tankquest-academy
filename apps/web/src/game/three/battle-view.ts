@@ -18,11 +18,8 @@ import {
   SphereGeometry,
   PCFSoftShadowMap,
   PerspectiveCamera,
-  Plane,
   PlaneGeometry,
-  Raycaster,
   Scene,
-  Vector2,
   Vector3,
   WebGLRenderer,
 } from 'three';
@@ -294,10 +291,6 @@ export function createBattleView(
   onAmmo?.(combat.ammo, MAX_AMMO);
 
   const camera = new PerspectiveCamera(60, 1, 0.1, 300);
-  const pointer = new Vector2(0, 0);
-  const raycaster = new Raycaster();
-  const aimPlane = new Plane(new Vector3(0, 1, 0), -0.6);
-  const aimPoint = new Vector3();
   const traverseSpeed = config.player.turretTraverseSpeed;
   const dispersion = config.player.dispersionRadius;
   let rightHeld = false;
@@ -322,9 +315,6 @@ export function createBattleView(
 
   const canvas = renderer.domElement;
   canvas.addEventListener('pointermove', (event) => {
-    const bounds = canvas.getBoundingClientRect();
-    pointer.x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
-    pointer.y = -((event.clientY - bounds.top) / bounds.height) * 2 + 1;
     /* The view always follows the mouse; the right button only freezes the gun. */
     camYaw -= event.movementX * 0.0035;
     camPitch = Math.max(
@@ -392,23 +382,10 @@ export function createBattleView(
       }
 
       /*
-       * The gun follows the view. Holding the right button freezes the turret so
-       * the camera can keep turning without dragging the barrel along.
+       * The gun follows the centre of the view, so the reticle is the aim point.
+       * Holding the right button freezes the turret while the camera keeps turning.
        */
-      let targetWorld: number | null = null;
-      if (!rightHeld) {
-        if (state.mode === 'third') {
-          raycaster.setFromCamera(pointer, camera);
-          targetWorld = raycaster.ray.intersectPlane(aimPlane, aimPoint)
-            ? aimYaw(
-                { x: state.position.x, z: state.position.z },
-                { x: aimPoint.x, z: aimPoint.z }
-              )
-            : camYaw;
-        } else {
-          targetWorld = camYaw;
-        }
-      }
+      const targetWorld: number | null = rightHeld ? null : camYaw;
 
       if (targetWorld !== null) {
         const localTarget = normaliseAngle(targetWorld - state.heading);
