@@ -2,7 +2,10 @@
  * Maps a raw input snapshot onto the drive and turret commands the 3D view needs.
  * Kept free of Three.js so the steering rules can be unit tested.
  */
-import type { GameInputSnapshot } from '../input/GameInputController.js';
+import type {
+  GameCommand,
+  GameInputSnapshot,
+} from '../input/GameInputController.js';
 
 export interface DriveCommand {
   forward: number;
@@ -25,4 +28,32 @@ export function normaliseAngle(radians: number): number {
     : wrapped < -Math.PI
       ? wrapped + Math.PI * 2
       : wrapped;
+}
+
+/** Maps a keyboard key onto the shared command set, or null when unused. */
+export function keyToCommand(key: string): GameCommand | null {
+  switch (key.toLowerCase()) {
+    case 'w':
+    case 'arrowup':
+      return 'move-forward';
+    case 's':
+    case 'arrowdown':
+      return 'move-backward';
+    case 'a':
+    case 'arrowleft':
+      return 'turn-left';
+    case 'd':
+    case 'arrowright':
+      return 'turn-right';
+    case 'q':
+      return 'aim-left';
+    case 'e':
+      return 'aim-right';
+    case ' ':
+    case 'space':
+    case 'spacebar':
+      return 'fire';
+    default:
+      return null;
+  }
 }

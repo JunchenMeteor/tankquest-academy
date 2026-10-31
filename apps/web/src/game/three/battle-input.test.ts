@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { driveCommand, normaliseAngle } from './battle-input.js';
+import { driveCommand, keyToCommand, normaliseAngle } from './battle-input.js';
 import type { GameInputSnapshot } from '../input/GameInputController.js';
 
 function snapshot(
@@ -40,6 +40,15 @@ describe('3D battle input mapping', () => {
       turn: 0,
       turret: 0,
     });
+  });
+
+  it('maps driving and firing keys onto shared commands', () => {
+    expect(keyToCommand('w')).toBe('move-forward');
+    expect(keyToCommand('ArrowDown')).toBe('move-backward');
+    expect(keyToCommand('a')).toBe('turn-left');
+    expect(keyToCommand('E')).toBe('aim-right');
+    expect(keyToCommand(' ')).toBe('fire');
+    expect(keyToCommand('z')).toBeNull();
   });
 
   it('normalises angles into the minus pi to pi range', () => {

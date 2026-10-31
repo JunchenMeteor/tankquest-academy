@@ -336,6 +336,22 @@ export function ActiveTraining({
           <span className="briefing-level">
             {contentName(session.level.code, t)}
           </span>
+          <dl className="briefing-live">
+            <div>
+              <dt>{t('hud.tanks')}</dt>
+              <dd>{runtime.enemiesRemaining}</dd>
+            </div>
+            <div>
+              <dt>{t('hud.shots')}</dt>
+              <dd>{runtime.shotsFired}</dd>
+            </div>
+            <div>
+              <dt>{t('hud.objective')}</dt>
+              <dd>
+                {runtime.objectiveCurrent}/{runtime.objectiveTarget}
+              </dd>
+            </div>
+          </dl>
           <dl className="briefing-stats">
             {(
               [
@@ -409,7 +425,7 @@ export function ActiveTraining({
       </div>
       {use3DBattle ? (
         <Suspense fallback={<div className="game-canvas" />}>
-          <Battle3DCanvas config={config} />
+          <Battle3DCanvas config={config} onState={onRuntime} />
         </Suspense>
       ) : (
         <GameCanvas config={config} onState={onRuntime} />
