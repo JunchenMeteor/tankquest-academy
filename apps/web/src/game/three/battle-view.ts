@@ -18,8 +18,11 @@ import {
   SphereGeometry,
   PCFSoftShadowMap,
   PerspectiveCamera,
+  Plane,
   PlaneGeometry,
+  Raycaster,
   Scene,
+  Vector2,
   Vector3,
   WebGLRenderer,
 } from 'three';
@@ -33,8 +36,10 @@ import {
   type TankPlacement,
 } from './battle-scene-model.js';
 import { driveCommand, normaliseAngle } from './battle-input.js';
+import { aimYaw, rotateTowards, scatterAimPoint } from './battle-aim.js';
 import {
   MAX_AMMO,
+  SHELL_RANGE,
   advanceEnemyFire,
   advanceEnemyShells,
   advanceShells,
@@ -163,12 +168,10 @@ function buildTank(
 
 function buildGround(layout: SceneLayout): Group {
   const ground = new Group();
-  const geometry = new PlaneGeometry(
-    layout.ground.width,
-    layout.ground.depth,
-    48,
-    48
-  );
+  /* The visible ground runs past the playable bounds so the edge never shows. */
+  const visualWidth = layout.ground.width * 2.4;
+  const visualDepth = layout.ground.depth * 2.4;
+  const geometry = new PlaneGeometry(visualWidth, visualDepth, 64, 64);
   const attribute = geometry.getAttribute('position');
   for (let index = 0; index < attribute.count; index += 1) {
     const x = attribute.getX(index);
@@ -185,7 +188,7 @@ function buildGround(layout: SceneLayout): Group {
   floor.receiveShadow = true;
   ground.add(floor);
 
-  const grid = new GridHelper(layout.ground.width, 60, 0x8d9a63, 0x7b8757);
+  const grid = new GridHelper(visualWidth, 90, 0x8d9a63, 0x7b8757);
   grid.material.opacity = 0.22;
   grid.material.transparent = true;
   grid.position.y = 0.04;
@@ -286,6 +289,16 @@ export function createBattleView(
   onAmmo?.(combat.ammo, MAX_AMMO);
 
   const camera = new PerspectiveCamera(60, 1, 0.1, 300);
+  const pointer = new Vector2(0, 0);
+  const raycaster = new Raycaster();
+  const aimPlane = new Plane(new Vector3(0, 1, 0), -0.6);
+  const aimPoint = new Vector3();
+  const traverseSpeed = config.player.turretTraverseSpeed;
+  const dispersion = config.player.dispersionRadius;
+  let rightHeld = false;
+  let lookYaw = 0;
+  let viewYaw = layout.player.heading;
+  let viewPitch = 0;
   const state = {
     mode: 'third' as CameraMode,
     heading: layout.player.heading,
@@ -302,6 +315,28 @@ export function createBattleView(
   };
   resize();
   globalThis.addEventListener('resize', resize);
+
+  const canvas = renderer.domElement;
+  canvas.addEventListener('pointermove', (event) => {
+    const bounds = canvas.getBoundingClientRect();
+    pointer.x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
+    pointer.y = -((event.clientY - bounds.top) / bounds.height) * 2 + 1;
+    if (state.mode === 'first') {
+      viewYaw -= event.movementX * 0.003;
+      viewPitch = Math.max(
+        -0.5,
+        Math.min(0.4, viewPitch + event.movementY * 0.002)
+      );
+    }
+    if (rightHeld) lookYaw -= event.movementX * 0.004;
+  });
+  canvas.addEventListener('pointerdown', (event) => {
+    if (event.button === 2) rightHeld = true;
+  });
+  globalThis.addEventListener('pointerup', (event) => {
+    if (event.button === 2) rightHeld = false;
+  });
+  canvas.addEventListener('contextmenu', (event) => event.preventDefault());
   const observer =
     typeof ResizeObserver === 'undefined'
       ? null
@@ -309,11 +344,10 @@ export function createBattleView(
   observer?.observe(host);
 
   const applyCamera = () => {
-    const pose = cameraPose(
-      state.mode,
-      state,
-      state.mode === 'first' ? state.turret : 0
-    );
+    const pose =
+      state.mode === 'first'
+        ? cameraPose('first', { ...state, heading: viewYaw }, 0, viewPitch)
+        : cameraPose('third', state, lookYaw);
     camera.position.set(pose.position.x, pose.position.y, pose.position.z);
     camera.lookAt(new Vector3(pose.target.x, pose.target.y, pose.target.z));
     playerMesh.visible = state.mode !== 'first';
@@ -344,7 +378,37 @@ export function createBattleView(
       }
       if (command.turret !== 0) {
         state.turret = normaliseAngle(
-          state.turret + command.turret * 1.8 * delta
+          state.turret + command.turret * traverseSpeed * delta
+        );
+        playerRig.turret.rotation.y = state.turret;
+      }
+
+      /* Aim: the pointer drives the turret; right mouse freezes it for free look. */
+      let targetWorld: number | null = null;
+      if (!rightHeld) {
+        if (state.mode === 'third') {
+          raycaster.setFromCamera(pointer, camera);
+          if (raycaster.ray.intersectPlane(aimPlane, aimPoint)) {
+            targetWorld = aimYaw(
+              { x: state.position.x, z: state.position.z },
+              { x: aimPoint.x, z: aimPoint.z }
+            );
+          }
+        } else {
+          targetWorld = viewYaw;
+        }
+      }
+      /* Let the free-look offset ease back behind the hull after release. */
+      if (!rightHeld && Math.abs(lookYaw) > 0.001) {
+        lookYaw *= Math.max(0, 1 - delta * 3.5);
+      }
+
+      if (targetWorld !== null) {
+        const localTarget = normaliseAngle(targetWorld - state.heading);
+        state.turret = rotateTowards(
+          state.turret,
+          localTarget,
+          traverseSpeed * delta
         );
         playerRig.turret.rotation.y = state.turret;
       }
@@ -357,7 +421,13 @@ export function createBattleView(
           state.turret,
           layout.player.barrelLength
         );
-        combat = spawnShell(combat, muzzle, state.heading + state.turret);
+        const turretWorld = state.heading + state.turret;
+        const baseAim = {
+          x: muzzle.x + Math.cos(turretWorld) * SHELL_RANGE,
+          z: muzzle.z - Math.sin(turretWorld) * SHELL_RANGE,
+        };
+        const scattered = scatterAimPoint(baseAim, Math.random, dispersion);
+        combat = spawnShell(combat, muzzle, aimYaw(muzzle, scattered));
         publish();
         onAmmo?.(combat.ammo, MAX_AMMO);
       }

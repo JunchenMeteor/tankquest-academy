@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  FIELD_SCALE,
   buildSceneLayout,
   cameraPose,
   stepTank,
@@ -51,19 +52,20 @@ const config = {
 } as unknown as RuntimeLevelConfig;
 
 describe('3D battle scene model', () => {
-  it('maps field coordinates into world space with a 1/40 scale', () => {
-    expect(toWorld(40, 80)).toEqual({ x: 1, y: 0, z: 2 });
+  it('maps field coordinates into world space with the field scale', () => {
+    expect(toWorld(FIELD_SCALE, FIELD_SCALE * 2)).toEqual({ x: 1, y: 0, z: 2 });
   });
 
   it('places the player, enemies and obstacles from the runtime config', () => {
     const layout = buildSceneLayout(config);
-    expect(layout.ground).toEqual({ width: 24, depth: 13.5 });
-    expect(layout.player.position.x).toBeCloseTo(3);
-    expect(layout.player.position.z).toBeCloseTo(6.75);
+    expect(layout.ground.width).toBeCloseTo(960 / FIELD_SCALE);
+    expect(layout.ground.depth).toBeCloseTo(540 / FIELD_SCALE);
+    expect(layout.player.position.x).toBeCloseTo(120 / FIELD_SCALE);
+    expect(layout.player.position.z).toBeCloseTo(270 / FIELD_SCALE);
     expect(layout.enemies).toHaveLength(1);
     expect(layout.enemies[0]?.color ?? 0).toBeGreaterThan(0);
     expect(layout.blocks).toHaveLength(1);
-    expect(layout.blocks[0]?.size[0] ?? 0).toBeCloseTo(2);
+    expect(layout.blocks[0]?.size[0] ?? 0).toBeCloseTo(80 / FIELD_SCALE);
   });
 
   it('keeps the first-person camera on the turret and looking forward', () => {
