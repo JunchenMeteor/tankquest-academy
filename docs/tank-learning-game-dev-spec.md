@@ -116,7 +116,9 @@
     "mobility": 2,
     "armor": 5,
     "stealth": 1,
-    "vision": 2
+    "vision": 2,
+    "accuracy": 4,
+    "turretTraverse": 2
   },
   "defaultSkin": "forest-training"
 }

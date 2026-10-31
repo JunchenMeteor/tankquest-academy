@@ -58,8 +58,34 @@ describe('shared contracts', () => {
         armor: 3,
         stealth: 3,
         vision: 3,
+        accuracy: 3,
+        turretTraverse: 3,
       })
     ).toThrow();
+  });
+
+  it('requires gun handling stats on every tank', () => {
+    expect(() =>
+      tankStatsSchema.parse({
+        firepower: 3,
+        mobility: 3,
+        armor: 3,
+        stealth: 3,
+        vision: 3,
+      })
+    ).toThrow();
+
+    expect(
+      tankStatsSchema.parse({
+        firepower: 3,
+        mobility: 3,
+        armor: 3,
+        stealth: 3,
+        vision: 3,
+        accuracy: 5,
+        turretTraverse: 1,
+      }).turretTraverse
+    ).toBe(1);
   });
 
   it('bounds answer time reported by a client', () => {
@@ -96,6 +122,8 @@ describe('shared contracts', () => {
             armor: 1,
             stealth: 4,
             vision: 3,
+            accuracy: 3,
+            turretTraverse: 3,
           },
           ai: {
             detectionRange: 300,
@@ -131,6 +159,8 @@ describe('shared contracts', () => {
               armor: 1,
               stealth: 4,
               vision: 3,
+              accuracy: 3,
+              turretTraverse: 3,
             },
             ai: {
               detectionRange: 300,
@@ -162,7 +192,15 @@ describe('shared contracts', () => {
       elite: true,
       x: 720,
       y: 150,
-      stats: { firepower: 4, mobility: 2, armor: 5, stealth: 1, vision: 3 },
+      stats: {
+        firepower: 4,
+        mobility: 2,
+        armor: 5,
+        stealth: 1,
+        vision: 3,
+        accuracy: 3,
+        turretTraverse: 3,
+      },
       ai: {
         detectionRange: 300,
         attackRange: 210,
@@ -232,6 +270,8 @@ describe('shared contracts', () => {
               armor: 3,
               stealth: 2,
               vision: 3,
+              accuracy: 3,
+              turretTraverse: 3,
             },
             ai: {
               detectionRange: 300,

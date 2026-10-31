@@ -8,6 +8,8 @@ export const baselineTankStats: TankStats = {
   armor: 3,
   stealth: 3,
   vision: 3,
+  accuracy: 3,
+  turretTraverse: 3,
 };
 
 export function deriveCombatStats(stats: TankStats): PlayerCombatRuntimeConfig {
@@ -16,6 +18,8 @@ export function deriveCombatStats(stats: TankStats): PlayerCombatRuntimeConfig {
   const armor = normalizedLevel(stats.armor);
   const stealth = normalizedLevel(stats.stealth);
   const vision = normalizedLevel(stats.vision);
+  const accuracy = normalizedLevel(stats.accuracy);
+  const turretTraverse = normalizedLevel(stats.turretTraverse);
 
   return {
     maxHealth: 150 + (armor - 3) * 25,
@@ -36,12 +40,12 @@ export function deriveCombatStats(stats: TankStats): PlayerCombatRuntimeConfig {
     fireCooldownMs: 350 - (firepower - 3) * 35,
     detectionRange: 280 + (vision - 3) * 35,
     visibilityMultiplier: 0.88 - (stealth - 3) * 0.06,
-    /* Turret traverse in radians per second: scouts swing faster than heavies. */
-    turretTraverseSpeed: 1.6 + (mobility - 3) * 0.35,
-    /* Dispersion radius in world units: a bigger gun is less forgiving. */
+    /* Turret traverse comes straight from the tank's own handling stat. */
+    turretTraverseSpeed: 0.8 + turretTraverse * 0.42,
+    /* Dispersion shrinks as accuracy rises; a heavier gun adds spread. */
     dispersionRadius: Math.max(
       0.3,
-      0.85 + (firepower - 3) * 0.22 - (mobility - 3) * 0.06
+      1.9 - accuracy * 0.26 + (firepower - 3) * 0.08
     ),
   };
 }

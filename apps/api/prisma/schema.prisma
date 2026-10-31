@@ -87,14 +87,16 @@ model Tank {
 }
 
 model TankStat {
-  id        String @id @default(cuid())
-  tankId    String @unique @map("tank_id")
-  firepower Int
-  mobility  Int
-  armor     Int
-  stealth   Int
-  vision    Int
-  tank      Tank   @relation(fields: [tankId], references: [id], onDelete: Cascade)
+  id             String @id @default(cuid())
+  tankId         String @unique @map("tank_id")
+  firepower      Int
+  mobility       Int
+  armor          Int
+  stealth        Int
+  vision         Int
+  accuracy       Int    @default(3)
+  turretTraverse Int    @default(3) @map("turret_traverse")
+  tank           Tank   @relation(fields: [tankId], references: [id], onDelete: Cascade)
 
   @@map("tank_stats")
 }

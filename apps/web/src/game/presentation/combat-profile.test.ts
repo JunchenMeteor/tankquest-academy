@@ -15,6 +15,8 @@ describe('combat profiles', () => {
         armor: 3,
         stealth: 2,
         vision: 3,
+        accuracy: 3,
+        turretTraverse: 3,
       })
     ).toEqual({
       damage: 34,
