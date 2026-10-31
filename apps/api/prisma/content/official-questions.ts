@@ -144,9 +144,9 @@ function mathQuestions(): OfficialQuestionSeed[] {
   }
 
   for (let index = 0; index < 10; index += 1) {
-    const start = 8 + index;
-    const multiplier = 2 + (index % 3);
-    const subtract = 3 + (index % 4);
+    const start = 12 + index * 2;
+    const multiplier = 3 + (index % 4);
+    const subtract = 7 + (index % 6);
     const correct = start * multiplier - subtract;
     const answer = numericChoices(correct, index);
     questions.push(

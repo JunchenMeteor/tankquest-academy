@@ -154,16 +154,36 @@ export function MissionPicker({
         <h2>{t('picker.title')}</h2>
       </div>
       <div className="mission-picker" aria-label={t('picker.missions')}>
-        {levels.map((level) => (
+        {levels.map((level, index) => (
           <button
             key={level.id}
-            className={level.id === selectedLevelId ? 'selected' : ''}
+            className={`mission-card${level.id === selectedLevelId ? ' selected' : ''}`}
             aria-pressed={level.id === selectedLevelId}
             onClick={() => onSelectLevel(level.id)}
           >
-            {contentName(level.code, t)} ·{' '}
-            {level.subject ? `${t(`subject.${level.subject}`)} · ` : ''}
-            {t('picker.difficulty', { value: level.baseDifficulty })}
+            <span className="mission-index" aria-hidden="true">
+              {String(index + 1).padStart(2, '0')}
+            </span>
+            <strong className="mission-name">
+              {contentName(level.code, t)}
+            </strong>
+            <span className="mission-meta">
+              {level.subject ? (
+                <em className={`mission-subject subject-${level.subject}`}>
+                  {t(`subject.${level.subject}`)}
+                </em>
+              ) : null}
+              <span
+                className="mission-difficulty"
+                aria-label={t('picker.difficulty', {
+                  value: level.baseDifficulty,
+                })}
+              >
+                {[1, 2, 3, 4].map((step) => (
+                  <i key={step} data-on={step <= level.baseDifficulty} />
+                ))}
+              </span>
+            </span>
           </button>
         ))}
       </div>
@@ -192,12 +212,22 @@ export function MissionPicker({
                 {t(`role.${tank.role}`)} · {t(`role.hint.${tank.role}`)} ·{' '}
                 {t('picker.level', { value: tank.level })}
               </span>
-              <span>
-                {t('stat.firepower')} {tank.stats.firepower} ·{' '}
-                {t('stat.mobility')} {tank.stats.mobility} · {t('stat.armor')}{' '}
-                {tank.stats.armor} · {t('stat.stealth')} {tank.stats.stealth} ·{' '}
-                {t('stat.vision')} {tank.stats.vision}
-              </span>
+              <dl className="tank-stats">
+                {(
+                  [
+                    ['firepower', tank.stats.firepower],
+                    ['mobility', tank.stats.mobility],
+                    ['armor', tank.stats.armor],
+                    ['stealth', tank.stats.stealth],
+                    ['vision', tank.stats.vision],
+                  ] as const
+                ).map(([key, value]) => (
+                  <div key={key}>
+                    <dt>{t(`stat.${key}`)}</dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+              </dl>
               <span className="tank-combat-profile">
                 {t('picker.combatProfile', {
                   armor: profile.frontArmor,
@@ -291,42 +321,78 @@ export function ActiveTraining({
   return (
     <>
       <div className="battle-briefing">
-        <p className="mission-status">
-          {contentName(session.level.code, t)} · {t('stat.firepower')}{' '}
-          {session.tank.stats.firepower} · {t('stat.mobility')}{' '}
-          {session.tank.stats.mobility} · {t('stat.armor')}{' '}
-          {session.tank.stats.armor} · {t('stat.stealth')}{' '}
-          {session.tank.stats.stealth} · {t('stat.vision')}{' '}
-          {session.tank.stats.vision}
-        </p>
-        <p className="combat-readout">
-          {t('stat.shell')} {config.player.projectileDamage} ·{' '}
-          {t('stat.penetration')} {config.player.projectilePenetration} ·{' '}
-          {t('stat.armor')} {config.player.armorProfile.front}/
-          {config.player.armorProfile.side}/{config.player.armorProfile.rear} ·{' '}
-          {t('stat.speed')} {config.player.speed} · {t('stat.mass')}{' '}
-          {config.player.mass} · {t('stat.detection')}{' '}
-          {config.player.detectionRange}
-        </p>
+        <div className="briefing-head">
+          <span className="briefing-level">
+            {contentName(session.level.code, t)}
+          </span>
+          <dl className="briefing-stats">
+            {(
+              [
+                ['firepower', session.tank.stats.firepower],
+                ['mobility', session.tank.stats.mobility],
+                ['armor', session.tank.stats.armor],
+                ['stealth', session.tank.stats.stealth],
+                ['vision', session.tank.stats.vision],
+              ] as const
+            ).map(([key, value]) => (
+              <div key={key}>
+                <dt>{t(`stat.${key}`)}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+        <dl className="briefing-readout">
+          {(
+            [
+              ['shell', config.player.projectileDamage],
+              ['penetration', config.player.projectilePenetration],
+              [
+                'armor',
+                `${config.player.armorProfile.front}/${config.player.armorProfile.side}/${config.player.armorProfile.rear}`,
+              ],
+              ['speed', config.player.speed],
+              ['mass', config.player.mass],
+              ['detection', config.player.detectionRange],
+            ] as const
+          ).map(([key, value]) => (
+            <div key={key}>
+              <dt>{t(`stat.${key}`)}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+        </dl>
         <div className="threat-profiles" aria-label={t('battle.threats')}>
           <strong>{t('battle.threats')}</strong>
           {enemyThreatProfiles(config.enemies).map((profile) => (
-            <span
+            <article
+              className="threat"
               key={`${profile.role}:${profile.elite ? 'elite' : 'standard'}`}
               data-role={profile.role}
             >
-              {t('battle.enemyProfile', {
-                armor: profile.frontArmor,
-                damage: profile.damage,
-                detection: profile.detectionRange,
-                health: profile.health,
-                reload: profile.reloadSeconds,
-                role: profile.elite
+              <span className="threat-role">
+                {profile.elite
                   ? t('role.elite', { role: t(`role.${profile.role}`) })
-                  : t(`role.${profile.role}`),
-                speed: profile.topSpeed,
-              })}
-            </span>
+                  : t(`role.${profile.role}`)}
+              </span>
+              <dl>
+                {(
+                  [
+                    ['speed', profile.topSpeed],
+                    ['health', profile.health],
+                    ['armor', profile.frontArmor],
+                    ['shell', profile.damage],
+                    ['reload', profile.reloadSeconds],
+                    ['detection', profile.detectionRange],
+                  ] as const
+                ).map(([key, value]) => (
+                  <div key={key}>
+                    <dt>{t(`stat.${key}`)}</dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </article>
           ))}
         </div>
       </div>

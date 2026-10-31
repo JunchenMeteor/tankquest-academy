@@ -65,7 +65,7 @@ describe('adaptive learning policy', () => {
   it('keeps difficulty and skips AI when there is insufficient data', () => {
     const result = policy({
       ...baseContext,
-      records: [{ ...baseContext.records[0]!, attempts: 2, correctCount: 2 }],
+      records: [{ ...baseContext.records[0]!, attempts: 1, correctCount: 1 }],
     });
 
     expect(result.skipAi).toBe(true);
@@ -119,7 +119,7 @@ describe('adaptive learning policy', () => {
   it('keeps the current difficulty when strong answers are slow', () => {
     const result = policy({
       ...baseContext,
-      records: [{ ...baseContext.records[0]!, averageAnswerTimeMs: 20_000 }],
+      records: [{ ...baseContext.records[0]!, averageAnswerTimeMs: 26_000 }],
     });
 
     expect(result.allowedDifficulty).toEqual({ min: 1, max: 1 });

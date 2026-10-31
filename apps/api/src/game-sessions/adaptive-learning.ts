@@ -11,8 +11,8 @@ import type {
   EligiblePracticeLevel,
 } from './game-session.models.js';
 
-export const minimumAdaptiveAttempts = 3;
-export const fastAnswerThresholdMs = 15_000;
+export const minimumAdaptiveAttempts = 2;
+export const fastAnswerThresholdMs = 20_000;
 
 export interface AdaptivePracticePolicy {
   focus: AdaptiveLearningRecord & { accuracy: number };
@@ -67,7 +67,7 @@ export function buildAdaptivePracticePolicy(
   let deterministicDifficulty = currentDifficulty;
   let desiredBeforeParentLimit = currentDifficulty;
 
-  if (focus.attempts >= minimumAdaptiveAttempts && focus.accuracy < 60) {
+  if (focus.attempts >= minimumAdaptiveAttempts && focus.accuracy < 65) {
     allowedDifficulty = {
       min: Math.max(1, currentDifficulty - 1),
       max: currentDifficulty,
@@ -76,7 +76,7 @@ export function buildAdaptivePracticePolicy(
     desiredBeforeParentLimit = Math.max(1, currentDifficulty - 1);
   } else if (
     focus.attempts >= minimumAdaptiveAttempts &&
-    focus.accuracy >= 80 &&
+    focus.accuracy >= 75 &&
     focus.averageAnswerTimeMs <= fastAnswerThresholdMs
   ) {
     desiredBeforeParentLimit = currentDifficulty + 1;
