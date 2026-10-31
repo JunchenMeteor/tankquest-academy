@@ -7,6 +7,7 @@ import type {
   TankSkinDto,
 } from '@tankquest/shared';
 
+import { Battle3DCanvas } from './game/three/Battle3DCanvas.js';
 import { GameCanvas } from './game/GameCanvas.js';
 import {
   combatProfileForStats,
@@ -318,6 +319,10 @@ export function ActiveTraining({
   onRuntime: (state: RuntimeState) => void;
 }) {
   const { t } = useI18n();
+  /* Opt-in renderer switch so the Phaser scene stays the default until the 3D view is signed off. */
+  const use3DBattle =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('renderer') === '3d';
   return (
     <>
       <div className="battle-briefing">
@@ -396,7 +401,11 @@ export function ActiveTraining({
           ))}
         </div>
       </div>
-      <GameCanvas config={config} onState={onRuntime} />
+      {use3DBattle ? (
+        <Battle3DCanvas config={config} />
+      ) : (
+        <GameCanvas config={config} onState={onRuntime} />
+      )}
       {runtime.playerDestroyed ? (
         <section className="battle-alert" aria-live="assertive">
           <p className="eyebrow">{t('battle.paused')}</p>
