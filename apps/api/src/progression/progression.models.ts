@@ -1,10 +1,10 @@
 import type {
   TankSkinDto,
-  TankStats,
+  UpgradeableStat,
   UpgradeTankResponse,
 } from '@tankquest/shared';
 
-export type UpgradeStat = keyof TankStats;
+export type UpgradeStat = UpgradeableStat;
 
 export interface UpgradeMaterial {
   itemKey: string;

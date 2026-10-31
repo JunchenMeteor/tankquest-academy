@@ -11,7 +11,15 @@ const prisma = new PrismaClient();
 
 const enemyPresets = {
   scout: {
-    stats: { firepower: 2, mobility: 4, armor: 1, stealth: 4, vision: 3 },
+    stats: {
+      firepower: 2,
+      mobility: 4,
+      armor: 1,
+      stealth: 4,
+      vision: 3,
+      accuracy: 2,
+      turretTraverse: 5,
+    },
     ai: {
       detectionRange: 300,
       attackRange: 205,
@@ -24,7 +32,15 @@ const enemyPresets = {
     },
   },
   medium: {
-    stats: { firepower: 3, mobility: 3, armor: 3, stealth: 2, vision: 3 },
+    stats: {
+      firepower: 3,
+      mobility: 3,
+      armor: 3,
+      stealth: 2,
+      vision: 3,
+      accuracy: 3,
+      turretTraverse: 3,
+    },
     ai: {
       detectionRange: 310,
       attackRange: 230,
@@ -37,7 +53,15 @@ const enemyPresets = {
     },
   },
   heavy: {
-    stats: { firepower: 4, mobility: 2, armor: 5, stealth: 1, vision: 2 },
+    stats: {
+      firepower: 4,
+      mobility: 2,
+      armor: 5,
+      stealth: 1,
+      vision: 2,
+      accuracy: 4,
+      turretTraverse: 2,
+    },
     ai: {
       detectionRange: 280,
       attackRange: 250,
@@ -57,7 +81,15 @@ const tankSeeds = [
     code: 'star-shield',
     nameKey: 'tank.starShield.name',
     role: 'medium',
-    stats: { firepower: 3, mobility: 3, armor: 3, stealth: 2, vision: 3 },
+    stats: {
+      firepower: 3,
+      mobility: 3,
+      armor: 3,
+      stealth: 2,
+      vision: 3,
+      accuracy: 3,
+      turretTraverse: 3,
+    },
     skins: [
       ['field-olive', 'skin.fieldOlive.name', '#5d7d46', '#e8c65a'],
       ['academy-blue', 'skin.academyBlue.name', '#426b8a', '#d7edf7'],
@@ -68,7 +100,15 @@ const tankSeeds = [
     code: 'swift-fox',
     nameKey: 'tank.swiftFox.name',
     role: 'scout',
-    stats: { firepower: 2, mobility: 5, armor: 1, stealth: 4, vision: 4 },
+    stats: {
+      firepower: 2,
+      mobility: 5,
+      armor: 1,
+      stealth: 4,
+      vision: 4,
+      accuracy: 3,
+      turretTraverse: 5,
+    },
     skins: [
       ['forest-fox', 'skin.forestFox.name', '#4f7748', '#d8a34c'],
       ['arctic-dash', 'skin.arcticDash.name', '#85aebf', '#f2f7f8'],
@@ -79,7 +119,15 @@ const tankSeeds = [
     code: 'iron-mountain',
     nameKey: 'tank.ironMountain.name',
     role: 'heavy',
-    stats: { firepower: 4, mobility: 1, armor: 5, stealth: 1, vision: 2 },
+    stats: {
+      firepower: 4,
+      mobility: 1,
+      armor: 5,
+      stealth: 1,
+      vision: 2,
+      accuracy: 5,
+      turretTraverse: 1,
+    },
     skins: [
       ['iron-red', 'skin.ironRed.name', '#733f39', '#d7aa57'],
       ['night-fortress', 'skin.nightFortress.name', '#343b47', '#91a3bc'],

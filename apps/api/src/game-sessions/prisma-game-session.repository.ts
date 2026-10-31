@@ -463,6 +463,8 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
       armor: number;
       stealth: number;
       vision: number;
+      accuracy: number;
+      turretTraverse: number;
     },
     skin?: {
       id: string;
@@ -483,6 +485,8 @@ export class PrismaGameSessionRepository extends GameSessionRepository {
         armor: stats.armor,
         stealth: stats.stealth,
         vision: stats.vision,
+        accuracy: stats.accuracy,
+        turretTraverse: stats.turretTraverse,
       },
       ...(skin
         ? {

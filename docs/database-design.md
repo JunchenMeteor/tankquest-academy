@@ -20,7 +20,7 @@ parent_controls(id, child_id, daily_minutes_limit, session_minutes_limit, allowe
 
 ```text
 tanks(id, code, name_key, description_key, role, model_asset_id, default_skin_id, unlock_rule, is_active)
-tank_stats(id, tank_id, firepower, mobility, armor, stealth, vision)
+tank_stats(id, tank_id, firepower, mobility, armor, stealth, vision, accuracy, turret_traverse)
 tank_skins(id, tank_id, code, name_key, texture_asset_id, theme, bonus_type, bonus_value, unlock_rule)
 child_tanks(id, child_id, tank_id, level, acquired_at, selected_skin_id)
 child_tank_upgrades(id, child_tank_id, stat_key, level, updated_at)

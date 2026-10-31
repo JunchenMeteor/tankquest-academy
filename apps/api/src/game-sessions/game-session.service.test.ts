@@ -31,7 +31,15 @@ const setup: SessionSetup = {
     code: 'star-shield',
     nameKey: 'tank.starShield.name',
     role: 'medium',
-    stats: { firepower: 3, mobility: 3, armor: 3, stealth: 2, vision: 3 },
+    stats: {
+      firepower: 3,
+      mobility: 3,
+      armor: 3,
+      stealth: 2,
+      vision: 3,
+      accuracy: 3,
+      turretTraverse: 3,
+    },
   },
   learner: { ageGroup: 'child_6_8', aiExplanationEnabled: true },
   questions: [

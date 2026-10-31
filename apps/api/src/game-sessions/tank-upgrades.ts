@@ -1,6 +1,7 @@
-import type { TankStats } from '@tankquest/shared';
+import type { TankStats, UpgradeableStat } from '@tankquest/shared';
+import { upgradeableStats } from '@tankquest/shared';
 
-const statKeys: Array<keyof TankStats> = [
+const statKeys: UpgradeableStat[] = [
   'firepower',
   'mobility',
   'armor',
@@ -18,6 +19,8 @@ export function applyTankUpgrades(
     armor: baseStats.armor,
     stealth: baseStats.stealth,
     vision: baseStats.vision,
+    accuracy: baseStats.accuracy,
+    turretTraverse: baseStats.turretTraverse,
   };
 
   for (const upgrade of upgrades) {
@@ -31,6 +34,6 @@ export function applyTankUpgrades(
   return effectiveStats;
 }
 
-function isStatKey(value: string): value is keyof TankStats {
+function isStatKey(value: string): value is UpgradeableStat {
   return statKeys.some((key) => key === value);
 }
