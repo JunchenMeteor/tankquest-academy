@@ -6,6 +6,15 @@ import type {
 } from '../runtime/types.js';
 import type { ScenePalette } from './map-visual-definition.js';
 
+function shadeColor(color: number, factor: number): number {
+  const clamp = (value: number) =>
+    Math.max(0, Math.min(255, Math.round(value)));
+  const r = clamp(((color >> 16) & 0xff) * factor);
+  const g = clamp(((color >> 8) & 0xff) * factor);
+  const b = clamp((color & 0xff) * factor);
+  return (r << 16) | (g << 8) | b;
+}
+
 export function drawTrainingGround(
   scene: Phaser.Scene,
   width: number,
@@ -24,6 +33,30 @@ export function drawTrainingGround(
   graphics
     .fillStyle(palette.floor.base, groundTextureKey ? 0.36 : 1)
     .fillRect(0, 0, width, height);
+
+  /* Deterministic dirt mottling: breaks up the flat fill without a texture. */
+  const lightPatch = shadeColor(palette.floor.base, 1.22);
+  const darkPatch = shadeColor(palette.floor.base, 0.82);
+  let seed = 20261031;
+  const random = () => {
+    seed = (seed * 1664525 + 1013904223) % 4294967296;
+    return seed / 4294967296;
+  };
+  for (let index = 0; index < 90; index += 1) {
+    const cx = random() * width;
+    const cy = random() * height;
+    const radius = 18 + random() * 54;
+    graphics
+      .fillStyle(index % 3 === 0 ? lightPatch : darkPatch, 0.05)
+      .fillEllipse(cx, cy, radius * 1.6, radius);
+  }
+
+  /* Vignette: nested strokes darken the frame without a gradient shader. */
+  for (let ring = 0; ring < 7; ring += 1) {
+    graphics
+      .lineStyle(10, 0x10160f, 0.035)
+      .strokeRect(ring * 7, ring * 7, width - ring * 14, height - ring * 14);
+  }
   graphics.lineStyle(1, palette.floor.grid, 0.38);
   for (let x = -height; x < width + height; x += 64) {
     graphics.lineBetween(x, 0, x + height, height);
