@@ -1402,3 +1402,29 @@ body {
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+
+.question-subject {
+  display: inline-block;
+  margin-right: 0.5rem;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--theme-border);
+  color: var(--theme-text);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+}
+
+.question-subject.subject-math {
+  border-color: rgba(127, 178, 255, 0.5);
+  color: #7fb2ff;
+}
+
+.question-subject.subject-english {
+  border-color: rgba(123, 216, 143, 0.5);
+  color: #7bd88f;
+}
+
+.question-subject.subject-direction {
+  border-color: rgba(240, 180, 106, 0.5);
+  color: #f0b46a;
+}
