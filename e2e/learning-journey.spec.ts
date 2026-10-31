@@ -572,7 +572,7 @@ test('starts a mission with the selected owned tank', async ({ page }) => {
 });
 
 test('persists language and theme preferences', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?renderer=2d');
   await expect(
     page.getByRole('heading', { name: 'Choose a training mission' })
   ).toBeVisible();
