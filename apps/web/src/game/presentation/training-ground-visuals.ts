@@ -57,10 +57,18 @@ export function drawTrainingGround(
       .lineStyle(10, 0x10160f, 0.035)
       .strokeRect(ring * 7, ring * 7, width - ring * 14, height - ring * 14);
   }
-  graphics.lineStyle(1, palette.floor.grid, 0.38);
-  for (let x = -height; x < width + height; x += 64) {
-    graphics.lineBetween(x, 0, x + height, height);
-    graphics.lineBetween(x, 0, x - height, height);
+  /* Perspective grid: lanes converge toward a vanishing point above the field. */
+  const vanishX = width / 2;
+  const vanishY = -height * 0.55;
+  graphics.lineStyle(1, palette.floor.grid, 0.3);
+  for (let x = -width; x <= width * 2; x += 78) {
+    graphics.lineBetween(vanishX, vanishY, x, height);
+  }
+  for (let row = 0; row < 9; row += 1) {
+    const t = row / 9;
+    const y = height * t * t;
+    graphics.lineStyle(1, palette.floor.grid, 0.12 + t * 0.22);
+    graphics.lineBetween(0, y, width, y);
   }
 
   graphics.lineStyle(3, palette.floor.accent, 0.72);
