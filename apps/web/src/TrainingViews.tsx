@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import type {
   LevelDto,
   OwnedTankDto,
@@ -20,6 +21,12 @@ import {
   type ThemePreference,
   useTheme,
 } from './theme/ThemeProvider.js';
+
+const Battle3DCanvas = lazy(() =>
+  import('./game/three/Battle3DCanvas.js').then((module) => ({
+    default: module.Battle3DCanvas,
+  }))
+);
 
 export function AppHud({
   active,
@@ -318,6 +325,10 @@ export function ActiveTraining({
   onRuntime: (state: RuntimeState) => void;
 }) {
   const { t } = useI18n();
+  /* Opt-in renderer switch so the Phaser scene stays the default until the 3D view is signed off. */
+  const use3DBattle =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('renderer') === '3d';
   return (
     <>
       <div className="battle-briefing">
@@ -396,7 +407,13 @@ export function ActiveTraining({
           ))}
         </div>
       </div>
-      <GameCanvas config={config} onState={onRuntime} />
+      {use3DBattle ? (
+        <Suspense fallback={<div className="game-canvas" />}>
+          <Battle3DCanvas config={config} />
+        </Suspense>
+      ) : (
+        <GameCanvas config={config} onState={onRuntime} />
+      )}
       {runtime.playerDestroyed ? (
         <section className="battle-alert" aria-live="assertive">
           <p className="eyebrow">{t('battle.paused')}</p>

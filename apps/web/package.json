@@ -17,11 +17,13 @@
     "phaser": "4.2.1",
     "react": "latest",
     "react-dom": "latest",
+    "three": "^0.187.0",
     "vite": "latest"
   },
   "devDependencies": {
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "@types/three": "^0.187.0",
     "happy-dom": "20.10.6"
   }
 }
