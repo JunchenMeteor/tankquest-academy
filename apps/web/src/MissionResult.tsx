@@ -58,21 +58,46 @@ export function MissionResult({
     : null;
 
   return (
-    <section className="status-card">
-      <p
-        className="stars"
-        aria-label={t('result.stars', { count: settlement.stars })}
-      >
-        {'★'.repeat(settlement.stars)}
-      </p>
-      <h2>{t('result.complete')}</h2>
-      <p>
-        {t('result.summary', {
-          correct: settlement.learningSummary.correct,
-          total: settlement.learningSummary.total,
-          parts,
-        })}
-      </p>
+    <section className="status-card result-card">
+      <header className="result-hero">
+        <p
+          className="stars"
+          aria-label={t('result.stars', { count: settlement.stars })}
+        >
+          <span>{'★'.repeat(settlement.stars)}</span>
+          <span aria-hidden="true" className="stars-empty">
+            {'☆'.repeat(Math.max(0, 3 - settlement.stars))}
+          </span>
+        </p>
+        <h2>{t('result.complete')}</h2>
+        <p className="result-lede">
+          {t('result.summary', {
+            correct: settlement.learningSummary.correct,
+            total: settlement.learningSummary.total,
+            parts,
+          })}
+        </p>
+      </header>
+      <dl className="result-stats">
+        <div>
+          <dt>{t('result.stat.stars')}</dt>
+          <dd>{settlement.stars}/3</dd>
+        </div>
+        <div>
+          <dt>{t('result.stat.accuracy')}</dt>
+          <dd>{accuracy}%</dd>
+        </div>
+        <div>
+          <dt>{t('result.stat.defeated')}</dt>
+          <dd>
+            {enemiesDefeated}/{enemyTotal}
+          </dd>
+        </div>
+        <div>
+          <dt>{t('result.stat.parts')}</dt>
+          <dd>{parts}</dd>
+        </div>
+      </dl>
       <div className="result-breakdown">
         <section>
           <h3>{t('result.learning')}</h3>

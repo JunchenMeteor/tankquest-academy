@@ -120,8 +120,9 @@ test('completes the authoritative learning and upgrade journey', async ({
     await firstSessionResponse
   ).json()) as ApiResponse<StartSessionResponse>;
   expect(firstSession.data?.sessionId).toBeTruthy();
-  await expect(page.locator('.mission-status')).toContainText(
-    /Addition range · Firepower [3-5]/
+  await expect(page.locator('.briefing-level')).toHaveText('Addition range');
+  await expect(page.locator('.briefing-stats > div').first()).toContainText(
+    /Firepower\s*[3-5]/
   );
   await expect(page.locator('.game-canvas canvas')).toBeVisible();
   await expect(page.getByText('150/150')).toBeVisible();
@@ -228,13 +229,13 @@ test('completes the authoritative learning and upgrade journey', async ({
   expect(replaySession.data?.sessionId).not.toBe(firstSession.data?.sessionId);
   await expect(page.locator('main[data-phase="active"]')).toBeVisible();
   await expect(page.locator('.game-canvas canvas')).toBeVisible();
-  await expect(page.locator('.mission-status')).toContainText(
-    /Firepower [4-5]/
+  await expect(page.locator('.briefing-stats > div').first()).toContainText(
+    /Firepower\s*[4-5]/
   );
   await page.reload();
   await page.getByRole('button', { name: 'Start training' }).click();
-  await expect(page.locator('.mission-status')).toContainText(
-    /Firepower [4-5]/
+  await expect(page.locator('.briefing-stats > div').first()).toContainText(
+    /Firepower\s*[4-5]/
   );
   await page.goto('/parent');
   await expect(
@@ -560,9 +561,13 @@ test('starts a mission with the selected owned tank', async ({ page }) => {
   ).resolves.toMatchObject({
     data: { tank: { skin: { code: 'arctic-dash' } } },
   });
-  await expect(
-    page.getByText(/Firepower 2 · Mobility 5 · Armor 1 · Stealth 4 · Vision 4/)
-  ).toBeVisible();
+  await expect(page.locator('.briefing-stats > div dd')).toHaveText([
+    '2',
+    '5',
+    '1',
+    '4',
+    '4',
+  ]);
   await expect(page.locator('.game-canvas canvas')).toBeVisible();
 });
 

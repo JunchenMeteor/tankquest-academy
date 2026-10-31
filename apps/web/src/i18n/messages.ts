@@ -97,6 +97,10 @@ export const messages: Record<Locale, Record<string, string>> = {
     'learning.retry': 'Try the next one.',
     'result.stars': '{{count}} stars',
     'result.complete': 'Mission complete',
+    'result.stat.stars': 'Stars',
+    'result.stat.accuracy': 'Accuracy',
+    'result.stat.defeated': 'Defeated',
+    'result.stat.parts': 'Parts',
     'result.summary':
       '{{correct}}/{{total}} challenges correct · {{parts}} cannon parts earned',
     'result.learning': 'Learning performance',
@@ -280,6 +284,10 @@ export const messages: Record<Locale, Record<string, string>> = {
     'learning.retry': '继续尝试下一题。',
     'result.stars': '{{count}} 颗星',
     'result.complete': '任务完成',
+    'result.stat.stars': '星级',
+    'result.stat.accuracy': '正确率',
+    'result.stat.defeated': '击毁',
+    'result.stat.parts': '零件',
     'result.summary':
       '答对 {{correct}}/{{total}} 题 · 获得 {{parts}} 个炮管零件',
     'result.learning': '学习表现',
