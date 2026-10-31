@@ -14,8 +14,9 @@ export const ASSET_LIMITS = {
   totalBytes: assetManifestMaxSizeBytes,
 } as const;
 
-const ASSET_PATH_PREFIX = '/assets/phase4/v1/';
+const ASSET_PATH_PATTERN = /^\/assets\/phase4\/v[1-9]\d*\//;
 const DEFAULT_PRELOAD_TIMEOUT_MS = 5_000;
+const ASSET_FETCH_CONCURRENCY = 4;
 
 export interface AssetBundle {
   source: 'manifest' | 'fallback';
@@ -60,6 +61,7 @@ export class AssetClient {
       });
       return await Promise.race([load, timedOut]);
     } catch {
+      controller.abort();
       return fallbackBundle(levelId);
     } finally {
       if (timeout !== undefined) clearTimeout(timeout);
@@ -77,23 +79,47 @@ export class AssetClient {
       throw new Error('Asset manifest level mismatch');
     }
     const orderedAssets = validateManifest(manifest);
-    const resources = new Map<string, Uint8Array>();
-
-    for (const asset of orderedAssets) {
-      const response = await this.fetchAsset(asset.url, { signal });
-      if (!response.ok) {
-        throw new Error('Asset request failed');
+    const loadedAssets = await mapWithConcurrency(
+      orderedAssets,
+      ASSET_FETCH_CONCURRENCY,
+      async (asset) => {
+        const response = await this.fetchAsset(asset.url, { signal });
+        if (!response.ok) {
+          throw new Error('Asset request failed');
+        }
+        const bytes = await readExactBytes(response, asset.sizeBytes);
+        const digest = (await this.hashAsset(bytes)).toLowerCase();
+        if (digest !== asset.sha256.toLowerCase()) {
+          throw new Error('Asset hash mismatch');
+        }
+        return [asset.assetId, bytes] as const;
       }
-      const bytes = await readExactBytes(response, asset.sizeBytes);
-      const digest = (await this.hashAsset(bytes)).toLowerCase();
-      if (digest !== asset.sha256.toLowerCase()) {
-        throw new Error('Asset hash mismatch');
-      }
-      resources.set(asset.assetId, bytes);
-    }
+    );
+    const resources = new Map(loadedAssets);
 
     return { source: 'manifest', manifest, resources };
   }
+}
+
+async function mapWithConcurrency<T, R>(
+  values: readonly T[],
+  concurrency: number,
+  mapValue: (value: T) => Promise<R>
+) {
+  const results = new Array<R>(values.length);
+  let nextIndex = 0;
+  const workers = Array.from(
+    { length: Math.min(concurrency, values.length) },
+    async () => {
+      while (nextIndex < values.length) {
+        const index = nextIndex;
+        nextIndex += 1;
+        results[index] = await mapValue(values[index] as T);
+      }
+    }
+  );
+  await Promise.all(workers);
+  return results;
 }
 
 function validateManifest(manifest: AssetManifestDto) {
@@ -151,7 +177,7 @@ function validateManifest(manifest: AssetManifestDto) {
 
 function isAllowedAssetUrl(value: string) {
   if (
-    !value.startsWith(ASSET_PATH_PREFIX) ||
+    !ASSET_PATH_PATTERN.test(value) ||
     value.includes('?') ||
     value.includes('#')
   ) {

@@ -62,23 +62,11 @@ jobs:
       - name: Validate database schema
         run: npm run db:validate
 
-      - name: Validate visual assets
-        run: npm run assets:verify
-
-      - name: Validate PWA policy
-        run: npm run pwa:verify
-
       - name: Lint
         run: npm run lint
 
       - name: Typecheck
         run: npm run typecheck
-
-      - name: Test
-        run: npm test
-
-      - name: Build
-        run: npm run build
 
       - name: Apply database contract
         run: npm run db:migrate && npm run db:seed
@@ -86,10 +74,10 @@ jobs:
       - name: Install browser
         run: npx playwright install --with-deps chromium
 
-      - name: End-to-end test
+      - name: Phase 5.1 product experience gate
         env:
           DEBUG: pw:webserver
-        run: npm run test:e2e
+        run: npm run product-experience:verify
 
   desktop-windows:
     name: Windows desktop
@@ -134,6 +122,9 @@ jobs:
 
       - name: Build preview Web assets
         run: npm run build:web:preview --workspace @tankquest/desktop
+
+      - name: Check preview Web performance budgets
+        run: npm run performance:check
 
       - name: Check Rust formatting
         run: cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml --all -- --check

@@ -1,6 +1,6 @@
 # MVP 范围与验收标准
 
-> 状态：第一阶段工程 MVP、Phase 1.5、Phase 1.6 和 Phase 2 工程范围已完成；家庭试用指标待真实儿童和家长验证。逐项证据见 `phase-one-mvp-acceptance.md` 和 `phase-two-acceptance.md`。
+> 状态：第一阶段工程 MVP、Phase 1.5、Phase 1.6 和 Phase 2 已通过工程验收；当前纵向切片尚未通过产品体验验收。内容密度、战斗反馈、重复游玩和家庭试用统一进入 `phase-five-one-product-experience-scope.md` 收口。
 
 ## 1. MVP 目标
 
@@ -40,6 +40,8 @@
 - 心理测试。
 
 ## 4. MVP 验收
+
+以下条目同时包含可自动验证的工程验收和必须通过真实使用验证的产品体验验收。工程测试通过不能替代儿童与家长试用结论。
 
 - 孩子能无说明完成移动和射击。
 - 一局 3-5 分钟。

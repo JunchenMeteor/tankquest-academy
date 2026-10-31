@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { dirname, resolve, sep } from 'node:path';
+import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -20,6 +21,8 @@ const allowedKeys = new Set([
   'preview',
   'dependencies',
 ]);
+const jsonAssetTypes = new Set(['scene-description', 'tank-visuals']);
+const binaryAssetTypes = new Set(['theme-texture', 'sound-effect']);
 
 function fail(message) {
   throw new Error(`Visual asset verification failed: ${message}`);
@@ -73,7 +76,7 @@ async function main() {
     if (extraKeys.length > 0) fail(`${asset.id ?? 'unknown'} has extra fields`);
     if (
       typeof asset.id !== 'string' ||
-      !['scene-description', 'tank-visuals'].includes(asset.type) ||
+      (!jsonAssetTypes.has(asset.type) && !binaryAssetTypes.has(asset.type)) ||
       !/^\d+\.\d+\.\d+$/.test(asset.version) ||
       !/^[a-f0-9]{64}$/.test(asset.sha256) ||
       !Number.isInteger(asset.sizeBytes) ||
@@ -101,7 +104,7 @@ async function main() {
     if (actualSha256 !== asset.sha256) {
       fail(`${asset.id} SHA-256 is ${actualSha256}, expected ${asset.sha256}`);
     }
-    JSON.parse(bytes.toString('utf8'));
+    verifyAssetBytes(asset, bytes);
 
     if (asset.preview !== null) {
       await readFile(resolvePublicAsset(asset.preview));
@@ -109,7 +112,44 @@ async function main() {
   }
 
   verifyDependencies(catalog);
-  console.log(`Verified ${catalog.length} versioned visual assets.`);
+  process.stdout.write(`Verified ${catalog.length} versioned visual assets.\n`);
 }
 
-await main();
+export function verifyAssetBytes(asset, bytes) {
+  if (jsonAssetTypes.has(asset.type)) {
+    if (!asset.url.endsWith('.json')) {
+      fail(`${asset.id} must use a JSON file`);
+    }
+    try {
+      JSON.parse(bytes.toString('utf8'));
+    } catch {
+      fail(`${asset.id} is not valid JSON`);
+    }
+    return;
+  }
+
+  if (asset.type === 'theme-texture') {
+    if (
+      !asset.url.endsWith('.webp') ||
+      bytes.byteLength < 12 ||
+      bytes.subarray(0, 4).toString('ascii') !== 'RIFF' ||
+      bytes.subarray(8, 12).toString('ascii') !== 'WEBP'
+    ) {
+      fail(`${asset.id} is not a valid WebP resource`);
+    }
+    return;
+  }
+
+  if (
+    asset.type === 'sound-effect' &&
+    (!asset.url.endsWith('.ogg') ||
+      bytes.byteLength < 4 ||
+      bytes.subarray(0, 4).toString('ascii') !== 'OggS')
+  ) {
+    fail(`${asset.id} is not a valid Ogg resource`);
+  }
+}
+
+if (resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
+  await main();
+}

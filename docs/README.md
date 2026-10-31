@@ -119,6 +119,9 @@ AI 开始开发前，按这个顺序阅读，不要一上来读所有文件。
 35. `phase-five-acceptance.md`
     - Phase 5 工程验收证据、Windows 构建产物、v0.5.0 发布门禁和已知非阻塞项。
 
+36. `phase-five-one-product-experience-scope.md`
+    - Phase 5.1 内容密度、关卡变化、敌人感知、成长反馈、视听体验和家庭试用的产品验收范围。
+
 ## 2. 第一阶段开发顺序
 
 第一阶段不要做全量功能，只做 MVP。

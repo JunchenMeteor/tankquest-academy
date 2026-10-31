@@ -53,6 +53,7 @@ const setup: SessionSetup = {
 
 class MemoryRepository extends GameSessionRepository {
   session: SessionState | null = null;
+  createdSession: NewSession | null = null;
   allowSetup = true;
   adaptiveContext: AdaptiveLearningContext | null = null;
   failAdaptiveContext = false;
@@ -70,16 +71,18 @@ class MemoryRepository extends GameSessionRepository {
   }
 
   async createSession(session: NewSession): Promise<string> {
+    this.createdSession = session;
     const sessionSetup = structuredClone(setup);
     this.session = {
       id: 'session_1',
       childId: session.childId,
+      locale: session.locale,
       status: 'active',
       setup: sessionSetup,
       answers: [],
       settlement: null,
     };
-    return this.session.id;
+    return 'session_1';
   }
 
   async findSession(): Promise<SessionState | null> {
@@ -163,6 +166,10 @@ describe('GameSessionService', () => {
     expect(result.sessionId).toBe('session_1');
     expect(result.questions[0]).not.toHaveProperty('correctAnswerId');
     expect(result.questions[0]).not.toHaveProperty('explanation');
+    expect(repository.createdSession).toMatchObject({
+      locale: 'en',
+      questionIds: ['question_1'],
+    });
   });
 
   it('rejects a session outside the child access boundary', async () => {
@@ -233,6 +240,26 @@ describe('GameSessionService', () => {
     expect(
       aiGateway.createWrongAnswerExplanation.mock.calls[0]?.[0]
     ).not.toHaveProperty('childId');
+  });
+
+  it('uses the session locale instead of a mutable answer locale', async () => {
+    await service.start({
+      childId: 'child_1',
+      levelId: 'level_1',
+      tankId: 'tank_1',
+      locale: 'zh-CN',
+    });
+
+    await service.submitAnswer('session_1', {
+      questionId: 'question_1',
+      selectedAnswerId: 'answer_a',
+      answerTimeMs: 900,
+      locale: 'en',
+    });
+
+    expect(aiGateway.createWrongAnswerExplanation).toHaveBeenCalledWith(
+      expect.objectContaining({ locale: 'zh-CN' })
+    );
   });
 
   it('falls back when AI changes the authoritative correct answer', async () => {

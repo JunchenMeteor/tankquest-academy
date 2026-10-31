@@ -52,6 +52,8 @@ export class GameSessionService {
       ...request,
       mode: setup.level.mode,
       difficulty: setup.level.baseDifficulty,
+      locale: request.locale ?? 'en',
+      questionIds: setup.questions.map((question) => question.id),
     });
 
     return {
@@ -113,7 +115,7 @@ export class GameSessionService {
           question,
           selectedChoice.text,
           correctChoice.text,
-          request.locale ?? 'en'
+          session.locale
         );
 
     return {

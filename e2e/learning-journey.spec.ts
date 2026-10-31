@@ -11,8 +11,9 @@ import {
   type APIRequestContext,
   type Page,
 } from '@playwright/test';
+import { officialQuestionSeeds } from '../apps/api/prisma/content/official-questions.js';
 
-const correctAnswers: Record<string, string> = {
+const legacyCorrectAnswers: Record<string, string> = {
   '8 + 7 = ?': '15',
   '9 + 6 = ?': '15',
   '13 - 5 = ?': '8',
@@ -23,6 +24,15 @@ const correctAnswers: Record<string, string> = {
   'Which direction is opposite east?': 'West',
   'The supply crate is on your right. Which way should you turn?': 'Right',
 };
+
+function correctAnswerForPrompt(prompt: string): string | undefined {
+  const official = officialQuestionSeeds.find(
+    (question) => question.prompt.en === prompt
+  );
+  return (
+    official?.choices[official.correctIndex]?.en ?? legacyCorrectAnswers[prompt]
+  );
+}
 
 test('completes the authoritative learning and upgrade journey', async ({
   page,
@@ -50,6 +60,39 @@ test('completes the authoritative learning and upgrade journey', async ({
     );
   }
 
+  const levelCatalog = await request.get('http://127.0.0.1:3000/api/levels');
+  const levelPayload = (await levelCatalog.json()) as ApiResponse<LevelDto[]>;
+  expect(levelPayload.data).toHaveLength(12);
+  expect(new Set(levelPayload.data?.map((level) => level.subject))).toEqual(
+    new Set(['math', 'english', 'direction'])
+  );
+  expect(
+    new Set(levelPayload.data?.map((level) => level.baseDifficulty))
+  ).toEqual(new Set([1, 2, 3, 4]));
+  expect(
+    new Set(levelPayload.data?.map((level) => level.config.theme))
+  ).toEqual(new Set(['training-base', 'forest-camp', 'snow-field']));
+  expect(
+    new Set(
+      levelPayload.data?.flatMap((level) => {
+        const objectiveSet = level.config.objectiveSet as {
+          objectives?: Array<{ type?: string }>;
+        };
+        return (
+          objectiveSet.objectives?.map((objective) => objective.type) ?? []
+        );
+      })
+    )
+  ).toEqual(
+    new Set([
+      'eliminate',
+      'defend-waves',
+      'supply-run',
+      'route-choice',
+      'elite-hunt',
+    ])
+  );
+
   const consoleErrors: string[] = [];
   page.on('console', (message) => {
     if (message.type() === 'error') consoleErrors.push(message.text());
@@ -65,16 +108,32 @@ test('completes the authoritative learning and upgrade journey', async ({
       );
     });
   await expect(page.getByText('Range map · 2 scouts')).toBeVisible();
+  await expect(page.locator('main[data-phase="ready"]')).toBeVisible();
+  await expect(page.locator('.selection-heading')).toHaveCount(3);
+  const firstSessionResponse = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/game-sessions') &&
+      response.request().method() === 'POST'
+  );
   await startButton.click();
-  await expect(page.locator('.mission-status')).toContainText(
-    /Addition range · Firepower [3-5]/
+  const firstSession = (await (
+    await firstSessionResponse
+  ).json()) as ApiResponse<StartSessionResponse>;
+  expect(firstSession.data?.sessionId).toBeTruthy();
+  await expect(page.locator('.briefing-level')).toHaveText('Addition range');
+  await expect(page.locator('.briefing-stats > div').first()).toContainText(
+    /Firepower\s*[3-5]/
   );
   await expect(page.locator('.game-canvas canvas')).toBeVisible();
   await expect(page.getByText('150/150')).toBeVisible();
+  await expect(page.locator('.hud-health meter')).toHaveAttribute(
+    'value',
+    '150'
+  );
 
   for (let index = 0; index < 3; index += 1) {
     const prompt = await page.locator('.learning-console h2').textContent();
-    const answer = prompt ? correctAnswers[prompt] : undefined;
+    const answer = prompt ? correctAnswerForPrompt(prompt) : undefined;
     expect(answer, `known seed answer for ${prompt}`).toBeTruthy();
     await page.getByRole('button', { name: answer, exact: true }).click();
     await expect(page.locator('.feedback strong')).toHaveText(
@@ -99,11 +158,6 @@ test('completes the authoritative learning and upgrade journey', async ({
         correctCount: expect.any(Number),
         accuracy: expect.any(Number),
       }),
-      expect.objectContaining({
-        subject: 'math',
-        skillKey: 'subtraction-within-20',
-        averageAnswerTimeMs: expect.any(Number),
-      }),
     ]),
   });
 
@@ -115,12 +169,35 @@ test('completes the authoritative learning and upgrade journey', async ({
   await expect(
     page.getByRole('heading', { name: 'Training field secured' })
   ).toBeVisible({ timeout: 10_000 });
+  const feedbackCues = await page.evaluate(() => {
+    const target = globalThis as typeof globalThis & {
+      __TANKQUEST_COMBAT_LOGS__?: Array<{
+        event: string;
+        details: Record<string, number | string>;
+      }>;
+    };
+    return (target.__TANKQUEST_COMBAT_LOGS__ ?? [])
+      .filter((entry) => entry.event === 'feedback_cue')
+      .map((entry) => entry.details.cue);
+  });
+  expect(feedbackCues).toEqual(
+    expect.arrayContaining(['fire', 'penetrated', 'destroyed'])
+  );
   await page.getByRole('button', { name: 'Complete mission' }).click();
 
   await expect(
     page.getByRole('heading', { name: 'Mission complete' })
   ).toBeVisible();
   await expect(page.getByText('3 cannon parts earned')).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Learning performance' })
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Battle performance' })
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Reward sources' })
+  ).toBeVisible();
   await expect(
     page.getByRole('button', { name: 'Replay mission' })
   ).toBeVisible();
@@ -136,17 +213,29 @@ test('completes the authoritative learning and upgrade journey', async ({
   await expect(
     page.getByText(/cannon parts remain/, { exact: false })
   ).toBeVisible();
-  await page
-    .getByRole('button', { name: 'Use upgrade in another mission' })
-    .click();
-  await expect(
-    page.getByRole('heading', { name: 'Choose a training mission' })
-  ).toBeVisible();
-  await expect(page.getByRole('link', { name: /parent/i })).toHaveCount(0);
+  await expect(page.locator('.upgrade-deltas')).toContainText('→');
+  await expect(page.locator('.upgrade-deltas')).toContainText('Shell');
+  await expect(page.locator('.upgrade-deltas')).toContainText('Reload');
+  const replaySessionResponse = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/game-sessions') &&
+      response.request().method() === 'POST'
+  );
+  await page.getByRole('button', { name: 'Replay mission' }).click();
+  const replaySession = (await (
+    await replaySessionResponse
+  ).json()) as ApiResponse<StartSessionResponse>;
+  expect(replaySession.data?.sessionId).toBeTruthy();
+  expect(replaySession.data?.sessionId).not.toBe(firstSession.data?.sessionId);
+  await expect(page.locator('main[data-phase="active"]')).toBeVisible();
+  await expect(page.locator('.game-canvas canvas')).toBeVisible();
+  await expect(page.locator('.briefing-stats > div').first()).toContainText(
+    /Firepower\s*[4-5]/
+  );
   await page.reload();
   await page.getByRole('button', { name: 'Start training' }).click();
-  await expect(page.locator('.mission-status')).toContainText(
-    /Firepower [4-5]/
+  await expect(page.locator('.briefing-stats > div').first()).toContainText(
+    /Firepower\s*[4-5]/
   );
   await page.goto('/parent');
   await expect(
@@ -180,6 +269,45 @@ test('completes the authoritative learning and upgrade journey', async ({
     page.getByRole('heading', { name: '学习教练摘要' })
   ).toBeVisible();
   expect(consoleErrors).toEqual([]);
+});
+
+test('allocates distinct question groups across three consecutive sessions', async ({
+  request,
+}) => {
+  const levels = (await (
+    await request.get('http://127.0.0.1:3000/api/levels')
+  ).json()) as ApiResponse<LevelDto[]>;
+  const tanks = (await (
+    await request.get('http://127.0.0.1:3000/api/children/child_demo/tanks')
+  ).json()) as ApiResponse<OwnedTankDto[]>;
+  const level = levels.data?.find((item) => item.code === 'addition-range');
+  const tank = tanks.data?.[0];
+  expect(level).toBeTruthy();
+  expect(tank).toBeTruthy();
+  if (!level || !tank) return;
+
+  const groups: string[][] = [];
+  for (let session = 0; session < 3; session += 1) {
+    const response = await request.post(
+      'http://127.0.0.1:3000/api/game-sessions',
+      {
+        data: {
+          childId: 'child_demo',
+          levelId: level.id,
+          tankId: tank.id,
+        },
+      }
+    );
+    const payload =
+      (await response.json()) as ApiResponse<StartSessionResponse>;
+    expect(response.ok(), JSON.stringify(payload)).toBe(true);
+    const questionIds = payload.data?.questions.map((question) => question.id);
+    expect(questionIds).toHaveLength(3);
+    expect(new Set(questionIds).size).toBe(3);
+    groups.push(questionIds ?? []);
+  }
+
+  expect(new Set(groups.flat()).size).toBe(9);
 });
 
 test('continues combat after repeated enemy projectile impacts', async ({
@@ -248,15 +376,157 @@ test('continues combat after repeated enemy projectile impacts', async ({
   expect(pageErrors).toEqual([]);
 });
 
+test('keeps combat feedback usable when experience assets fail', async ({
+  page,
+}) => {
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+  await page.route('**/assets/phase4/v2/**', async (route) => {
+    await route.fulfill({ status: 404, body: 'asset unavailable' });
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Start training' }).click();
+  await expect(page.locator('.game-canvas canvas')).toBeVisible();
+  await expect(page.locator('.learning-console')).toBeVisible();
+  for (let index = 0; index < 3; index += 1) {
+    const prompt = await page.locator('.learning-console h2').textContent();
+    const answer = prompt ? correctAnswerForPrompt(prompt) : undefined;
+    expect(answer, `known seed answer for ${prompt}`).toBeTruthy();
+    if (!answer) throw new Error(`Missing answer for ${prompt}`);
+    await page.getByRole('button', { name: answer, exact: true }).click();
+    await page
+      .getByRole('button', {
+        name: index === 2 ? 'Return to battle' : 'Next challenge',
+      })
+      .click();
+  }
+  await fireAt(page, 720, 145, 4);
+  await fireAt(page, 790, 390, 4);
+  await expect(
+    page.getByRole('heading', { name: 'Training field secured' })
+  ).toBeVisible({ timeout: 10_000 });
+  const feedbackCues = await page.evaluate(() => {
+    const target = globalThis as typeof globalThis & {
+      __TANKQUEST_COMBAT_LOGS__?: Array<{
+        event: string;
+        details: Record<string, number | string>;
+      }>;
+    };
+    return (target.__TANKQUEST_COMBAT_LOGS__ ?? [])
+      .filter((entry) => entry.event === 'feedback_cue')
+      .map((entry) => entry.details.cue);
+  });
+  expect(feedbackCues).toContain('fire');
+  await page.getByRole('button', { name: 'Complete mission' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Mission complete' })
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Replay mission' })
+  ).toBeVisible();
+  expect(pageErrors).toEqual([]);
+});
+
+test('advances and completes configured enemy waves', async ({ page }) => {
+  await page.route('**/api/game-sessions', async (route) => {
+    const response = await route.fetch();
+    const payload =
+      (await response.json()) as ApiResponse<StartSessionResponse>;
+    const enemies = payload.data?.level.config.enemyTanks as
+      EnemyTankConfigDto[] | undefined;
+    if (!payload.data || enemies?.length !== 2) {
+      throw new Error('Expected the two-enemy addition mission');
+    }
+    payload.data.level.config = {
+      ...payload.data.level.config,
+      enemyTanks: enemies.map((enemy) => ({
+        ...enemy,
+        ai: {
+          ...enemy.ai,
+          attackRange: 80,
+          detectionRange: 100,
+          speedMultiplier: 0.1,
+        },
+      })),
+      map: {
+        style: 'range',
+        playerSpawn: { x: 120, y: 270 },
+        obstacles: [],
+      },
+      objectiveSet: {
+        completion: 'all',
+        objectives: [
+          {
+            id: 'e2e_waves',
+            type: 'defend-waves',
+            waves: [
+              { id: 'wave_one', enemyIds: [enemies[0]!.id] },
+              { id: 'wave_two', enemyIds: [enemies[1]!.id] },
+            ],
+          },
+        ],
+      },
+    };
+    await route.fulfill({ response, json: payload });
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Start training' }).click();
+  for (let index = 0; index < 3; index += 1) {
+    const prompt = await page.locator('.learning-console h2').textContent();
+    const answer = prompt ? correctAnswerForPrompt(prompt) : undefined;
+    expect(answer, `known seed answer for ${prompt}`).toBeTruthy();
+    await page.getByRole('button', { name: answer, exact: true }).click();
+    await page
+      .getByRole('button', {
+        name: index === 2 ? 'Return to battle' : 'Next challenge',
+      })
+      .click();
+  }
+
+  await expect(
+    page.getByRole('heading', { name: 'Defend against waves · 0/2' })
+  ).toBeVisible();
+  await fireAt(page, 720, 145, 4);
+  await expect(
+    page.getByRole('heading', { name: 'Defend against waves · 1/2' })
+  ).toBeVisible({ timeout: 10_000 });
+  await fireAt(page, 790, 390, 4);
+  await expect(
+    page.getByRole('heading', { name: 'Defend against waves · 2/2' })
+  ).toBeVisible({ timeout: 10_000 });
+  await expect(
+    page.getByRole('button', { name: 'Complete mission' })
+  ).toBeVisible({ timeout: 10_000 });
+});
+
 test('starts a mission with the selected owned tank', async ({ page }) => {
   await page.goto('/');
   const starShield = page.getByRole('button', { name: /Star Shield/ });
   const swiftFox = page.getByRole('button', { name: /Swift Fox/ });
+  const ironMountain = page.getByRole('button', { name: /Iron Mountain/ });
   await expect(starShield).toBeVisible();
   await expect(swiftFox).toBeVisible();
-  await expect(
-    page.getByRole('button', { name: /Iron Mountain/ })
-  ).toBeVisible();
+  await expect(ironMountain).toBeVisible();
+  const swiftProfile = swiftFox.locator('.tank-combat-profile');
+  const ironProfile = ironMountain.locator('.tank-combat-profile');
+  for (const label of [
+    'Shell',
+    'Penetration',
+    'Reload',
+    'Speed',
+    'HP',
+    'Front armor',
+    'Detection',
+    'Visibility',
+  ]) {
+    await expect(swiftProfile).toContainText(label);
+    await expect(ironProfile).toContainText(label);
+  }
+  expect(await swiftProfile.textContent()).not.toBe(
+    await ironProfile.textContent()
+  );
   await expect(
     starShield.locator('[data-tank-visual="star-shield"]')
   ).toBeVisible();
@@ -291,9 +561,13 @@ test('starts a mission with the selected owned tank', async ({ page }) => {
   ).resolves.toMatchObject({
     data: { tank: { skin: { code: 'arctic-dash' } } },
   });
-  await expect(
-    page.getByText(/Firepower 2 · Mobility 5 · Armor 1 · Stealth 4 · Vision 4/)
-  ).toBeVisible();
+  await expect(page.locator('.briefing-stats > div dd')).toHaveText([
+    '2',
+    '5',
+    '1',
+    '4',
+    '4',
+  ]);
   await expect(page.locator('.game-canvas canvas')).toBeVisible();
 });
 
@@ -302,6 +576,15 @@ test('persists language and theme preferences', async ({ page }) => {
   await expect(
     page.getByRole('heading', { name: 'Choose a training mission' })
   ).toBeVisible();
+  await expect(page.getByLabel('Theme')).toHaveValue('mission');
+  await page.getByRole('button', { name: /Robot patrol/ }).click();
+  await expect
+    .poll(() => page.locator('html').getAttribute('data-theme'))
+    .toBe('snow-field');
+  await page.getByRole('button', { name: /Word match camp/ }).click();
+  await expect
+    .poll(() => page.locator('html').getAttribute('data-theme'))
+    .toBe('forest-camp');
 
   await page.getByLabel('Language').selectOption('zh-CN');
   await expect(
@@ -358,18 +641,13 @@ test('completes English and direction missions through the shared API', async ({
     data: expect.arrayContaining([
       expect.objectContaining({
         subject: 'english',
-        skillKey: 'basic-word-meaning',
+        skillKey: 'word-meaning',
         attempts: 3,
       }),
       expect.objectContaining({
         subject: 'direction',
         skillKey: 'cardinal-directions',
-        attempts: 2,
-      }),
-      expect.objectContaining({
-        subject: 'direction',
-        skillKey: 'left-and-right',
-        attempts: 1,
+        attempts: 3,
       }),
     ]),
   });
@@ -397,7 +675,7 @@ async function completeMission(request: APIRequestContext, levelCode: string) {
   if (!started.data) return;
 
   for (const question of started.data.questions) {
-    const correctText = correctAnswers[question.prompt];
+    const correctText = correctAnswerForPrompt(question.prompt);
     const answer = question.choices.find(
       (choice) => choice.text === correctText
     );

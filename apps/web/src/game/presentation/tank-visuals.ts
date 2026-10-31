@@ -92,6 +92,15 @@ export function lockTankBody(
   body.setSize(size.width, size.height, true);
 }
 
+function shade(color: number, factor: number): number {
+  const clamp = (value: number) =>
+    Math.max(0, Math.min(255, Math.round(value)));
+  const r = clamp(((color >> 16) & 0xff) * factor);
+  const g = clamp(((color >> 8) & 0xff) * factor);
+  const b = clamp((color & 0xff) * factor);
+  return (r << 16) | (g << 8) | b;
+}
+
 function drawTankTextures(
   scene: Phaser.Scene,
   graphics: Phaser.GameObjects.Graphics,
@@ -107,11 +116,44 @@ function drawTankTextures(
   const bodyWidth = definition.hull.width + bodyPadding * 2;
   const bodyHeight = definition.hull.height;
   const trackHeight = Math.max(6, Math.round(bodyHeight * 0.23));
+  const hullInset = bodyPadding + 2;
+  const hullWidth = definition.hull.width - 4;
+  const hullHeight = bodyHeight - 8;
+
+  const hullLight = shade(colors.primary, 1.28);
+  const hullShade = shade(colors.primary, 0.72);
+  const trackLight = shade(colors.tracks, 1.5);
+  const trackShade = shade(colors.tracks, 0.6);
+
   graphics.clear();
+
+  /* Tracks: dark base, tread ticks, top highlight so the rubber reads as metal. */
   graphics
     .fillStyle(colors.tracks)
     .fillRoundedRect(0, 0, bodyWidth, trackHeight, 3)
-    .fillRoundedRect(0, bodyHeight - trackHeight, bodyWidth, trackHeight, 3)
+    .fillRoundedRect(0, bodyHeight - trackHeight, bodyWidth, trackHeight, 3);
+  for (let x = 3; x < bodyWidth - 2; x += 5) {
+    graphics
+      .fillStyle(trackShade, 0.85)
+      .fillRect(x, 1, 2, trackHeight - 2)
+      .fillRect(x, bodyHeight - trackHeight + 1, 2, trackHeight - 2);
+  }
+  graphics
+    .fillStyle(trackLight, 0.45)
+    .fillRect(1, 0, bodyWidth - 2, 1)
+    .fillRect(1, bodyHeight - trackHeight, bodyWidth - 2, 1);
+
+  /* Hull: base plate, top-lit band, bottom shadow, double outline. */
+  /* Extruded side face: a darker offset silhouette gives the hull height. */
+  graphics
+    .fillStyle(shade(colors.primary, 0.5), 0.55)
+    .fillRoundedRect(
+      bodyPadding + 3,
+      5,
+      definition.hull.width,
+      bodyHeight - 6,
+      definition.hull.cornerRadius
+    )
     .fillStyle(colors.primary)
     .fillRoundedRect(
       bodyPadding,
@@ -120,14 +162,53 @@ function drawTankTextures(
       bodyHeight - 4,
       definition.hull.cornerRadius
     )
-    .lineStyle(2, colors.secondary, 0.9)
-    .strokeRoundedRect(
-      bodyPadding + 2,
-      4,
-      definition.hull.width - 4,
-      bodyHeight - 8,
+    .fillStyle(hullLight, 0.45)
+    .fillRoundedRect(
+      bodyPadding + 1,
+      3,
+      definition.hull.width - 2,
+      Math.max(4, (bodyHeight - 6) * 0.42),
       Math.max(2, definition.hull.cornerRadius - 2)
+    )
+    .fillStyle(hullShade, 0.32)
+    .fillRoundedRect(
+      bodyPadding + 1,
+      bodyHeight - 4 - Math.max(4, (bodyHeight - 6) * 0.28),
+      definition.hull.width - 2,
+      Math.max(3, (bodyHeight - 6) * 0.28),
+      Math.max(2, definition.hull.cornerRadius - 3)
+    )
+    .lineStyle(2, colors.secondary, 0.85)
+    .strokeRoundedRect(
+      hullInset,
+      4,
+      hullWidth,
+      hullHeight,
+      Math.max(2, definition.hull.cornerRadius - 2)
+    )
+    .lineStyle(1, hullLight, 0.5)
+    .strokeRoundedRect(
+      hullInset + 2,
+      6,
+      hullWidth - 4,
+      hullHeight - 4,
+      Math.max(2, definition.hull.cornerRadius - 3)
     );
+
+  /* Rivets along both long edges. */
+  for (
+    let x = bodyPadding + 6;
+    x < bodyPadding + definition.hull.width - 4;
+    x += 9
+  ) {
+    graphics
+      .fillStyle(hullShade, 0.9)
+      .fillCircle(x, 7, 1.1)
+      .fillCircle(x, bodyHeight - 7, 1.1)
+      .fillStyle(hullLight, 0.7)
+      .fillCircle(x - 0.4, 6.6, 0.5);
+  }
+
   drawHullDetails(graphics, definition, colors.secondary, bodyPadding);
   graphics.generateTexture(bodyKey, bodyWidth, bodyHeight);
 
@@ -137,20 +218,79 @@ function drawTankTextures(
     turretPadding * 2 + turretDiameter + definition.turret.barrelLength;
   const turretHeight = turretPadding * 2 + turretDiameter;
   const center = turretPadding + definition.turret.radius;
+  const barrelTop = center - definition.turret.barrelWidth / 2;
+  const turretLight = shade(colors.primary, 1.35);
+  const turretShade = shade(colors.primary, 0.7);
+
   graphics.clear();
+
+  /* Barrel: base, top highlight, muzzle brake. */
   graphics
     .fillStyle(colors.secondary)
     .fillRoundedRect(
       center,
-      center - definition.turret.barrelWidth / 2,
+      barrelTop,
       definition.turret.barrelLength + definition.turret.radius,
       definition.turret.barrelWidth,
       definition.turret.barrelWidth / 2
     )
+    .fillStyle(shade(colors.secondary, 1.25), 0.55)
+    .fillRect(
+      center + 2,
+      barrelTop + 0.6,
+      definition.turret.barrelLength + definition.turret.radius - 4,
+      1
+    )
+    .fillStyle(turretShade, 0.8)
+    .fillRect(
+      center + 2,
+      barrelTop + definition.turret.barrelWidth - 1.6,
+      definition.turret.barrelLength + definition.turret.radius - 4,
+      1
+    )
+    .fillStyle(colors.secondary)
+    .fillRoundedRect(
+      center + definition.turret.barrelLength - 2,
+      barrelTop - 1,
+      6,
+      definition.turret.barrelWidth + 2,
+      2
+    );
+
+  /* Turret: layered discs fake a top-left light source. */
+  graphics
+    .fillStyle(shade(colors.primary, 0.45), 0.5)
+    .fillCircle(center + 1.6, center + 2, definition.turret.radius)
     .fillStyle(colors.primary)
     .fillCircle(center, center, definition.turret.radius)
+    .fillStyle(turretLight, 0.5)
+    .fillCircle(
+      center - definition.turret.radius * 0.22,
+      center - definition.turret.radius * 0.26,
+      definition.turret.radius * 0.72
+    )
+    .fillStyle(turretShade, 0.28)
+    .fillCircle(
+      center + definition.turret.radius * 0.18,
+      center + definition.turret.radius * 0.24,
+      definition.turret.radius * 0.55
+    )
     .lineStyle(2, colors.secondary, 1)
-    .strokeCircle(center, center, Math.max(2, definition.turret.radius - 2));
+    .strokeCircle(center, center, Math.max(2, definition.turret.radius - 1))
+    .lineStyle(1, turretLight, 0.6)
+    .strokeCircle(center, center, Math.max(2, definition.turret.radius - 3))
+    .fillStyle(turretShade, 0.85)
+    .fillCircle(
+      center - definition.turret.radius * 0.15,
+      center - definition.turret.radius * 0.2,
+      Math.max(1.6, definition.turret.radius * 0.22)
+    )
+    .fillStyle(turretLight, 0.75)
+    .fillCircle(
+      center - definition.turret.radius * 0.22,
+      center - definition.turret.radius * 0.28,
+      Math.max(1, definition.turret.radius * 0.12)
+    );
   graphics.generateTexture(turretKey, turretWidth, turretHeight);
 }
 

@@ -13,5 +13,9 @@ export function emptyRuntimeState(): RuntimeState {
     playerHealth: 0,
     playerMaxHealth: 0,
     playerDestroyed: false,
+    objectiveComplete: false,
+    objectiveType: 'eliminate',
+    objectiveCurrent: 0,
+    objectiveTarget: 0,
   };
 }

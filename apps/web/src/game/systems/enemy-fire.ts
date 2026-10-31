@@ -11,10 +11,10 @@ export function fireEnemyProjectile(
 ) {
   const lastShotAt = enemy.getData('lastShotAt') as number;
   const fireCooldownMs = enemy.getData('fireCooldownMs') as number;
-  if (!canEnemyFire(lastShotAt, time, fireCooldownMs)) return;
+  if (!canEnemyFire(lastShotAt, time, fireCooldownMs)) return false;
 
   const projectile = projectiles.get(turret.x, turret.y, 'enemy-projectile');
-  if (!projectile) return;
+  if (!projectile) return false;
   projectile
     .setActive(true)
     .setVisible(true)
@@ -32,4 +32,5 @@ export function fireEnemyProjectile(
   scene.time.delayedCall(2200, () => {
     if (projectile.active) projectile.destroy();
   });
+  return true;
 }

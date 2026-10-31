@@ -93,6 +93,67 @@ describe('AssetClient', () => {
     ]);
   });
 
+  it('loads supported binary resources from later Phase 4 versions', async () => {
+    const texture = asset({
+      assetId: 'training_base_ground_v2',
+      type: 'theme-texture',
+      version: '2.0.0',
+      url: '/assets/phase4/v2/experience/training-base-ground-v2.webp',
+    });
+    const sound = asset({
+      assetId: 'cannon_fire_v1',
+      type: 'sound-effect',
+      url: '/assets/phase4/v2/experience/cannon-fire-v1.ogg',
+    });
+    const { client, fetchAsset } = setup(manifest([texture, sound]));
+
+    await expect(client.preloadLevel('level_1')).resolves.toMatchObject({
+      source: 'manifest',
+    });
+    expect(fetchAsset.mock.calls.map(([url]) => url)).toEqual([
+      texture.url,
+      sound.url,
+    ]);
+  });
+
+  it('loads independent resources with bounded concurrency', async () => {
+    vi.useFakeTimers();
+    try {
+      const assets = Array.from({ length: 8 }, (_, index) =>
+        asset({
+          assetId: `asset_${index}`,
+          url: `/assets/phase4/v2/experience/asset-${index}.ogg`,
+        })
+      );
+      let active = 0;
+      let maximumActive = 0;
+      const fetchAsset = vi.fn<typeof fetch>().mockImplementation(async () => {
+        active += 1;
+        maximumActive = Math.max(maximumActive, active);
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        active -= 1;
+        return new Response(bytes, { status: 200 });
+      });
+      const client = new AssetClient(
+        { getAssetManifest: vi.fn().mockResolvedValue(manifest(assets)) },
+        {
+          fetch: fetchAsset,
+          hash: vi.fn().mockResolvedValue(validHash),
+          timeoutMs: 1_000,
+        }
+      );
+
+      const result = client.preloadLevel('level_1');
+      await vi.advanceTimersByTimeAsync(250);
+
+      await expect(result).resolves.toMatchObject({ source: 'manifest' });
+      expect(maximumActive).toBe(4);
+      expect(fetchAsset).toHaveBeenCalledTimes(8);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('uses browser SHA-256 when no hash adapter is provided', async () => {
     const context = setup(manifest([asset({ sha256: realHash })]));
     const client = new AssetClient(context.apiClient, {
@@ -113,6 +174,9 @@ describe('AssetClient', () => {
 
     const missingAsset = setup(manifest(), new Response(null, { status: 404 }));
     await expectFallback(missingAsset.client);
+    expect(
+      missingAsset.fetchAsset.mock.calls[0]?.[1]?.signal as AbortSignal
+    ).toMatchObject({ aborted: true });
   });
 
   it('aborts and falls back when the preload does not finish in time', async () => {
@@ -154,7 +218,7 @@ describe('AssetClient', () => {
     );
     await expectFallback(
       setup(
-        manifest([asset({ preview: '/assets/phase4/v2/previews/range.svg' })])
+        manifest([asset({ preview: '/assets/phase4/v0/previews/range.svg' })])
       ).client
     );
     await expectFallback(

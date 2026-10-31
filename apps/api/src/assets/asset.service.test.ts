@@ -60,6 +60,45 @@ describe('AssetService', () => {
     });
   });
 
+  it('includes published versioned texture and sound dependencies', async () => {
+    const repository = new MemoryAssetRepository();
+    const texture: PublishedAssetRecord = {
+      ...tankVisuals,
+      assetId: 'asset_training_base_ground_v2',
+      type: 'theme-texture',
+      version: '2.0.0',
+      url: '/assets/phase4/v2/experience/training-base-ground-v2.webp',
+    };
+    const sound: PublishedAssetRecord = {
+      ...tankVisuals,
+      assetId: 'asset_cannon_fire_v1',
+      type: 'sound-effect',
+      url: '/assets/phase4/v2/experience/cannon-fire-v1.ogg',
+    };
+    repository.snapshot = {
+      ...repository.snapshot!,
+      publishedAssets: [
+        texture,
+        sound,
+        tankVisuals,
+        {
+          ...trainingGrounds,
+          dependencies: [texture.assetId, sound.assetId],
+        },
+      ],
+    };
+
+    await expect(
+      new AssetService(repository).getManifest('level_addition_range')
+    ).resolves.toMatchObject({
+      assets: [
+        { assetId: texture.assetId, type: 'theme-texture' },
+        { assetId: sound.assetId, type: 'sound-effect' },
+        { assetId: trainingGrounds.assetId },
+      ],
+    });
+  });
+
   it('does not expose unrelated published assets', async () => {
     const service = new AssetService(new MemoryAssetRepository());
     const manifest = await service.getManifest('level_addition_range');

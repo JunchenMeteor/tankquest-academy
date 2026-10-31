@@ -4,7 +4,12 @@ export type CombatLogEvent =
   | 'enemy_projectile_hit_player'
   | 'invalid_projectile_collision'
   | 'ram_impact'
+  | 'enemy_squad_alerted'
+  | 'enemy_engaged'
+  | 'enemy_awareness_expired'
   | 'enemy_destroyed'
+  | 'feedback_cue'
+  | 'objective_progressed'
   | 'player_destroyed';
 
 export interface CombatLogEntry {

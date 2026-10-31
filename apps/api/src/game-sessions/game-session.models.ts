@@ -36,6 +36,7 @@ export interface RecordedAnswer {
 export interface SessionState {
   id: string;
   childId: string;
+  locale: 'en' | 'zh-CN';
   status: 'active' | 'finished' | 'abandoned';
   setup: SessionSetup;
   answers: RecordedAnswer[];
@@ -69,4 +70,6 @@ export interface AdaptiveLearningContext {
 export interface NewSession extends StartSessionRequest {
   mode: string;
   difficulty: number;
+  locale: 'en' | 'zh-CN';
+  questionIds: string[];
 }

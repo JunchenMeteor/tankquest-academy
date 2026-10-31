@@ -1,34 +1,34 @@
 :root {
-  --theme-page: #101710;
-  --theme-surface: #1b261b;
-  --theme-muted-surface: #263826;
-  --theme-border: #667858;
-  --theme-accent: #f1c75b;
-  --theme-text: #f4f7e8;
-  --theme-muted: #a9b6a2;
+  --theme-page: #0d1216;
+  --theme-surface: #151d22;
+  --theme-muted-surface: #1c272e;
+  --theme-border: #2b3a43;
+  --theme-accent: #4cc2ff;
+  --theme-text: #e9f2f7;
+  --theme-muted: #8fa3ad;
   color: #f4f7e8;
   background: #101710;
   font-family: Inter, system-ui, sans-serif;
 }
 
 :root[data-theme='forest-camp'] {
-  --theme-page: #0c1812;
-  --theme-surface: #173025;
-  --theme-muted-surface: #234a35;
-  --theme-border: #5f886d;
-  --theme-accent: #e2b95f;
-  --theme-text: #f0f7e8;
-  --theme-muted: #b5c8b8;
+  --theme-page: #0c1512;
+  --theme-surface: #14201b;
+  --theme-muted-surface: #1b2a23;
+  --theme-border: #2c4238;
+  --theme-accent: #5fe0a4;
+  --theme-text: #e8f5ee;
+  --theme-muted: #93b0a1;
 }
 
 :root[data-theme='snow-field'] {
-  --theme-page: #dceaf5;
-  --theme-surface: #f4f8fb;
-  --theme-muted-surface: #d2e3ef;
-  --theme-border: #7193ad;
-  --theme-accent: #b77716;
-  --theme-text: #183044;
-  --theme-muted: #48697f;
+  --theme-page: #eef4f8;
+  --theme-surface: #ffffff;
+  --theme-muted-surface: #e2ebf2;
+  --theme-border: #c3d3de;
+  --theme-accent: #0f7fc4;
+  --theme-text: #0f1d26;
+  --theme-muted: #4c6472;
 }
 
 :root[data-theme] {
@@ -166,6 +166,10 @@
   color: var(--theme-muted);
 }
 
+:root[data-theme] .tank-picker .tank-combat-profile {
+  color: var(--theme-accent);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -226,7 +230,7 @@ button:disabled {
 }
 
 .hud dt {
-  color: #a9b6a2;
+  color: var(--theme-muted);
   font-size: 0.8rem;
 }
 
@@ -273,6 +277,24 @@ button:disabled {
 
 .game-canvas canvas {
   display: block;
+}
+
+.game-load-error {
+  min-height: 100%;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  color: #ffe8df;
+  background: linear-gradient(145deg, #351e1b, #17231d);
+  text-align: center;
+}
+
+.game-load-error button {
+  border-color: #d5c477;
+  color: #182018;
+  background: #d5c477;
 }
 
 .touch-controls {
@@ -440,6 +462,11 @@ button:disabled {
   font-weight: 500;
 }
 
+.tank-picker .tank-combat-profile {
+  margin-top: 0.25rem;
+  color: var(--theme-accent);
+}
+
 .skin-picker {
   display: flex;
   flex-wrap: wrap;
@@ -488,7 +515,7 @@ button:disabled {
 
 .combat-readout,
 .mission-preview {
-  color: #a9b6a2;
+  color: var(--theme-muted);
   text-align: center;
 }
 
@@ -496,6 +523,22 @@ button:disabled {
   width: min(960px, 100%);
   margin: -0.35rem auto 0.75rem;
   font-size: 0.9rem;
+}
+
+.threat-profiles {
+  display: flex;
+  width: min(960px, 100%);
+  margin: -0.25rem auto 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem 0.75rem;
+  color: var(--theme-muted);
+  font-size: 0.82rem;
+}
+
+.threat-profiles strong {
+  width: 100%;
+  color: var(--theme-text);
 }
 
 .learning-console h2 {
@@ -533,6 +576,32 @@ button:disabled {
   letter-spacing: 0.2em;
 }
 
+.result-breakdown {
+  display: grid;
+  width: min(840px, 100%);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  text-align: left;
+}
+
+.result-breakdown section {
+  border: 1px solid var(--theme-border);
+  border-radius: 0.75rem;
+  padding: 0.85rem;
+  background: color-mix(in srgb, var(--theme-accent) 7%, var(--theme-surface));
+}
+
+.result-breakdown h3,
+.result-breakdown p {
+  margin: 0;
+}
+
+.result-breakdown p,
+.result-breakdown ul {
+  margin-top: 0.45rem;
+  color: var(--theme-muted);
+}
+
 .upgrade-confirmation {
   display: grid;
   border: 1px solid #7eb668;
@@ -548,14 +617,40 @@ button:disabled {
   font-size: 1.1rem;
 }
 
+.upgrade-deltas {
+  display: grid;
+  margin: 0.35rem 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.upgrade-deltas div {
+  display: flex;
+  border-radius: 0.45rem;
+  padding: 0.45rem 0.6rem;
+  justify-content: space-between;
+  background: #152714;
+  gap: 0.75rem;
+}
+
+.upgrade-deltas dt,
+.upgrade-deltas dd {
+  margin: 0;
+}
+
+.upgrade-deltas dd {
+  color: #f1d997;
+  font-variant-numeric: tabular-nums;
+}
+
 .next-practice {
   display: grid;
   gap: 0.55rem;
   margin-top: 1rem;
   padding: 1rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--theme-border);
   border-radius: 0.9rem;
-  background: color-mix(in srgb, var(--accent) 10%, var(--panel));
+  background: color-mix(in srgb, var(--theme-accent) 10%, var(--theme-surface));
 }
 
 .next-practice p {
@@ -632,6 +727,11 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
+  .result-breakdown,
+  .upgrade-deltas {
+    grid-template-columns: 1fr;
+  }
+
   .feedback {
     align-items: stretch;
     flex-direction: column;
@@ -642,4 +742,518 @@ button:disabled {
   .touch-controls {
     display: flex;
   }
+}
+
+/* Surface polish: softer radii and depth so panels read as cards, not boxes. */
+:root {
+  --theme-radius: 16px;
+  --theme-radius-sm: 10px;
+  --theme-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+}
+
+:root[data-theme] .status-card,
+:root[data-theme] .learning-console,
+:root[data-theme] .battle-alert,
+:root[data-theme] .battle-objective,
+:root[data-theme] .report-overview,
+:root[data-theme] .report-section,
+:root[data-theme] .mission-card,
+:root[data-theme] .tank-card {
+  border-radius: var(--theme-radius);
+  box-shadow: var(--theme-shadow);
+}
+
+:root[data-theme] button,
+:root[data-theme] .button,
+:root[data-theme] select,
+:root[data-theme] .mission-card {
+  border-radius: var(--theme-radius-sm);
+}
+
+:root[data-theme] h1,
+:root[data-theme] h2,
+:root[data-theme] .brand-title {
+  letter-spacing: -0.02em;
+}
+
+/* ── Mission cards: structured, scannable, difficulty at a glance ───── */
+.mission-picker {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.mission-picker button.mission-card {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.85rem 0.95rem;
+  text-align: left;
+  border-radius: 14px;
+  position: relative;
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.mission-picker button.mission-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(6, 12, 10, 0.28);
+}
+
+.mission-index {
+  font-family: var(--theme-mono, ui-monospace, monospace);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  color: var(--theme-muted);
+}
+
+.mission-name {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.mission-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.mission-subject {
+  font-style: normal;
+  font-size: 0.72rem;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--theme-border);
+  color: var(--theme-muted);
+}
+
+.mission-subject.subject-math {
+  color: #7fb2ff;
+  border-color: rgba(127, 178, 255, 0.45);
+}
+
+.mission-subject.subject-english {
+  color: #7bd88f;
+  border-color: rgba(123, 216, 143, 0.45);
+}
+
+.mission-subject.subject-direction {
+  color: #f0b46a;
+  border-color: rgba(240, 180, 106, 0.45);
+}
+
+.mission-difficulty {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.mission-difficulty i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--theme-border);
+}
+
+.mission-difficulty i[data-on='true'] {
+  background: var(--theme-accent);
+}
+
+@media (max-width: 900px) {
+  .mission-picker {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .mission-picker {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ── Tank cards: compact stat grid instead of one long line ─────────── */
+.tank-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin: 0.2rem 0 0;
+  padding: 0.45rem 0.5rem;
+  border-radius: 10px;
+  background: rgba(6, 12, 10, 0.35);
+}
+
+.tank-stats div {
+  display: grid;
+  gap: 0.1rem;
+  text-align: center;
+}
+
+.tank-stats dt {
+  font-family: var(--theme-mono, ui-monospace, monospace);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--theme-muted);
+}
+
+.tank-stats dd {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--theme-text);
+}
+
+/* ── HUD: instrument chips instead of a cramped row ─────────────────── */
+.hud {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem 1.25rem;
+  max-width: 1180px;
+  margin: 0 auto 1rem;
+  padding: 0.85rem 1.1rem;
+  border: 1px solid var(--theme-border);
+  border-radius: 18px;
+  background: var(--theme-surface);
+}
+
+.hud h1 {
+  font-size: 1.05rem;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.hud .eyebrow {
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+}
+
+.hud dl {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+}
+
+.hud dl > div {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 84px;
+  padding: 0.42rem 0.75rem;
+  border: 1px solid var(--theme-border);
+  border-radius: 12px;
+  background: var(--theme-muted-surface);
+  text-align: center;
+}
+
+.hud dt {
+  font-family: var(--theme-mono, ui-monospace, monospace);
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--theme-muted);
+}
+
+.hud dd {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--theme-text);
+}
+
+.hud div[data-health='normal'] dd.hud-health,
+.hud div[data-health='low'] dd.hud-health {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.hud-health meter {
+  width: 100%;
+  height: 4px;
+  border: 0;
+  border-radius: 999px;
+}
+
+.hud-health meter::-webkit-meter-bar {
+  background: rgba(255, 255, 255, 0.12);
+  border: 0;
+  border-radius: 999px;
+}
+
+.hud-health meter::-webkit-meter-optimum-value {
+  background: #7bd88f;
+  border-radius: 999px;
+}
+
+.hud div[data-health='low'] .hud-health meter::-webkit-meter-optimum-value {
+  background: #ff8f70;
+}
+
+.preference-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.preference-controls label {
+  display: grid;
+  gap: 0.15rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--theme-muted);
+}
+
+.preference-controls select {
+  min-width: 110px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.82rem;
+  border-radius: 10px;
+}
+
+@media (max-width: 1080px) {
+  .hud {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .hud dl {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
+/* ── Battle briefing: chips instead of two run-on lines ─────────────── */
+.briefing-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.briefing-level {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.briefing-stats,
+.briefing-readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.briefing-stats > div,
+.briefing-readout > div {
+  display: grid;
+  gap: 0.05rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--theme-border);
+  border-radius: 10px;
+  background: var(--theme-muted-surface);
+  text-align: center;
+}
+
+.briefing-stats dt,
+.briefing-readout dt {
+  font-family: var(--theme-mono, ui-monospace, monospace);
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--theme-muted);
+}
+
+.briefing-stats dd,
+.briefing-readout dd {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--theme-text);
+}
+
+/* ── Threat profiles: one card per enemy role ───────────────────────── */
+.threat-profiles {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
+.threat-profiles > strong {
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--theme-muted);
+}
+
+.threat {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--theme-border);
+  border-radius: 12px;
+  background: var(--theme-muted-surface);
+}
+
+.threat-role {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--theme-text);
+  min-width: 90px;
+}
+
+.threat dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.threat dl > div {
+  display: grid;
+  gap: 0.02rem;
+  padding: 0.18rem 0.45rem;
+  border-radius: 8px;
+  background: rgba(6, 12, 10, 0.3);
+  text-align: center;
+}
+
+.threat dt {
+  font-family: var(--theme-mono, ui-monospace, monospace);
+  font-size: 0.5rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--theme-muted);
+}
+
+.threat dd {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--theme-text);
+}
+
+/* ── Mission result: hero + instrument summary ──────────────────────── */
+.result-hero {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.9rem;
+}
+
+.result-hero .stars {
+  display: inline-flex;
+  gap: 0.15rem;
+  margin: 0;
+  font-size: 1.4rem;
+  letter-spacing: 0.1em;
+  color: var(--theme-accent);
+}
+
+.result-hero .stars-empty {
+  color: var(--theme-border);
+}
+
+.result-hero h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.result-lede {
+  margin: 0;
+  color: var(--theme-muted);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.result-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+}
+
+.result-stats > div {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--theme-border);
+  border-radius: 12px;
+  background: var(--theme-muted-surface);
+  text-align: center;
+}
+
+.result-stats dt {
+  font-family: var(--theme-mono, ui-monospace, monospace);
+  font-size: 0.56rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--theme-muted);
+}
+
+.result-stats dd {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--theme-text);
+}
+
+@media (max-width: 560px) {
+  .result-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.result-card {
+  text-align: left;
+}
+
+.result-card .result-hero {
+  justify-items: start;
+}
+
+.result-card .result-breakdown section {
+  text-align: left;
+}
+
+/* ── Mobile: denser mission grid, no desktop keyboard hint ──────────── */
+@media (max-width: 560px) {
+  .mission-picker {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .mission-picker button.mission-card {
+    padding: 0.65rem 0.7rem;
+    border-radius: 12px;
+  }
+
+  .mission-name {
+    font-size: 0.9rem;
+  }
+
+  .mission-subject {
+    font-size: 0.66rem;
+    padding: 0.1rem 0.4rem;
+  }
+
+  /* Touch controls are rendered on screen; the keyboard hint is desktop-only. */
+  .controls {
+    display: none;
+  }
+}
+
+/* Guard against sub-pixel horizontal overflow on small screens. */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
 }

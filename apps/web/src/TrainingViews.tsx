@@ -8,10 +8,18 @@ import type {
 } from '@tankquest/shared';
 
 import { GameCanvas } from './game/GameCanvas.js';
+import {
+  combatProfileForStats,
+  enemyThreatProfiles,
+} from './game/presentation/combat-profile.js';
 import { TankPreview } from './game/presentation/TankPreview.js';
 import type { RuntimeLevelConfig, RuntimeState } from './game/runtime/types.js';
 import { useI18n } from './i18n/I18nProvider.js';
-import { themes, type ThemeCode, useTheme } from './theme/ThemeProvider.js';
+import {
+  themes,
+  type ThemePreference,
+  useTheme,
+} from './theme/ThemeProvider.js';
 
 export function AppHud({
   active,
@@ -21,6 +29,10 @@ export function AppHud({
   runtime: RuntimeState;
 }) {
   const { t } = useI18n();
+  const healthRatio =
+    runtime.playerMaxHealth > 0
+      ? runtime.playerHealth / runtime.playerMaxHealth
+      : 1;
   return (
     <header className="hud">
       <div>
@@ -37,10 +49,27 @@ export function AppHud({
           <dd>{runtime.shotsFired}</dd>
         </div>
         {active && (
-          <div>
+          <div data-health={healthRatio <= 0.35 ? 'low' : 'normal'}>
             <dt>{t('hud.health')}</dt>
+            <dd className="hud-health">
+              <span>
+                {runtime.playerHealth}/{runtime.playerMaxHealth}
+              </span>
+              <meter
+                aria-label={t('hud.health')}
+                min={0}
+                max={runtime.playerMaxHealth}
+                low={runtime.playerMaxHealth * 0.35}
+                value={runtime.playerHealth}
+              />
+            </dd>
+          </div>
+        )}
+        {active && (
+          <div>
+            <dt>{t('hud.objective')}</dt>
             <dd>
-              {runtime.playerHealth}/{runtime.playerMaxHealth}
+              {runtime.objectiveCurrent}/{runtime.objectiveTarget}
             </dd>
           </div>
         )}
@@ -73,8 +102,9 @@ export function PreferenceControls() {
         <select
           aria-label={t('settings.theme')}
           value={theme}
-          onChange={(event) => setTheme(event.target.value as ThemeCode)}
+          onChange={(event) => setTheme(event.target.value as ThemePreference)}
         >
+          <option value="mission">{t('theme.mission')}</option>
           {themes.map((code) => (
             <option key={code} value={code}>
               {t(`theme.${code}`)}
@@ -115,50 +145,108 @@ export function MissionPicker({
 }) {
   const { t } = useI18n();
   return (
-    <section className="status-card">
-      <h2>{t('picker.title')}</h2>
-      <p>{t('picker.ready', { count: levels.length })}</p>
+    <section className="status-card mission-selection">
+      <p className="selection-intro">
+        {t('picker.ready', { count: levels.length })}
+      </p>
+      <div className="selection-heading">
+        <span aria-hidden="true">1</span>
+        <h2>{t('picker.title')}</h2>
+      </div>
       <div className="mission-picker" aria-label={t('picker.missions')}>
-        {levels.map((level) => (
+        {levels.map((level, index) => (
           <button
             key={level.id}
-            className={level.id === selectedLevelId ? 'selected' : ''}
+            className={`mission-card${level.id === selectedLevelId ? ' selected' : ''}`}
             aria-pressed={level.id === selectedLevelId}
             onClick={() => onSelectLevel(level.id)}
           >
-            {contentName(level.code, t)} ·{' '}
-            {t('picker.difficulty', { value: level.baseDifficulty })}
+            <span className="mission-index" aria-hidden="true">
+              {String(index + 1).padStart(2, '0')}
+            </span>
+            <strong className="mission-name">
+              {contentName(level.code, t)}
+            </strong>
+            <span className="mission-meta">
+              {level.subject ? (
+                <em className={`mission-subject subject-${level.subject}`}>
+                  {t(`subject.${level.subject}`)}
+                </em>
+              ) : null}
+              <span
+                className="mission-difficulty"
+                aria-label={t('picker.difficulty', {
+                  value: level.baseDifficulty,
+                })}
+              >
+                {[1, 2, 3, 4].map((step) => (
+                  <i key={step} data-on={step <= level.baseDifficulty} />
+                ))}
+              </span>
+            </span>
           </button>
         ))}
       </div>
-      <h3>{t('picker.tank')}</h3>
+      <div className="selection-heading">
+        <span aria-hidden="true">2</span>
+        <h3>{t('picker.tank')}</h3>
+      </div>
       <div className="tank-picker" aria-label={t('picker.ownedTanks')}>
-        {tanks.map((tank) => (
-          <button
-            key={tank.id}
-            className={tank.id === selectedTankId ? 'selected' : ''}
-            aria-pressed={tank.id === selectedTankId}
-            onClick={() => onSelectTank(tank.id)}
-          >
-            <TankPreview
-              code={tank.code}
-              primaryColor={tank.skin?.primaryColor}
-              secondaryColor={tank.skin?.secondaryColor}
-              visualResources={preview?.visualResources}
-            />
-            <strong>{contentName(tank.code, t)}</strong>
-            <span>
-              {t(`role.${tank.role}`)} ·{' '}
-              {t('picker.level', { value: tank.level })}
-            </span>
-            <span>
-              {t('stat.firepower')} {tank.stats.firepower} ·{' '}
-              {t('stat.mobility')} {tank.stats.mobility} · {t('stat.armor')}{' '}
-              {tank.stats.armor} · {t('stat.stealth')} {tank.stats.stealth} ·{' '}
-              {t('stat.vision')} {tank.stats.vision}
-            </span>
-          </button>
-        ))}
+        {tanks.map((tank) => {
+          const profile = combatProfileForStats(tank.stats);
+          return (
+            <button
+              key={tank.id}
+              className={tank.id === selectedTankId ? 'selected' : ''}
+              aria-pressed={tank.id === selectedTankId}
+              onClick={() => onSelectTank(tank.id)}
+            >
+              <TankPreview
+                code={tank.code}
+                primaryColor={tank.skin?.primaryColor}
+                secondaryColor={tank.skin?.secondaryColor}
+                visualResources={preview?.visualResources}
+              />
+              <strong>{contentName(tank.code, t)}</strong>
+              <span>
+                {t(`role.${tank.role}`)} · {t(`role.hint.${tank.role}`)} ·{' '}
+                {t('picker.level', { value: tank.level })}
+              </span>
+              <dl className="tank-stats">
+                {(
+                  [
+                    ['firepower', tank.stats.firepower],
+                    ['mobility', tank.stats.mobility],
+                    ['armor', tank.stats.armor],
+                    ['stealth', tank.stats.stealth],
+                    ['vision', tank.stats.vision],
+                  ] as const
+                ).map(([key, value]) => (
+                  <div key={key}>
+                    <dt>{t(`stat.${key}`)}</dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+              </dl>
+              <span className="tank-combat-profile">
+                {t('picker.combatProfile', {
+                  armor: profile.frontArmor,
+                  damage: profile.damage,
+                  detection: profile.detectionRange,
+                  health: profile.health,
+                  penetration: profile.penetration,
+                  reload: profile.reloadSeconds,
+                  speed: profile.topSpeed,
+                  visibility: profile.visibilityPercent,
+                })}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="selection-heading compact">
+        <span aria-hidden="true">3</span>
+        <h3>{t('picker.skins')}</h3>
       </div>
       <div className="skin-picker" aria-label={t('picker.skins')}>
         {skins.map((skin) => (
@@ -187,8 +275,12 @@ export function MissionPicker({
           })}
         </p>
       )}
-      <button disabled={busy || !online} onClick={onStart}>
-        {t('action.start')}
+      <button
+        className="primary-start"
+        disabled={busy || !online}
+        onClick={onStart}
+      >
+        <span aria-hidden="true">▶</span> {t('action.start')}
       </button>
     </section>
   );
@@ -228,23 +320,82 @@ export function ActiveTraining({
   const { t } = useI18n();
   return (
     <>
-      <p className="mission-status">
-        {contentName(session.level.code, t)} · {t('stat.firepower')}{' '}
-        {session.tank.stats.firepower} · {t('stat.mobility')}{' '}
-        {session.tank.stats.mobility} · {t('stat.armor')}{' '}
-        {session.tank.stats.armor} · {t('stat.stealth')}{' '}
-        {session.tank.stats.stealth} · {t('stat.vision')}{' '}
-        {session.tank.stats.vision}
-      </p>
-      <p className="combat-readout">
-        {t('stat.shell')} {config.player.projectileDamage} ·{' '}
-        {t('stat.penetration')} {config.player.projectilePenetration} ·{' '}
-        {t('stat.armor')} {config.player.armorProfile.front}/
-        {config.player.armorProfile.side}/{config.player.armorProfile.rear} ·{' '}
-        {t('stat.speed')} {config.player.speed} · {t('stat.mass')}{' '}
-        {config.player.mass} · {t('stat.detection')}{' '}
-        {config.player.detectionRange}
-      </p>
+      <div className="battle-briefing">
+        <div className="briefing-head">
+          <span className="briefing-level">
+            {contentName(session.level.code, t)}
+          </span>
+          <dl className="briefing-stats">
+            {(
+              [
+                ['firepower', session.tank.stats.firepower],
+                ['mobility', session.tank.stats.mobility],
+                ['armor', session.tank.stats.armor],
+                ['stealth', session.tank.stats.stealth],
+                ['vision', session.tank.stats.vision],
+              ] as const
+            ).map(([key, value]) => (
+              <div key={key}>
+                <dt>{t(`stat.${key}`)}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+        <dl className="briefing-readout">
+          {(
+            [
+              ['shell', config.player.projectileDamage],
+              ['penetration', config.player.projectilePenetration],
+              [
+                'armor',
+                `${config.player.armorProfile.front}/${config.player.armorProfile.side}/${config.player.armorProfile.rear}`,
+              ],
+              ['speed', config.player.speed],
+              ['mass', config.player.mass],
+              ['detection', config.player.detectionRange],
+            ] as const
+          ).map(([key, value]) => (
+            <div key={key}>
+              <dt>{t(`stat.${key}`)}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+        </dl>
+        <div className="threat-profiles" aria-label={t('battle.threats')}>
+          <strong>{t('battle.threats')}</strong>
+          {enemyThreatProfiles(config.enemies).map((profile) => (
+            <article
+              className="threat"
+              key={`${profile.role}:${profile.elite ? 'elite' : 'standard'}`}
+              data-role={profile.role}
+            >
+              <span className="threat-role">
+                {profile.elite
+                  ? t('role.elite', { role: t(`role.${profile.role}`) })
+                  : t(`role.${profile.role}`)}
+              </span>
+              <dl>
+                {(
+                  [
+                    ['speed', profile.topSpeed],
+                    ['health', profile.health],
+                    ['armor', profile.frontArmor],
+                    ['shell', profile.damage],
+                    ['reload', profile.reloadSeconds],
+                    ['detection', profile.detectionRange],
+                  ] as const
+                ).map(([key, value]) => (
+                  <div key={key}>
+                    <dt>{t(`stat.${key}`)}</dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </article>
+          ))}
+        </div>
+      </div>
       <GameCanvas config={config} onState={onRuntime} />
       {runtime.playerDestroyed ? (
         <section className="battle-alert" aria-live="assertive">
@@ -264,12 +415,18 @@ export function ActiveTraining({
         <section className="battle-objective" aria-live="polite">
           <p className="eyebrow">{t('battle.supplies')}</p>
           <h2>
-            {runtime.enemiesRemaining > 0
-              ? t('battle.remaining', { count: runtime.enemiesRemaining })
-              : t('battle.secured')}
+            {runtime.objectiveType === 'eliminate'
+              ? runtime.objectiveComplete
+                ? t('battle.secured')
+                : t('battle.remaining', { count: runtime.enemiesRemaining })
+              : t('battle.objectiveProgress', {
+                  objective: t(`objective.${runtime.objectiveType}`),
+                  current: runtime.objectiveCurrent,
+                  target: runtime.objectiveTarget,
+                })}
           </h2>
-          <p>{t('battle.objective')}</p>
-          {runtime.enemiesRemaining === 0 && (
+          <p>{t(`objective.hint.${runtime.objectiveType}`)}</p>
+          {runtime.objectiveComplete && (
             <button disabled={busy || !online} onClick={onContinue}>
               {t('action.complete')}
             </button>
@@ -283,7 +440,7 @@ export function ActiveTraining({
           feedback={feedback}
           questionCount={session.questions.length}
           questionIndex={questionIndex}
-          enemiesRemaining={runtime.enemiesRemaining}
+          objectiveComplete={runtime.objectiveComplete}
           onAnswer={onAnswer}
           onContinue={onContinue}
         />
@@ -297,7 +454,7 @@ function LearningConsole({
   busy,
   online,
   currentQuestion,
-  enemiesRemaining,
+  objectiveComplete,
   feedback,
   questionCount,
   questionIndex,
@@ -307,7 +464,7 @@ function LearningConsole({
   busy: boolean;
   online: boolean;
   currentQuestion: QuestionDto;
-  enemiesRemaining: number;
+  objectiveComplete: boolean;
   feedback: SubmitAnswerResponse | null;
   questionCount: number;
   questionIndex: number;
@@ -337,6 +494,9 @@ function LearningConsole({
       </div>
       {feedback && (
         <div className={feedback.correct ? 'feedback good' : 'feedback'}>
+          <span className="feedback-mark" aria-hidden="true">
+            {feedback.correct ? '✓' : '↻'}
+          </span>
           <strong>
             {feedback.correct ? t('learning.correct') : t('learning.retry')}
           </strong>
@@ -344,9 +504,9 @@ function LearningConsole({
           <button disabled={busy || !online} onClick={onContinue}>
             {questionIndex < questionCount - 1
               ? t('action.next')
-              : enemiesRemaining > 0
-                ? t('action.battle')
-                : t('action.complete')}
+              : objectiveComplete
+                ? t('action.complete')
+                : t('action.battle')}
           </button>
         </div>
       )}

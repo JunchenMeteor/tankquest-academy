@@ -19,6 +19,7 @@ export const localTrainingConfig: RuntimeLevelConfig = {
     {
       id: 'robot_alpha',
       role: 'scout',
+      elite: false,
       x: 720,
       y: 150,
       maxHealth: 90,
@@ -32,10 +33,15 @@ export const localTrainingConfig: RuntimeLevelConfig = {
       projectilePenetration: 57,
       projectileSpeed: 320,
       fireCooldownMs: 1900,
+      alertMemoryMs: 6000,
+      nearMissRadius: 64,
+      allyAlertRadius: 240,
+      searchLeashRange: 560,
     },
     {
       id: 'robot_bravo',
       role: 'medium',
+      elite: false,
       x: 760,
       y: 390,
       maxHealth: 110,
@@ -49,10 +55,20 @@ export const localTrainingConfig: RuntimeLevelConfig = {
       projectilePenetration: 67,
       projectileSpeed: 340,
       fireCooldownMs: 1700,
+      alertMemoryMs: 6500,
+      nearMissRadius: 64,
+      allyAlertRadius: 260,
+      searchLeashRange: 560,
     },
   ],
   obstacles: [
     { x: 360, y: 170, width: 50, height: 180 },
     { x: 560, y: 370, width: 180, height: 45 },
   ],
+  objectiveSet: {
+    completion: 'all',
+    objectives: [
+      { id: 'fallback_eliminate', type: 'eliminate', targetCount: 2 },
+    ],
+  },
 };

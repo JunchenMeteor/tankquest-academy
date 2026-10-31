@@ -1,0 +1,294 @@
+:root {
+  --experience-space-1: 0.35rem;
+  --experience-space-2: 0.65rem;
+  --experience-space-3: 1rem;
+  --experience-space-4: 1.5rem;
+  --experience-radius: 1rem;
+  --experience-shadow: 0 1rem 2.5rem color-mix(in srgb, #000 32%, transparent);
+  --experience-focus: 0 0 0 3px
+    color-mix(in srgb, var(--theme-accent) 45%, transparent);
+}
+
+.app-shell {
+  background:
+    radial-gradient(
+      circle at 50% -12rem,
+      color-mix(in srgb, var(--theme-accent) 15%, transparent),
+      transparent 32rem
+    ),
+    var(--theme-page);
+}
+
+button,
+select {
+  min-height: 44px;
+}
+
+button:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--theme-accent);
+  outline-offset: 2px;
+  box-shadow: var(--experience-focus);
+}
+
+.hud {
+  border: 1px solid color-mix(in srgb, var(--theme-border) 72%, transparent);
+  border-radius: var(--experience-radius);
+  padding: var(--experience-space-3);
+  align-items: center;
+  background: color-mix(in srgb, var(--theme-surface) 90%, transparent);
+  box-shadow: 0 0.65rem 1.7rem color-mix(in srgb, #000 20%, transparent);
+}
+
+.hud h1 {
+  line-height: 1.05;
+}
+
+.hud dl {
+  align-items: center;
+}
+
+.hud dd {
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-health {
+  display: grid;
+  min-width: 7.5rem;
+  gap: 0.2rem;
+}
+
+.hud-health meter {
+  width: 100%;
+  height: 0.5rem;
+  border: 0;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: var(--theme-muted-surface);
+}
+
+.hud-health meter::-webkit-meter-bar {
+  border: 0;
+  background: var(--theme-muted-surface);
+}
+
+.hud-health meter::-webkit-meter-optimum-value {
+  background: #7eb668;
+}
+
+.hud-health meter::-webkit-meter-suboptimum-value {
+  background: #dc9a47;
+}
+
+.hud-health meter::-webkit-meter-even-less-good-value {
+  background: #db725e;
+}
+
+.hud [data-health='low'] dd {
+  color: #ff8d77;
+}
+
+.mission-selection {
+  min-height: auto;
+  padding: clamp(1rem, 2.5vw, 1.75rem);
+  place-content: initial;
+  justify-items: stretch;
+  text-align: left;
+  box-shadow: var(--experience-shadow);
+}
+
+.selection-intro {
+  color: var(--theme-muted);
+  text-align: center;
+}
+
+.selection-heading {
+  display: flex;
+  margin-top: var(--experience-space-2);
+  align-items: center;
+  gap: var(--experience-space-2);
+}
+
+.selection-heading.compact {
+  margin-top: 0;
+}
+
+.selection-heading > span {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  color: color-mix(in srgb, var(--theme-page) 84%, #000);
+  background: var(--theme-accent);
+  font-weight: 900;
+}
+
+.selection-heading h2,
+.selection-heading h3 {
+  margin: 0;
+}
+
+.mission-picker,
+.tank-picker,
+.skin-picker {
+  position: relative;
+}
+
+.mission-picker button,
+.tank-picker button,
+.skin-picker button {
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.mission-picker button:hover:not(:disabled),
+.tank-picker button:hover:not(:disabled),
+.skin-picker button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.tank-picker button.selected {
+  background: color-mix(
+    in srgb,
+    var(--theme-accent) 10%,
+    var(--theme-muted-surface)
+  );
+}
+
+.primary-start {
+  min-width: min(21rem, 100%);
+  justify-self: center;
+  border-color: color-mix(in srgb, var(--theme-accent) 70%, #fff);
+  padding: 0.9rem 1.4rem;
+  box-shadow: 0 0.65rem 1.4rem
+    color-mix(in srgb, var(--theme-accent) 22%, transparent);
+  font-size: 1.05rem;
+}
+
+.battle-briefing {
+  display: grid;
+  width: min(960px, 100%);
+  margin: 0 auto var(--experience-space-2);
+  border: 1px solid color-mix(in srgb, var(--theme-border) 76%, transparent);
+  border-radius: var(--experience-radius);
+  padding: var(--experience-space-2) var(--experience-space-3);
+  background: color-mix(in srgb, var(--theme-surface) 92%, transparent);
+  gap: var(--experience-space-1);
+}
+
+.battle-briefing .mission-status,
+.battle-briefing .combat-readout,
+.battle-briefing .threat-profiles {
+  width: 100%;
+  margin: 0;
+}
+
+.threat-profiles span {
+  border-radius: 99rem;
+  padding: 0.18rem 0.55rem;
+  background: color-mix(in srgb, var(--theme-muted-surface) 78%, transparent);
+}
+
+.game-canvas {
+  border-color: var(--theme-border);
+  box-shadow:
+    0 1rem 3rem color-mix(in srgb, #000 48%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--theme-accent) 18%, transparent);
+}
+
+.app-shell[data-player-health='low'] .game-canvas {
+  animation: low-health-frame 1.25s ease-in-out infinite;
+}
+
+.feedback {
+  border-radius: 0.65rem;
+}
+
+.feedback-mark {
+  display: grid;
+  width: 2.2rem;
+  height: 2.2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  color: #ffb3a4;
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.feedback.good .feedback-mark {
+  color: #aee398;
+}
+
+.result-breakdown section,
+.upgrade-confirmation,
+.next-practice {
+  box-shadow: 0 0.45rem 1.2rem color-mix(in srgb, #000 18%, transparent);
+}
+
+@keyframes low-health-frame {
+  0%,
+  100% {
+    box-shadow:
+      0 1rem 3rem color-mix(in srgb, #000 48%, transparent),
+      0 0 0 2px color-mix(in srgb, #db725e 28%, transparent);
+  }
+
+  50% {
+    box-shadow:
+      0 1rem 3rem color-mix(in srgb, #000 48%, transparent),
+      0 0 0 5px color-mix(in srgb, #db725e 58%, transparent);
+  }
+}
+
+@media (max-width: 760px) {
+  .hud {
+    align-items: stretch;
+  }
+
+  .hud dl {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .hud dl div {
+    flex: 1 1 5rem;
+  }
+
+  .battle-briefing {
+    padding: 0.65rem;
+  }
+
+  .threat-profiles {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .threat-profiles span {
+    border-radius: 0.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .mission-picker button:hover:not(:disabled),
+  .tank-picker button:hover:not(:disabled),
+  .skin-picker button:hover:not(:disabled) {
+    transform: none;
+  }
+}
