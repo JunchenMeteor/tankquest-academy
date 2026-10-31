@@ -58,7 +58,7 @@ test('offers localized coarse-pointer movement, aim, and fire controls', async (
     await route.fulfill({ response, json: payload });
   });
 
-  await page.goto('/');
+  await page.goto('/?renderer=2d');
   await expect(page.locator('main[data-phase="ready"]')).toBeVisible();
   const start = page.getByRole('button', { name: 'Start training' });
   await expectTouchTarget(start);
