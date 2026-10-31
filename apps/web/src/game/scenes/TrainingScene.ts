@@ -63,6 +63,7 @@ interface ControlKeys {
 export class TrainingScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
   private turret!: Phaser.GameObjects.Image;
+  private playerShadow?: Phaser.GameObjects.Ellipse;
   private enemies!: Phaser.Physics.Arcade.Group;
   private projectiles!: Phaser.Physics.Arcade.Group;
   private enemyProjectiles!: Phaser.Physics.Arcade.Group;
@@ -146,6 +147,16 @@ export class TrainingScene extends Phaser.Scene {
       )
     );
     applyTankDepth(this.player, this.turret);
+    this.playerShadow = this.add
+      .ellipse(
+        this.player.x,
+        this.player.y + 9,
+        PLAYER_BODY_SIZE.width * 1.3,
+        PLAYER_BODY_SIZE.height * 0.62,
+        0x0a0f08,
+        0.3
+      )
+      .setDepth(99);
 
     this.enemies = this.physics.add.group();
     for (const enemy of this.levelConfig.enemies) {
@@ -192,6 +203,20 @@ export class TrainingScene extends Phaser.Scene {
         sprite,
         turret,
         sprite.getData('healthBar') as Phaser.GameObjects.Graphics
+      );
+      const size = ENEMY_BODY_SIZES[enemy.role];
+      sprite.setData(
+        'shadow',
+        this.add
+          .ellipse(
+            sprite.x,
+            sprite.y + 8,
+            size.width * 1.3,
+            size.height * 0.62,
+            0x0a0f08,
+            0.3
+          )
+          .setDepth(99)
       );
       if (enemy.elite) {
         sprite.setTint(0xf2c14e);
@@ -320,6 +345,7 @@ export class TrainingScene extends Phaser.Scene {
     this.player.rotation += motion.angularVelocity * (delta / 1000);
 
     this.turret.setPosition(this.player.x, this.player.y);
+    this.playerShadow?.setPosition(this.player.x, this.player.y + 9);
     const touchAim = Number(input.aimRight) - Number(input.aimLeft);
     if (touchAim !== 0) {
       this.turret.rotation += touchAim * 2.4 * (delta / 1000);
@@ -474,6 +500,9 @@ export class TrainingScene extends Phaser.Scene {
         enemy.setVelocity(0, 0);
       }
       turret.setPosition(enemy.x, enemy.y);
+      (
+        enemy.getData('shadow') as Phaser.GameObjects.Ellipse | undefined
+      )?.setPosition(enemy.x, enemy.y + 8);
       turret.rotation = action === 'idle' ? enemy.rotation : angle;
       if (action === 'fire') {
         const fired = fireEnemyProjectile(
