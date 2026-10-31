@@ -1580,3 +1580,23 @@ body {
   margin: -0.75px 0 0 -17px;
   background: rgba(255, 255, 255, 0.55);
 }
+
+/* Locked pointer: the OS cursor disappears so only the reticle aims. */
+.battle-canvas--locked {
+  cursor: none;
+}
+
+.battle-pointer-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 116px;
+  transform: translateX(-50%);
+  z-index: 3;
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(16, 23, 28, 0.86);
+  border: 1px solid rgba(120, 148, 164, 0.24);
+  color: var(--theme-muted);
+  font-size: 12px;
+}
