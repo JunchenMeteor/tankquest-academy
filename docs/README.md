@@ -162,3 +162,4 @@ tank-learning-game-docs/implementation-roadmap.md。
 开发时必须遵守前后端分离，题库/关卡/坦克参数不能硬编码在 UI 组件中，
 奖励和答题判定以后端为准。
 ```
+- [3D battle view](3d-battle/README.md) — opt-in Three.js renderer, camera modes, combat rules and screens
