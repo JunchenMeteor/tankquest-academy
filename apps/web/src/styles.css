@@ -1532,3 +1532,51 @@ body {
   border: 1px solid rgba(76, 194, 255, 0.8);
   border-radius: 50%;
 }
+
+/* World-of-Tanks style reticle: a dispersion ring plus a centre dot. */
+.battle-reticle {
+  width: 120px;
+  height: 120px;
+  margin: -60px 0 0 -60px;
+}
+
+.battle-reticle::before,
+.battle-reticle::after {
+  display: none;
+}
+
+.battle-reticle-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--dispersion, 18px) * 2);
+  height: calc(var(--dispersion, 18px) * 2);
+  margin: calc(var(--dispersion, 18px) * -1) 0 0
+    calc(var(--dispersion, 18px) * -1);
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.battle-reticle-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: #ff5c4c;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+}
+
+.battle-reticle span::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 34px;
+  height: 1.5px;
+  margin: -0.75px 0 0 -17px;
+  background: rgba(255, 255, 255, 0.55);
+}

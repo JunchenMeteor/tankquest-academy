@@ -295,7 +295,7 @@ export function createBattleView(
   const dispersion = config.player.dispersionRadius;
   let rightHeld = false;
   let camYaw = layout.player.heading;
-  let camPitch = 0.18;
+  let camPitch = 0.34;
   const state = {
     mode: 'third' as CameraMode,
     heading: layout.player.heading,
@@ -316,10 +316,10 @@ export function createBattleView(
   const canvas = renderer.domElement;
   canvas.addEventListener('pointermove', (event) => {
     /* The view always follows the mouse; the right button only freezes the gun. */
-    camYaw -= event.movementX * 0.0035;
+    camYaw += event.movementX * 0.0016;
     camPitch = Math.max(
-      -0.45,
-      Math.min(0.6, camPitch + event.movementY * 0.002)
+      -0.35,
+      Math.min(0.75, camPitch + event.movementY * 0.0011)
     );
   });
   canvas.addEventListener('pointerdown', (event) => {
