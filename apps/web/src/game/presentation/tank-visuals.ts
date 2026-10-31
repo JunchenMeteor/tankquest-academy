@@ -144,7 +144,16 @@ function drawTankTextures(
     .fillRect(1, bodyHeight - trackHeight, bodyWidth - 2, 1);
 
   /* Hull: base plate, top-lit band, bottom shadow, double outline. */
+  /* Extruded side face: a darker offset silhouette gives the hull height. */
   graphics
+    .fillStyle(shade(colors.primary, 0.5), 0.55)
+    .fillRoundedRect(
+      bodyPadding + 3,
+      5,
+      definition.hull.width,
+      bodyHeight - 6,
+      definition.hull.cornerRadius
+    )
     .fillStyle(colors.primary)
     .fillRoundedRect(
       bodyPadding,
@@ -250,6 +259,8 @@ function drawTankTextures(
 
   /* Turret: layered discs fake a top-left light source. */
   graphics
+    .fillStyle(shade(colors.primary, 0.45), 0.5)
+    .fillCircle(center + 1.6, center + 2, definition.turret.radius)
     .fillStyle(colors.primary)
     .fillCircle(center, center, definition.turret.radius)
     .fillStyle(turretLight, 0.5)
