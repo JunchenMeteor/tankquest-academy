@@ -561,9 +561,13 @@ test('starts a mission with the selected owned tank', async ({ page }) => {
   ).resolves.toMatchObject({
     data: { tank: { skin: { code: 'arctic-dash' } } },
   });
-  await expect(
-    page.locator('.tank-picker button.selected .tank-stats dd')
-  ).toHaveText(['2', '5', '1', '4', '4']);
+  await expect(page.locator('.briefing-stats > div dd')).toHaveText([
+    '2',
+    '5',
+    '1',
+    '4',
+    '4',
+  ]);
   await expect(page.locator('.game-canvas canvas')).toBeVisible();
 });
 

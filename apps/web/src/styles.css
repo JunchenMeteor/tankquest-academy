@@ -1250,3 +1250,10 @@ button:disabled {
     display: none;
   }
 }
+
+/* Guard against sub-pixel horizontal overflow on small screens. */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
