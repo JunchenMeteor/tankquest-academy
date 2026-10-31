@@ -155,30 +155,69 @@ export interface CameraPose {
 export function cameraPose(
   mode: CameraMode,
   player: Pick<TankPlacement, 'position' | 'heading'>,
-  lookOffset = 0,
+  lookYaw = 0,
   pitch = 0
 ): CameraPose {
-  const heading = player.heading + lookOffset;
+  const heading = player.heading + lookYaw;
+  const horizontal = Math.cos(pitch);
   if (mode === 'first') {
     return {
       position: { x: player.position.x, y: 2.75, z: player.position.z },
       target: {
-        x: player.position.x + Math.cos(heading) * 20,
-        y: 1.6 + Math.tan(pitch) * 20,
-        z: player.position.z - Math.sin(heading) * 20,
+        x: player.position.x + Math.cos(heading) * 20 * horizontal,
+        y: 2.75 + Math.sin(pitch) * 20,
+        z: player.position.z - Math.sin(heading) * 20 * horizontal,
       },
     };
   }
+  const distance = 11;
+  const height = 6.8 + Math.sin(pitch) * distance;
   return {
     position: {
-      x: player.position.x - Math.cos(heading) * 11,
-      y: 6.8,
-      z: player.position.z + Math.sin(heading) * 11,
+      x: player.position.x - Math.cos(heading) * distance * horizontal,
+      y: Math.max(1.6, height),
+      z: player.position.z + Math.sin(heading) * distance * horizontal,
     },
     target: {
       x: player.position.x + Math.cos(heading) * 7,
-      y: 1.4,
+      y: 1.4 + Math.sin(pitch) * 7,
       z: player.position.z - Math.sin(heading) * 7,
+    },
+  };
+}
+
+/** Moves an enemy toward the player, stopping once inside `standoff`. */
+export function stepEnemyToward(
+  enemy: Pick<TankPlacement, 'position'>,
+  player: { x: number; z: number },
+  speed: number,
+  deltaSeconds: number,
+  standoff: number,
+  bounds: { width: number; depth: number }
+): { position: Vec3; heading: number; moved: boolean } {
+  const dx = player.x - enemy.position.x;
+  const dz = player.z - enemy.position.z;
+  const distance = Math.hypot(dx, dz);
+  const heading = Math.atan2(-dz, dx);
+  if (distance <= standoff || !(speed > 0)) {
+    return { position: enemy.position, heading, moved: false };
+  }
+  const step = Math.min(speed * deltaSeconds, distance - standoff);
+  const halfWidth = bounds.width / 2;
+  const halfDepth = bounds.depth / 2;
+  return {
+    heading,
+    moved: true,
+    position: {
+      x: Math.max(
+        -halfWidth,
+        Math.min(halfWidth, enemy.position.x + Math.cos(heading) * step)
+      ),
+      y: enemy.position.y,
+      z: Math.max(
+        -halfDepth,
+        Math.min(halfDepth, enemy.position.z - Math.sin(heading) * step)
+      ),
     },
   };
 }

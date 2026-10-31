@@ -86,6 +86,9 @@ export function Battle3DCanvas({
         data-scene-theme={config.theme}
         ref={hostRef}
       >
+        <div className="battle-reticle" aria-hidden="true">
+          <span />
+        </div>
         <p className="battle-ammo" role="status">
           Ammo {ammo.current} / {ammo.max}
         </p>

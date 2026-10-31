@@ -1492,3 +1492,43 @@ body {
     margin: 0;
   }
 }
+
+/* Reticle for the 3D battle: the barrel follows this point. */
+.battle-reticle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.battle-reticle::before,
+.battle-reticle::after {
+  content: '';
+  position: absolute;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.battle-reticle::before {
+  left: 0;
+  right: 0;
+  top: 12px;
+  height: 2px;
+}
+
+.battle-reticle::after {
+  top: 0;
+  bottom: 0;
+  left: 12px;
+  width: 2px;
+}
+
+.battle-reticle span {
+  position: absolute;
+  inset: 6px;
+  border: 1px solid rgba(76, 194, 255, 0.8);
+  border-radius: 50%;
+}
