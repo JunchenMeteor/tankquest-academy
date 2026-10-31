@@ -337,6 +337,16 @@ export function ActiveTraining({
             {contentName(session.level.code, t)}
           </span>
           <dl className="briefing-live">
+            <div
+              data-health={
+                runtime.playerHealth / runtime.playerMaxHealth <= 0.35
+                  ? 'low'
+                  : 'normal'
+              }
+            >
+              <dt>{t('hud.health')}</dt>
+              <dd>{runtime.playerHealth}</dd>
+            </div>
             <div>
               <dt>{t('hud.tanks')}</dt>
               <dd>{runtime.enemiesRemaining}</dd>
