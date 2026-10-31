@@ -1,34 +1,34 @@
 :root {
-  --theme-page: #101710;
-  --theme-surface: #1b261b;
-  --theme-muted-surface: #263826;
-  --theme-border: #667858;
-  --theme-accent: #f1c75b;
-  --theme-text: #f4f7e8;
-  --theme-muted: #a9b6a2;
+  --theme-page: #0d1216;
+  --theme-surface: #151d22;
+  --theme-muted-surface: #1c272e;
+  --theme-border: #2b3a43;
+  --theme-accent: #4cc2ff;
+  --theme-text: #e9f2f7;
+  --theme-muted: #8fa3ad;
   color: #f4f7e8;
   background: #101710;
   font-family: Inter, system-ui, sans-serif;
 }
 
 :root[data-theme='forest-camp'] {
-  --theme-page: #0c1812;
-  --theme-surface: #173025;
-  --theme-muted-surface: #234a35;
-  --theme-border: #5f886d;
-  --theme-accent: #e2b95f;
-  --theme-text: #f0f7e8;
-  --theme-muted: #b5c8b8;
+  --theme-page: #0c1512;
+  --theme-surface: #14201b;
+  --theme-muted-surface: #1b2a23;
+  --theme-border: #2c4238;
+  --theme-accent: #5fe0a4;
+  --theme-text: #e8f5ee;
+  --theme-muted: #93b0a1;
 }
 
 :root[data-theme='snow-field'] {
-  --theme-page: #dceaf5;
-  --theme-surface: #f4f8fb;
-  --theme-muted-surface: #d2e3ef;
-  --theme-border: #7193ad;
-  --theme-accent: #b77716;
-  --theme-text: #183044;
-  --theme-muted: #48697f;
+  --theme-page: #eef4f8;
+  --theme-surface: #ffffff;
+  --theme-muted-surface: #e2ebf2;
+  --theme-border: #c3d3de;
+  --theme-accent: #0f7fc4;
+  --theme-text: #0f1d26;
+  --theme-muted: #4c6472;
 }
 
 :root[data-theme] {
@@ -742,4 +742,36 @@ button:disabled {
   .touch-controls {
     display: flex;
   }
+}
+
+/* Surface polish: softer radii and depth so panels read as cards, not boxes. */
+:root {
+  --theme-radius: 16px;
+  --theme-radius-sm: 10px;
+  --theme-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+}
+
+:root[data-theme] .status-card,
+:root[data-theme] .learning-console,
+:root[data-theme] .battle-alert,
+:root[data-theme] .battle-objective,
+:root[data-theme] .report-overview,
+:root[data-theme] .report-section,
+:root[data-theme] .mission-card,
+:root[data-theme] .tank-card {
+  border-radius: var(--theme-radius);
+  box-shadow: var(--theme-shadow);
+}
+
+:root[data-theme] button,
+:root[data-theme] .button,
+:root[data-theme] select,
+:root[data-theme] .mission-card {
+  border-radius: var(--theme-radius-sm);
+}
+
+:root[data-theme] h1,
+:root[data-theme] h2,
+:root[data-theme] .brand-title {
+  letter-spacing: -0.02em;
 }
