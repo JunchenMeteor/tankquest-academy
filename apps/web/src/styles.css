@@ -1428,3 +1428,67 @@ body {
   border-color: rgba(240, 180, 106, 0.5);
   color: #f0b46a;
 }
+
+/* ---------- Full-screen 3D battle on phones ---------- */
+@media (max-width: 900px) {
+  .battle-layout[data-layout='3d'] .briefing-stats,
+  .battle-layout[data-layout='3d'] .briefing-readout,
+  .battle-layout[data-layout='3d'] .threat-profiles {
+    display: none;
+  }
+
+  .battle-layout[data-layout='3d'] .battle-briefing {
+    max-height: none;
+    padding: 10px 12px;
+  }
+
+  .battle-layout[data-layout='3d'] .briefing-head {
+    gap: 8px;
+  }
+
+  .battle-layout[data-layout='3d'] .briefing-live {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .battle-layout[data-layout='3d'] .learning-console {
+    bottom: 10px;
+    top: auto;
+    max-height: 46vh;
+    overflow-y: auto;
+    padding: 12px 14px;
+  }
+
+  .battle-layout[data-layout='3d'] .learning-console h2 {
+    font-size: 20px;
+  }
+
+  .battle-layout[data-layout='3d'] .battle-ammo {
+    top: auto;
+    bottom: calc(46vh + 16px);
+    left: 12px;
+    right: auto;
+    transform: none;
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+
+  .battle-layout[data-layout='3d'] .battle-camera-toggle {
+    left: auto;
+    right: 12px;
+    top: auto;
+    bottom: calc(46vh + 16px);
+    transform: none;
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .battle-layout[data-layout='3d'] .touch-controls {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: calc(46vh + 20px);
+    z-index: 3;
+    margin: 0;
+  }
+}
