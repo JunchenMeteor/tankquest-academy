@@ -27,9 +27,23 @@ export interface TankStats {
   armor: number;
   stealth: number;
   vision: number;
+  /** Gun accuracy on the same 1-5 scale; higher means a tighter shell spread. */
+  accuracy: number;
+  /** Turret traverse on the same 1-5 scale; higher means the gun swings faster. */
+  turretTraverse: number;
 }
 
 export const tankStatMax = 5;
+
+/** Stats that parts can upgrade. Accuracy and traverse stay fixed per tank. */
+export const upgradeableStats = [
+  'firepower',
+  'mobility',
+  'armor',
+  'stealth',
+  'vision',
+] as const;
+export type UpgradeableStat = (typeof upgradeableStats)[number];
 
 export const enemyTankRoles = ['scout', 'medium', 'heavy'] as const;
 export type EnemyTankRole = (typeof enemyTankRoles)[number];

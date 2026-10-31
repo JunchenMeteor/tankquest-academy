@@ -17,7 +17,15 @@ const tank: TankDto = {
   code: 'star-shield',
   nameKey: 'tank.starShield.name',
   role: 'medium',
-  stats: { firepower: 4, mobility: 4, armor: 3, stealth: 2, vision: 3 },
+  stats: {
+    firepower: 4,
+    mobility: 4,
+    armor: 3,
+    stealth: 2,
+    vision: 3,
+    accuracy: 3,
+    turretTraverse: 3,
+  },
   skin: {
     id: 'skin_1',
     code: 'academy-blue',
@@ -69,6 +77,8 @@ describe('levelRuntimeConfig', () => {
               armor: 5,
               stealth: 1,
               vision: 2,
+              accuracy: 3,
+              turretTraverse: 3,
             },
             ai: {
               detectionRange: 300,
@@ -144,6 +154,8 @@ describe('levelRuntimeConfig', () => {
               armor: 5,
               stealth: 1,
               vision: 2,
+              accuracy: 3,
+              turretTraverse: 3,
             },
             ai: {
               detectionRange: 260,
@@ -190,6 +202,8 @@ describe('levelRuntimeConfig', () => {
               armor: 1,
               stealth: 4,
               vision: 3,
+              accuracy: 3,
+              turretTraverse: 3,
             },
             ai: {
               detectionRange: 300,
@@ -209,6 +223,8 @@ describe('levelRuntimeConfig', () => {
               armor: 3,
               stealth: 2,
               vision: 3,
+              accuracy: 3,
+              turretTraverse: 3,
             },
             ai: {
               detectionRange: 310,
@@ -228,6 +244,8 @@ describe('levelRuntimeConfig', () => {
               armor: 5,
               stealth: 1,
               vision: 2,
+              accuracy: 3,
+              turretTraverse: 3,
             },
             ai: {
               detectionRange: 280,

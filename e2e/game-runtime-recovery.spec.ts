@@ -6,7 +6,8 @@ test('replaces a stale lazy game chunk with a reload action', async ({
   await page.route('**/src/game/runtime/create-game.ts*', (route) =>
     route.abort()
   );
-  await page.goto('/');
+  /* The recovery path belongs to the Phaser loader, so exercise it explicitly. */
+  await page.goto('/?renderer=2d');
   await page.getByRole('button', { name: 'Start training' }).click();
 
   const alert = page.getByRole('alert');

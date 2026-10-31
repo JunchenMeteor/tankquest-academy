@@ -5,6 +5,7 @@ import type {
   Subject,
   TankStats,
   TrainingMapStyle,
+  UpgradeableStat,
 } from './domain.js';
 
 export interface AssetManifestEntryDto {
@@ -230,12 +231,12 @@ export interface NextPracticeRecommendationDto {
 }
 
 export interface UpgradeTankRequest {
-  stat: keyof TankStats;
+  stat: UpgradeableStat;
 }
 
 export interface UpgradeTankResponse {
   tankId: string;
-  stat: keyof TankStats;
+  stat: UpgradeableStat;
   level: number;
   effectiveValue: number;
   remainingParts: number;

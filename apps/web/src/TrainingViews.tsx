@@ -325,10 +325,10 @@ export function ActiveTraining({
   onRuntime: (state: RuntimeState) => void;
 }) {
   const { t } = useI18n();
-  /* Opt-in renderer switch so the Phaser scene stays the default until the 3D view is signed off. */
+  /* The 3D renderer is the default; ?renderer=2d falls back to the Phaser scene. */
   const use3DBattle =
-    typeof window !== 'undefined' &&
-    new URLSearchParams(window.location.search).get('renderer') === '3d';
+    typeof window === 'undefined' ||
+    new URLSearchParams(window.location.search).get('renderer') !== '2d';
   return (
     <div className="battle-layout" data-layout={use3DBattle ? '3d' : 'inline'}>
       <div className="battle-briefing">

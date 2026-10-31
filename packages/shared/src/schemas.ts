@@ -8,6 +8,7 @@ import {
   subjects,
   tankStatMax,
   trainingMapStyles,
+  upgradeableStats,
 } from './domain.js';
 
 const identifierSchema = z.string().trim().min(1).max(100);
@@ -129,6 +130,8 @@ export const tankStatsSchema = z.object({
   armor: z.number().int().min(1).max(tankStatMax),
   stealth: z.number().int().min(1).max(tankStatMax),
   vision: z.number().int().min(1).max(tankStatMax),
+  accuracy: z.number().int().min(1).max(tankStatMax),
+  turretTraverse: z.number().int().min(1).max(tankStatMax),
 });
 
 export const enemyTankConfigSchema = z.object({
@@ -366,5 +369,5 @@ export const gameEventSchema = z.object({
 });
 
 export const upgradeTankRequestSchema = z.object({
-  stat: z.enum(['firepower', 'mobility', 'armor', 'stealth', 'vision']),
+  stat: z.enum(upgradeableStats),
 });

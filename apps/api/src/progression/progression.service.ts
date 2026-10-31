@@ -7,14 +7,14 @@ import {
 import type {
   OwnedTankDto,
   TankSkinDto,
-  TankStats,
+  UpgradeableStat,
   UpgradeTankRequest,
   UpgradeTankResponse,
 } from '@tankquest/shared';
 
 import { ProgressionRepository } from './progression.repository.js';
 
-const upgradeMaterials: Record<keyof TankStats, string> = {
+const upgradeMaterials: Record<UpgradeableStat, string> = {
   firepower: 'cannon',
   mobility: 'track',
   armor: 'armor_plate',

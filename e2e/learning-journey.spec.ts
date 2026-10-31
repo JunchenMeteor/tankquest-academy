@@ -98,7 +98,7 @@ test('completes the authoritative learning and upgrade journey', async ({
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
 
-  await page.goto('/');
+  await page.goto('/?renderer=2d');
   const startButton = page.getByRole('button', { name: 'Start training' });
   await expect(startButton)
     .toBeVisible({ timeout: 10_000 })
@@ -350,7 +350,7 @@ test('continues combat after repeated enemy projectile impacts', async ({
     await route.fulfill({ response, json: payload });
   });
 
-  await page.goto('/');
+  await page.goto('/?renderer=2d');
   await page.getByRole('button', { name: 'Start training' }).click();
   const hullIntegrity = page.locator('.hud dd').filter({ hasText: '/150' });
   await expect(hullIntegrity).not.toHaveText('150/150', { timeout: 5_000 });
@@ -385,7 +385,7 @@ test('keeps combat feedback usable when experience assets fail', async ({
     await route.fulfill({ status: 404, body: 'asset unavailable' });
   });
 
-  await page.goto('/');
+  await page.goto('/?renderer=2d');
   await page.getByRole('button', { name: 'Start training' }).click();
   await expect(page.locator('.game-canvas canvas')).toBeVisible();
   await expect(page.locator('.learning-console')).toBeVisible();
@@ -471,7 +471,7 @@ test('advances and completes configured enemy waves', async ({ page }) => {
     await route.fulfill({ response, json: payload });
   });
 
-  await page.goto('/');
+  await page.goto('/?renderer=2d');
   await page.getByRole('button', { name: 'Start training' }).click();
   for (let index = 0; index < 3; index += 1) {
     const prompt = await page.locator('.learning-console h2').textContent();
@@ -572,7 +572,7 @@ test('starts a mission with the selected owned tank', async ({ page }) => {
 });
 
 test('persists language and theme preferences', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?renderer=2d');
   await expect(
     page.getByRole('heading', { name: 'Choose a training mission' })
   ).toBeVisible();
@@ -623,7 +623,7 @@ test('completes English and direction missions through the shared API', async ({
   page,
   request,
 }) => {
-  await page.goto('/');
+  await page.goto('/?renderer=2d');
   await expect(
     page.getByRole('button', { name: /Word match camp/ })
   ).toBeVisible();
