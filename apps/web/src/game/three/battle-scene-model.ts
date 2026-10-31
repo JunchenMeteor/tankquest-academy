@@ -74,7 +74,10 @@ export function buildSceneLayout(config: RuntimeLevelConfig): SceneLayout {
 
   const nearest = config.enemies[0];
   const heading = nearest
-    ? Math.atan2(-(toWorld(nearest.x, nearest.y).z - spawn.z), toWorld(nearest.x, nearest.y).x - spawn.x)
+    ? Math.atan2(
+        -(toWorld(nearest.x, nearest.y).z - spawn.z),
+        toWorld(nearest.x, nearest.y).x - spawn.x
+      )
     : -Math.PI / 2;
 
   const player: TankPlacement = {

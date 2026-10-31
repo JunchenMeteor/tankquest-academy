@@ -236,7 +236,9 @@ export function createBattleView(
   resize();
   globalThis.addEventListener('resize', resize);
   const observer =
-    typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => resize());
+    typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(() => resize());
   observer?.observe(host);
 
   const applyCamera = () => {
