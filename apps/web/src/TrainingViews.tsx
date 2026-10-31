@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import type {
   LevelDto,
   OwnedTankDto,
@@ -7,7 +8,6 @@ import type {
   TankSkinDto,
 } from '@tankquest/shared';
 
-import { Battle3DCanvas } from './game/three/Battle3DCanvas.js';
 import { GameCanvas } from './game/GameCanvas.js';
 import {
   combatProfileForStats,
@@ -21,6 +21,12 @@ import {
   type ThemePreference,
   useTheme,
 } from './theme/ThemeProvider.js';
+
+const Battle3DCanvas = lazy(() =>
+  import('./game/three/Battle3DCanvas.js').then((module) => ({
+    default: module.Battle3DCanvas,
+  }))
+);
 
 export function AppHud({
   active,
@@ -402,7 +408,9 @@ export function ActiveTraining({
         </div>
       </div>
       {use3DBattle ? (
-        <Battle3DCanvas config={config} />
+        <Suspense fallback={<div className="game-canvas" />}>
+          <Battle3DCanvas config={config} />
+        </Suspense>
       ) : (
         <GameCanvas config={config} onState={onRuntime} />
       )}

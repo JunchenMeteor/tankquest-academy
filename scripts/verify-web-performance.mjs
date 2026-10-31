@@ -7,8 +7,10 @@ const distAssets = resolve(root, 'apps/web/dist/assets');
 const visualRoot = resolve(root, 'apps/web/public/assets/phase4');
 const budgets = {
   shellJsGzip: 130 * 1024,
-  gameJsGzip: 400 * 1024,
-  totalJsGzip: 540 * 1024,
+  /* The 3D renderer ships beside Phaser while the battle view migrates. */
+  gameJsGzip: 560 * 1024,
+  /* Total covers both renderers until Phaser is retired. */
+  totalJsGzip: 640 * 1024,
   cssGzip: 32 * 1024,
   visualFile: 256 * 1024,
   visualTotal: 2 * 1024 * 1024,
