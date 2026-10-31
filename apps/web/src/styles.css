@@ -744,7 +744,6 @@ button:disabled {
   }
 }
 
-
 /* Surface polish: softer radii and depth so panels read as cards, not boxes. */
 :root {
   --theme-radius: 16px;
