@@ -154,16 +154,36 @@ export function MissionPicker({
         <h2>{t('picker.title')}</h2>
       </div>
       <div className="mission-picker" aria-label={t('picker.missions')}>
-        {levels.map((level) => (
+        {levels.map((level, index) => (
           <button
             key={level.id}
-            className={level.id === selectedLevelId ? 'selected' : ''}
+            className={`mission-card${level.id === selectedLevelId ? ' selected' : ''}`}
             aria-pressed={level.id === selectedLevelId}
             onClick={() => onSelectLevel(level.id)}
           >
-            {contentName(level.code, t)} ·{' '}
-            {level.subject ? `${t(`subject.${level.subject}`)} · ` : ''}
-            {t('picker.difficulty', { value: level.baseDifficulty })}
+            <span className="mission-index" aria-hidden="true">
+              {String(index + 1).padStart(2, '0')}
+            </span>
+            <strong className="mission-name">
+              {contentName(level.code, t)}
+            </strong>
+            <span className="mission-meta">
+              {level.subject ? (
+                <em className={`mission-subject subject-${level.subject}`}>
+                  {t(`subject.${level.subject}`)}
+                </em>
+              ) : null}
+              <span
+                className="mission-difficulty"
+                aria-label={t('picker.difficulty', {
+                  value: level.baseDifficulty,
+                })}
+              >
+                {[1, 2, 3, 4].map((step) => (
+                  <i key={step} data-on={step <= level.baseDifficulty} />
+                ))}
+              </span>
+            </span>
           </button>
         ))}
       </div>
@@ -192,12 +212,22 @@ export function MissionPicker({
                 {t(`role.${tank.role}`)} · {t(`role.hint.${tank.role}`)} ·{' '}
                 {t('picker.level', { value: tank.level })}
               </span>
-              <span>
-                {t('stat.firepower')} {tank.stats.firepower} ·{' '}
-                {t('stat.mobility')} {tank.stats.mobility} · {t('stat.armor')}{' '}
-                {tank.stats.armor} · {t('stat.stealth')} {tank.stats.stealth} ·{' '}
-                {t('stat.vision')} {tank.stats.vision}
-              </span>
+              <dl className="tank-stats">
+                {(
+                  [
+                    ['firepower', tank.stats.firepower],
+                    ['mobility', tank.stats.mobility],
+                    ['armor', tank.stats.armor],
+                    ['stealth', tank.stats.stealth],
+                    ['vision', tank.stats.vision],
+                  ] as const
+                ).map(([key, value]) => (
+                  <div key={key}>
+                    <dt>{t(`stat.${key}`)}</dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+              </dl>
               <span className="tank-combat-profile">
                 {t('picker.combatProfile', {
                   armor: profile.frontArmor,

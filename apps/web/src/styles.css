@@ -775,3 +775,133 @@ button:disabled {
 :root[data-theme] .brand-title {
   letter-spacing: -0.02em;
 }
+
+/* ── Mission cards: structured, scannable, difficulty at a glance ───── */
+.mission-picker {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.mission-picker button.mission-card {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.85rem 0.95rem;
+  text-align: left;
+  border-radius: 14px;
+  position: relative;
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.mission-picker button.mission-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(6, 12, 10, 0.28);
+}
+
+.mission-index {
+  font-family: var(--theme-mono, ui-monospace, monospace);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  color: var(--theme-muted);
+}
+
+.mission-name {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.mission-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.mission-subject {
+  font-style: normal;
+  font-size: 0.72rem;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--theme-border);
+  color: var(--theme-muted);
+}
+
+.mission-subject.subject-math {
+  color: #7fb2ff;
+  border-color: rgba(127, 178, 255, 0.45);
+}
+
+.mission-subject.subject-english {
+  color: #7bd88f;
+  border-color: rgba(123, 216, 143, 0.45);
+}
+
+.mission-subject.subject-direction {
+  color: #f0b46a;
+  border-color: rgba(240, 180, 106, 0.45);
+}
+
+.mission-difficulty {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.mission-difficulty i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--theme-border);
+}
+
+.mission-difficulty i[data-on='true'] {
+  background: var(--theme-accent);
+}
+
+@media (max-width: 900px) {
+  .mission-picker {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .mission-picker {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ── Tank cards: compact stat grid instead of one long line ─────────── */
+.tank-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin: 0.2rem 0 0;
+  padding: 0.45rem 0.5rem;
+  border-radius: 10px;
+  background: rgba(6, 12, 10, 0.35);
+}
+
+.tank-stats div {
+  display: grid;
+  gap: 0.1rem;
+  text-align: center;
+}
+
+.tank-stats dt {
+  font-family: var(--theme-mono, ui-monospace, monospace);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--theme-muted);
+}
+
+.tank-stats dd {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--theme-text);
+}
