@@ -28,23 +28,23 @@ scene is untouched, so removing the query string returns to the 2D view.
 
 ## Screens
 
-| Third person | First person |
-| --- | --- |
+| Third person                      | First person                      |
+| --------------------------------- | --------------------------------- |
 | ![Third person](third-person.png) | ![First person](first-person.png) |
 
-| English challenge | Defeat |
-| --- | --- |
+| English challenge                         | Defeat                |
+| ----------------------------------------- | --------------------- |
 | ![English question](english-question.png) | ![Defeat](defeat.png) |
 
 ## Code map
 
-| File | Role |
-| --- | --- |
+| File                                            | Role                                                               |
+| ----------------------------------------------- | ------------------------------------------------------------------ |
 | `apps/web/src/game/three/battle-scene-model.ts` | Field-to-world mapping, placements, camera poses, clamped movement |
-| `apps/web/src/game/three/battle-combat.ts` | Magazine, shell flight, hit resolution, enemy fire, hull damage |
-| `apps/web/src/game/three/battle-input.ts` | Input snapshot and keyboard mapping |
-| `apps/web/src/game/three/battle-view.ts` | Three.js scene, meshes, render loop |
-| `apps/web/src/game/three/Battle3DCanvas.tsx` | React host, camera toggle, ammo badge |
+| `apps/web/src/game/three/battle-combat.ts`      | Magazine, shell flight, hit resolution, enemy fire, hull damage    |
+| `apps/web/src/game/three/battle-input.ts`       | Input snapshot and keyboard mapping                                |
+| `apps/web/src/game/three/battle-view.ts`        | Three.js scene, meshes, render loop                                |
+| `apps/web/src/game/three/Battle3DCanvas.tsx`    | React host, camera toggle, ammo badge                              |
 
 The pure modules carry the tests; the renderer is exercised through screenshots
 from the preview deployment.
