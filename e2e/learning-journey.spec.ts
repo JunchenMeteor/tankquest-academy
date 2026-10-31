@@ -471,7 +471,7 @@ test('advances and completes configured enemy waves', async ({ page }) => {
     await route.fulfill({ response, json: payload });
   });
 
-  await page.goto('/');
+  await page.goto('/?renderer=2d');
   await page.getByRole('button', { name: 'Start training' }).click();
   for (let index = 0; index < 3; index += 1) {
     const prompt = await page.locator('.learning-console h2').textContent();
@@ -623,7 +623,7 @@ test('completes English and direction missions through the shared API', async ({
   page,
   request,
 }) => {
-  await page.goto('/');
+  await page.goto('/?renderer=2d');
   await expect(
     page.getByRole('button', { name: /Word match camp/ })
   ).toBeVisible();
