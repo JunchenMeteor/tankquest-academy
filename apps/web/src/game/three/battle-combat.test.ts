@@ -1,13 +1,17 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  ENEMY_FIRE_INTERVAL_MS,
   MAX_AMMO,
+  advanceEnemyFire,
+  advanceEnemyShells,
   advanceShells,
   applyWrongAnswer,
   canFire,
   createCombatState,
   loadAmmo,
   muzzlePoint,
+  spawnEnemyShell,
   spawnShell,
   tickCooldown,
 } from './battle-combat.js';
@@ -89,5 +93,89 @@ describe('3D battle combat', () => {
     }
     expect(state.shells).toHaveLength(0);
     expect(state.enemiesRemaining).toBe(1);
+  });
+});
+
+describe('enemy fire', () => {
+  it('opens fire only when the player is in range and the reload is ready', () => {
+    const near = enemy('a', 5, 0);
+    const far = enemy('b', 60, 0);
+    const first = advanceEnemyFire(
+      createCombatState(2),
+      [near, far],
+      { x: 0, z: 0 },
+      0.1
+    );
+    expect(first.launches).toHaveLength(1);
+    expect(first.launches[0]?.sourceId).toBe('a');
+
+    const again = advanceEnemyFire(first.state, [near], { x: 0, z: 0 }, 0.1);
+    expect(again.launches).toHaveLength(0);
+
+    const later = advanceEnemyFire(
+      again.state,
+      [near],
+      { x: 0, z: 0 },
+      ENEMY_FIRE_INTERVAL_MS / 1000
+    );
+    expect(later.launches).toHaveLength(1);
+  });
+
+  it('damages the player when an incoming shell reaches them', () => {
+    const state = spawnEnemyShell(createCombatState(1, 1, 100), {
+      x: 0,
+      z: 0,
+      heading: 0,
+      damage: 12,
+      sourceId: 'a',
+    });
+    let next = state;
+    let damage = 0;
+    const player = { x: 6, z: 0 };
+    for (let step = 0; step < 10; step += 1) {
+      const result = advanceEnemyShells(next, 0.02, player);
+      next = result.state;
+      damage += result.damage;
+    }
+    expect(damage).toBe(12);
+    expect(next.playerHealth).toBe(88);
+    expect(next.playerDestroyed).toBe(false);
+  });
+
+  it('marks the player destroyed once health reaches zero', () => {
+    const state = spawnEnemyShell(createCombatState(1, 1, 10), {
+      x: 0,
+      z: 0,
+      heading: 0,
+      damage: 12,
+      sourceId: 'a',
+    });
+    let next = state;
+    for (let step = 0; step < 10; step += 1) {
+      next = advanceEnemyShells(next, 0.02, { x: 6, z: 0 }).state;
+    }
+    expect(next.playerHealth).toBe(0);
+    expect(next.playerDestroyed).toBe(true);
+  });
+});
+
+describe('enemy fire over time', () => {
+  it('keeps firing and damaging a stationary player across several intervals', () => {
+    const target = enemy('a', 8, 0);
+    let state = createCombatState(1, 1, 150);
+    const player = { x: 0, z: 0 };
+    let totalDamage = 0;
+    const dt = 0.05;
+    for (let tick = 0; tick < 200; tick += 1) {
+      const fire = advanceEnemyFire(state, [target], player, dt);
+      state = fire.state;
+      for (const launch of fire.launches)
+        state = spawnEnemyShell(state, launch);
+      const incoming = advanceEnemyShells(state, dt, player);
+      state = incoming.state;
+      totalDamage += incoming.damage;
+    }
+    expect(totalDamage).toBeGreaterThan(15);
+    expect(state.playerHealth).toBeLessThan(150 - 15);
   });
 });

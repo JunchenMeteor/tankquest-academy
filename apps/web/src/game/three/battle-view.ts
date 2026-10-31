@@ -35,12 +35,15 @@ import {
 import { driveCommand, normaliseAngle } from './battle-input.js';
 import {
   MAX_AMMO,
+  advanceEnemyFire,
+  advanceEnemyShells,
   advanceShells,
   applyWrongAnswer,
   canFire,
   createCombatState,
   loadAmmo,
   muzzlePoint,
+  spawnEnemyShell,
   spawnShell,
   tickCooldown,
 } from './battle-combat.js';
@@ -252,7 +255,17 @@ export function createBattleView(
     roughness: 0.4,
   });
   const shellMeshes = new Map<number, Mesh>();
-  let combat = createCombatState(layout.enemies.length, 1);
+  const enemyShellMeshes = new Map<number, Mesh>();
+  const enemyShellMaterial = new MeshStandardMaterial({
+    color: 0xff7a5c,
+    emissive: 0x7a2412,
+    roughness: 0.45,
+  });
+  let combat = createCombatState(
+    layout.enemies.length,
+    1,
+    config.player.maxHealth
+  );
   const totalEnemies = layout.enemies.length;
   let destroyedCount = 0;
 
@@ -260,9 +273,9 @@ export function createBattleView(
     onState?.({
       enemiesRemaining: combat.enemiesRemaining,
       shotsFired: combat.shotsFired,
-      playerHealth: config.player.maxHealth,
-      playerMaxHealth: config.player.maxHealth,
-      playerDestroyed: false,
+      playerHealth: combat.playerHealth,
+      playerMaxHealth: combat.playerMaxHealth,
+      playerDestroyed: combat.playerDestroyed,
       objectiveComplete: destroyedCount >= totalEnemies,
       objectiveType: 'eliminate',
       objectiveCurrent: destroyedCount,
@@ -349,6 +362,30 @@ export function createBattleView(
         onAmmo?.(combat.ammo, MAX_AMMO);
       }
 
+      if (!combat.playerDestroyed) {
+        const aliveEnemies = layout.enemies.filter((enemy) =>
+          enemyRoots.has(enemy.id)
+        );
+        const fire = advanceEnemyFire(
+          combat,
+          aliveEnemies,
+          { x: state.position.x, z: state.position.z },
+          delta
+        );
+        combat = fire.state;
+        for (const launch of fire.launches) {
+          combat = spawnEnemyShell(combat, launch);
+        }
+        if (combat.enemyShells.length > 0) {
+          const incoming = advanceEnemyShells(combat, delta, {
+            x: state.position.x,
+            z: state.position.z,
+          });
+          combat = incoming.state;
+          if (incoming.damage > 0) publish();
+        }
+      }
+
       if (combat.shells.length > 0) {
         const alive = layout.enemies.filter((enemy) =>
           enemyRoots.has(enemy.id)
@@ -380,6 +417,22 @@ export function createBattleView(
       if (!combat.shells.some((shell) => shell.id === id)) {
         scene.remove(mesh);
         shellMeshes.delete(id);
+      }
+    }
+
+    for (const shell of combat.enemyShells) {
+      let mesh = enemyShellMeshes.get(shell.id);
+      if (!mesh) {
+        mesh = new Mesh(shellGeometry, enemyShellMaterial);
+        enemyShellMeshes.set(shell.id, mesh);
+        scene.add(mesh);
+      }
+      mesh.position.set(shell.x, 0.9, shell.z);
+    }
+    for (const [id, mesh] of enemyShellMeshes) {
+      if (!combat.enemyShells.some((shell) => shell.id === id)) {
+        scene.remove(mesh);
+        enemyShellMeshes.delete(id);
       }
     }
     applyCamera();
