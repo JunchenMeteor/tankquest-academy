@@ -1223,3 +1223,30 @@ button:disabled {
 .result-card .result-breakdown section {
   text-align: left;
 }
+
+/* ── Mobile: denser mission grid, no desktop keyboard hint ──────────── */
+@media (max-width: 560px) {
+  .mission-picker {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .mission-picker button.mission-card {
+    padding: 0.65rem 0.7rem;
+    border-radius: 12px;
+  }
+
+  .mission-name {
+    font-size: 0.9rem;
+  }
+
+  .mission-subject {
+    font-size: 0.66rem;
+    padding: 0.1rem 0.4rem;
+  }
+
+  /* Touch controls are rendered on screen; the keyboard hint is desktop-only. */
+  .controls {
+    display: none;
+  }
+}
