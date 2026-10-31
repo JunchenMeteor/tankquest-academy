@@ -1,13 +1,7 @@
 import type { TankStats, UpgradeableStat } from '@tankquest/shared';
 import { upgradeableStats } from '@tankquest/shared';
 
-const statKeys: UpgradeableStat[] = [
-  'firepower',
-  'mobility',
-  'armor',
-  'stealth',
-  'vision',
-];
+const statKeys: UpgradeableStat[] = [...upgradeableStats];
 
 export function applyTankUpgrades(
   baseStats: TankStats,
