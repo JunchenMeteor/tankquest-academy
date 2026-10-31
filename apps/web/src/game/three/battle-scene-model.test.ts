@@ -4,6 +4,7 @@ import {
   FIELD_SCALE,
   buildSceneLayout,
   cameraPose,
+  stepEnemyToward,
   stepTank,
   toWorld,
 } from './battle-scene-model.js';
@@ -75,7 +76,24 @@ describe('3D battle scene model', () => {
     });
     expect(pose.position).toEqual({ x: 0, y: 2.75, z: 0 });
     expect(pose.target.x).toBeCloseTo(20);
-    expect(pose.target.y).toBeCloseTo(1.6);
+    expect(pose.target.y).toBeCloseTo(2.75);
+  });
+
+  it('tilts the first-person view with pitch and turns it with yaw', () => {
+    const up = cameraPose(
+      'first',
+      { position: { x: 0, y: 0, z: 0 }, heading: 0 },
+      0,
+      0.3
+    );
+    expect(up.target.y).toBeGreaterThan(3);
+
+    const right = cameraPose(
+      'first',
+      { position: { x: 0, y: 0, z: 0 }, heading: 0 },
+      -Math.PI / 2
+    );
+    expect(right.target.z).toBeCloseTo(20);
   });
 
   it('puts the third-person camera behind the heading', () => {
@@ -106,5 +124,34 @@ describe('3D battle scene model', () => {
       layout
     );
     expect(clamped.position.x).toBeLessThanOrEqual(layout.ground.width / 2);
+  });
+});
+
+describe('enemy approach', () => {
+  const bounds = { width: 40, depth: 30 };
+
+  it('closes the distance toward the player and stops at the standoff', () => {
+    const roomy = stepEnemyToward(
+      { position: { x: 10, y: 0, z: 0 } },
+      { x: 0, z: 0 },
+      6,
+      1,
+      2,
+      bounds
+    );
+    expect(roomy.moved).toBe(true);
+    expect(roomy.position.x).toBeCloseTo(4);
+    expect(Math.abs(roomy.heading)).toBeCloseTo(Math.PI);
+
+    const close = stepEnemyToward(
+      { position: { x: 1, y: 0, z: 0 } },
+      { x: 0, z: 0 },
+      6,
+      1,
+      2,
+      bounds
+    );
+    expect(close.moved).toBe(false);
+    expect(close.position.x).toBe(1);
   });
 });

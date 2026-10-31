@@ -18,11 +18,8 @@ import {
   SphereGeometry,
   PCFSoftShadowMap,
   PerspectiveCamera,
-  Plane,
   PlaneGeometry,
-  Raycaster,
   Scene,
-  Vector2,
   Vector3,
   WebGLRenderer,
 } from 'three';
@@ -30,6 +27,7 @@ import {
 import {
   buildSceneLayout,
   cameraPose,
+  stepEnemyToward,
   stepTank,
   type CameraMode,
   type SceneLayout,
@@ -244,6 +242,10 @@ export function createBattleView(
   const playerRig = buildTank(layout.player, true);
   const playerMesh = playerRig.root;
   scene.add(playerMesh);
+  const enemySpeeds = new Map<string, number>();
+  for (const enemy of config.enemies) {
+    enemySpeeds.set(enemy.id, enemy.speed * 0.06);
+  }
   const enemyRoots = new Map<string, Group>();
   for (const enemy of layout.enemies) {
     const rig = buildTank(enemy, false);
@@ -289,16 +291,11 @@ export function createBattleView(
   onAmmo?.(combat.ammo, MAX_AMMO);
 
   const camera = new PerspectiveCamera(60, 1, 0.1, 300);
-  const pointer = new Vector2(0, 0);
-  const raycaster = new Raycaster();
-  const aimPlane = new Plane(new Vector3(0, 1, 0), -0.6);
-  const aimPoint = new Vector3();
   const traverseSpeed = config.player.turretTraverseSpeed;
   const dispersion = config.player.dispersionRadius;
   let rightHeld = false;
-  let lookYaw = 0;
-  let viewYaw = layout.player.heading;
-  let viewPitch = 0;
+  let camYaw = layout.player.heading;
+  let camPitch = 0.34;
   const state = {
     mode: 'third' as CameraMode,
     heading: layout.player.heading,
@@ -318,20 +315,19 @@ export function createBattleView(
 
   const canvas = renderer.domElement;
   canvas.addEventListener('pointermove', (event) => {
-    const bounds = canvas.getBoundingClientRect();
-    pointer.x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1;
-    pointer.y = -((event.clientY - bounds.top) / bounds.height) * 2 + 1;
-    if (state.mode === 'first') {
-      viewYaw -= event.movementX * 0.003;
-      viewPitch = Math.max(
-        -0.5,
-        Math.min(0.4, viewPitch + event.movementY * 0.002)
-      );
-    }
-    if (rightHeld) lookYaw -= event.movementX * 0.004;
+    /* The view always follows the mouse; the right button only freezes the gun. */
+    camYaw += event.movementX * 0.0016;
+    camPitch = Math.max(
+      -0.35,
+      Math.min(0.75, camPitch + event.movementY * 0.0011)
+    );
   });
   canvas.addEventListener('pointerdown', (event) => {
     if (event.button === 2) rightHeld = true;
+    if (event.button === 0) input?.setCommand('fire', true, 'pointer');
+  });
+  globalThis.addEventListener('pointerup', (event) => {
+    if (event.button === 0) input?.setCommand('fire', false, 'pointer');
   });
   globalThis.addEventListener('pointerup', (event) => {
     if (event.button === 2) rightHeld = false;
@@ -344,10 +340,12 @@ export function createBattleView(
   observer?.observe(host);
 
   const applyCamera = () => {
-    const pose =
-      state.mode === 'first'
-        ? cameraPose('first', { ...state, heading: viewYaw }, 0, viewPitch)
-        : cameraPose('third', state, lookYaw);
+    const pose = cameraPose(
+      state.mode,
+      { ...state, heading: 0 },
+      camYaw,
+      camPitch
+    );
     camera.position.set(pose.position.x, pose.position.y, pose.position.z);
     camera.lookAt(new Vector3(pose.target.x, pose.target.y, pose.target.z));
     playerMesh.visible = state.mode !== 'first';
@@ -383,25 +381,11 @@ export function createBattleView(
         playerRig.turret.rotation.y = state.turret;
       }
 
-      /* Aim: the pointer drives the turret; right mouse freezes it for free look. */
-      let targetWorld: number | null = null;
-      if (!rightHeld) {
-        if (state.mode === 'third') {
-          raycaster.setFromCamera(pointer, camera);
-          if (raycaster.ray.intersectPlane(aimPlane, aimPoint)) {
-            targetWorld = aimYaw(
-              { x: state.position.x, z: state.position.z },
-              { x: aimPoint.x, z: aimPoint.z }
-            );
-          }
-        } else {
-          targetWorld = viewYaw;
-        }
-      }
-      /* Let the free-look offset ease back behind the hull after release. */
-      if (!rightHeld && Math.abs(lookYaw) > 0.001) {
-        lookYaw *= Math.max(0, 1 - delta * 3.5);
-      }
+      /*
+       * The gun follows the centre of the view, so the reticle is the aim point.
+       * Holding the right button freezes the turret while the camera keeps turning.
+       */
+      const targetWorld: number | null = rightHeld ? null : camYaw;
 
       if (targetWorld !== null) {
         const localTarget = normaliseAngle(targetWorld - state.heading);
@@ -411,6 +395,26 @@ export function createBattleView(
           traverseSpeed * delta
         );
         playerRig.turret.rotation.y = state.turret;
+      }
+
+      /* Enemies close the distance until they are inside their firing standoff. */
+      for (const enemy of layout.enemies) {
+        const root = enemyRoots.get(enemy.id);
+        if (!root) continue;
+        const step = stepEnemyToward(
+          enemy,
+          { x: state.position.x, z: state.position.z },
+          enemySpeeds.get(enemy.id) ?? 0,
+          delta,
+          8,
+          layout.ground
+        );
+        if (step.moved) {
+          enemy.position = step.position;
+          enemy.heading = step.heading;
+          root.position.set(step.position.x, step.position.y, step.position.z);
+          root.rotation.y = step.heading;
+        }
       }
 
       combat = tickCooldown(combat, delta);

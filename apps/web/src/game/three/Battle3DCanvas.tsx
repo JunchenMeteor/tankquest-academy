@@ -86,6 +86,16 @@ export function Battle3DCanvas({
         data-scene-theme={config.theme}
         ref={hostRef}
       >
+        <div
+          className="battle-reticle"
+          aria-hidden="true"
+          style={{
+            ['--dispersion' as string]: `${Math.round(ammo.current > 0 ? 18 : 26)}px`,
+          }}
+        >
+          <span className="battle-reticle-ring" />
+          <span className="battle-reticle-dot" />
+        </div>
         <p className="battle-ammo" role="status">
           Ammo {ammo.current} / {ammo.max}
         </p>
