@@ -259,6 +259,15 @@ function addTurretGroups(
   barrel.castShadow = true;
   gunGroup.add(barrel);
 
+  const sleeve = new Mesh(
+    new CylinderGeometry(0.15, 0.15, barrelLength * 0.45, 12),
+    materials.armorDark
+  );
+  sleeve.rotation.z = Math.PI / 2;
+  sleeve.position.set(radius * 0.92 + barrelLength * 0.55, 0.02, 0);
+  sleeve.castShadow = true;
+  gunGroup.add(sleeve);
+
   const brake = new Mesh(
     new CylinderGeometry(0.13, 0.13, 0.34, 12),
     materials.steel
@@ -385,6 +394,30 @@ export function buildTankModel(
     );
     fender.castShadow = true;
     group.add(fender);
+  }
+
+  /* Stowage boxes and tow cables along the fenders. */
+  for (const side of [-1, 1]) {
+    const box = new Mesh(new BoxGeometry(0.62, 0.24, 0.3), materials.armorDark);
+    box.position.set(
+      -hullDepth * 0.22,
+      floor + hullHeight * 1.02,
+      side * (hullWidth / 2 + 0.16)
+    );
+    box.castShadow = true;
+    group.add(box);
+
+    const cable = new Mesh(
+      new CylinderGeometry(0.03, 0.03, hullDepth * 0.5, 8),
+      materials.steel
+    );
+    cable.rotation.z = Math.PI / 2;
+    cable.position.set(
+      hullDepth * 0.24,
+      floor + hullHeight * 0.98,
+      side * (hullWidth / 2 + 0.1)
+    );
+    group.add(cable);
   }
 
   for (const side of [-1, 1]) {
