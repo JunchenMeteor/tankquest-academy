@@ -90,3 +90,18 @@ export function groupSpread(
     count > 1 ? (slot - (count - 1) / 2) / Math.max(1, count - 1) : 0;
   return spread * (1 - tightness * 0.75);
 }
+
+/**
+ * Staggers the opening shot so a group does not fire as one volley. Harder
+ * fights keep the stagger short, so the pressure still lands together.
+ */
+export function openingDelayMs(slot: number, difficulty: number): number {
+  const stagger = 900 * (1 - Math.max(0, Math.min(1, difficulty)));
+  return Math.round(slot * stagger);
+}
+
+/** Reload between enemy shots: slow on easy, quick on hard. */
+export function enemyReloadMs(difficulty: number): number {
+  const clamped = Math.max(0, Math.min(1, difficulty));
+  return Math.round(4600 - clamped * 2200);
+}
