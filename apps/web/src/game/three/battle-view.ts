@@ -228,10 +228,11 @@ export function createBattleView(
   canvas.addEventListener('pointerdown', (event) => {
     if (event.button === 2) rightHeld = true;
     if (event.button !== 0) return;
+    /* The first click both grabs the pointer and sends the shot, so the gun
+       never feels dead while the player is still locking in. */
     if (!locked()) {
       void canvas.requestPointerLock?.();
       host.dataset.pointerLock = 'on';
-      return;
     }
     input?.setCommand('fire', true, 'pointer');
   });
