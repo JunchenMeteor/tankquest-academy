@@ -334,38 +334,39 @@ export function createBattleView(
     camPitch = Math.max(-0.5, Math.min(0.8, camPitch - movementY * 0.0011));
   };
 
-  canvas.addEventListener('pointermove', (event) => {
-    look(event.movementX, event.movementY);
+  /*
+   * The pointer is the reticle: no pointer lock, no virtual cursor. The OS
+   * cursor is hidden by CSS and the reticle is drawn exactly where it is, so
+   * the crosshair can never drift away from the mouse.
+   */
+  canvas.classList.add('battle-canvas--locked');
+  const updateAim = (clientX: number, clientY: number) => {
     const bounds = canvas.getBoundingClientRect();
-    if (locked()) {
-      aim.x = Math.max(0, Math.min(bounds.width, aim.x + event.movementX));
-      aim.y = Math.max(0, Math.min(bounds.height, aim.y + event.movementY));
-    } else {
-      aim.x = event.clientX - bounds.left;
-      aim.y = event.clientY - bounds.top;
-    }
+    aim.x = Math.max(0, Math.min(bounds.width, clientX - bounds.left));
+    aim.y = Math.max(0, Math.min(bounds.height, clientY - bounds.top));
     aim.ready = true;
     onReticle?.(aim.x, aim.y, bounds.width, bounds.height);
+  };
+
+  canvas.addEventListener('pointermove', (event) => {
+    /* Look around only while the right button is held, otherwise the view stays
+       behind the hull so the world does not swing while aiming. */
+    if (rightHeld) look(event.movementX, event.movementY);
+    updateAim(event.clientX, event.clientY);
   });
   canvas.addEventListener('pointerdown', (event) => {
     if (event.button === 2) rightHeld = true;
-    if (event.button !== 0) return;
-    /* The first click both grabs the pointer and sends the shot, so the gun
-       never feels dead while the player is still locking in. */
-    if (!locked()) {
-      void canvas.requestPointerLock?.();
-      host.dataset.pointerLock = 'on';
+    if (event.button === 0) {
+      updateAim(event.clientX, event.clientY);
+      input?.setCommand('fire', true, 'pointer');
     }
-    input?.setCommand('fire', true, 'pointer');
   });
   globalThis.addEventListener('pointerup', (event) => {
     if (event.button === 0) input?.setCommand('fire', false, 'pointer');
     if (event.button === 2) rightHeld = false;
   });
   document.addEventListener('pointerlockchange', () => {
-    canvas.classList.toggle('battle-canvas--locked', locked());
-    host.dataset.pointerLock = locked() ? 'on' : 'off';
-    onPointerLock?.(locked());
+    onPointerLock?.(false);
   });
   canvas.addEventListener('contextmenu', (event) => event.preventDefault());
   const observer =
