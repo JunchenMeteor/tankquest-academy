@@ -306,14 +306,13 @@ export function createBattleView(
   };
 
   /*
-   * The baked GLB is opt-in for now (?model=glb): the pipeline works but the
-   * generated mesh is not yet prettier than the procedural tanks, so the
-   * shipped default stays procedural until a real model is dropped in.
+   * Medium and high tiers use the baked GLB; the low tier keeps the procedural
+   * tanks, which cost no download at all. ?model=procedural opts out.
    */
-  const wantsGlbModel =
+  const wantsProcedural =
     typeof window !== 'undefined' &&
-    new URLSearchParams(window.location.search).get('model') === 'glb';
-  if (wantsGlbModel && quality !== 'low') {
+    new URLSearchParams(window.location.search).get('model') === 'procedural';
+  if (!wantsProcedural && quality !== 'low') {
     void loadTankAsset()
       .then((asset) => {
         const painted = paintTank(asset, layout.player.color);
