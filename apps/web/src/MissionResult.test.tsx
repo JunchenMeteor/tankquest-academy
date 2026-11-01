@@ -13,6 +13,8 @@ describe('MissionResult', () => {
         runtime={{
           enemiesRemaining: 0,
           shotsFired: 8,
+          enemiesDestroyed: 3,
+          bestStreak: 2,
           playerHealth: 112,
           playerMaxHealth: 150,
           playerDestroyed: false,
@@ -76,6 +78,8 @@ describe('MissionResult', () => {
         runtime={{
           enemiesRemaining: 0,
           shotsFired: 6,
+          enemiesDestroyed: 3,
+          bestStreak: 0,
           playerHealth: 150,
           playerMaxHealth: 150,
           playerDestroyed: false,

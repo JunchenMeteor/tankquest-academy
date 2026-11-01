@@ -674,6 +674,8 @@ export class TrainingScene extends Phaser.Scene {
         this.levelConfig.enemies.length -
         this.objectiveState.defeatedEnemyIds.length,
       shotsFired: this.shotsFired,
+      enemiesDestroyed: 0,
+      bestStreak: 0,
       playerHealth: this.playerHealth,
       playerMaxHealth: this.levelConfig.player.maxHealth,
       playerDestroyed: this.playerDestroyed,
