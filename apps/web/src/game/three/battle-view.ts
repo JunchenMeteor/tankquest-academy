@@ -503,18 +503,23 @@ export function createBattleView(
           -(aim.y / Math.max(1, bounds.height)) * 2 + 1
         );
         raycaster.setFromCamera(ndc, camera);
-        const hit = raycaster.ray.intersectPlane(gunPlane, aimPoint);
-        if (hit) {
-          targetWorld = aimYaw(
-            { x: state.position.x, z: state.position.z },
-            { x: aimPoint.x, z: aimPoint.z }
-          );
+        let hit = raycaster.ray.intersectPlane(gunPlane, aimPoint);
+        if (!hit) {
+          /* Cursor above the horizon: aim far along the ray instead of giving up. */
+          aimPoint.copy(raycaster.ray.at(160, new Vector3()));
+          hit = aimPoint;
         }
-        /* Barrel elevation follows the aim ray itself, not the flat hit point. */
-        const aimPitch = Math.asin(
-          Math.max(-1, Math.min(1, raycaster.ray.direction.y))
-        );
-        gunRig.rotation.z = Math.max(-0.22, Math.min(0.22, -aimPitch));
+        if (hit) {
+          /* Aim from the muzzle, not the hull centre, so parallax is not baked in. */
+          const muzzle = muzzlePoint(
+            { x: state.position.x, z: state.position.z },
+            state.heading,
+            state.turret,
+            layout.player.barrelLength
+          );
+          targetWorld = aimYaw(muzzle, { x: aimPoint.x, z: aimPoint.z });
+        }
+        gunRig.rotation.z = 0;
       }
 
       if (targetWorld !== null) {
