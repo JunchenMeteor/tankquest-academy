@@ -30,7 +30,6 @@ import {
   stepTank,
   type CameraMode,
   type SceneLayout,
-  type TankPlacement,
 } from './battle-scene-model.js';
 import { driveCommand, normaliseAngle } from './battle-input.js';
 import { aimYaw, rotateTowards, scatterAimPoint } from './battle-aim.js';
