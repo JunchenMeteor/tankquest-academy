@@ -41,7 +41,13 @@ import { driveCommand, normaliseAngle } from './battle-input.js';
 import { aimYaw, rotateTowards, scatterAimPoint } from './battle-aim.js';
 import { buildTankModel } from './tank-model.js';
 import { loadTankAsset, paintTank } from './tank-asset.js';
-import { advanceEnemy, enemyGoal, groupSpread } from './battle-enemy-ai.js';
+import {
+  advanceEnemy,
+  enemyGoal,
+  enemyReloadMs,
+  groupSpread,
+  openingDelayMs,
+} from './battle-enemy-ai.js';
 import { advanceReload } from './battle-combat.js';
 import {
   createFrameSampler,
@@ -251,11 +257,16 @@ export function createBattleView(
     emissive: 0x7a2412,
     roughness: 0.45,
   });
+  /* Difficulty follows the group size: more tanks, sharper shooting. */
+  const difficulty = Math.min(1, Math.max(0, (config.enemies.length - 1) / 3));
   let combat = createCombatState(
     layout.enemies.length,
     1,
     config.player.maxHealth
   );
+  for (const [slot, enemy] of layout.enemies.entries()) {
+    combat.enemyCooldowns[enemy.id] = openingDelayMs(slot, difficulty);
+  }
   const totalEnemies = layout.enemies.length;
   let destroyedCount = 0;
 
@@ -563,10 +574,6 @@ export function createBattleView(
       const boundsRect = layout.playfield ?? layout.ground;
       const limitX = boundsRect.width / 2 - 2.4;
       const limitZ = boundsRect.depth / 2 - 2.4;
-      const difficulty = Math.min(
-        1,
-        Math.max(0, (config.enemies.length - 1) / 3)
-      );
       for (const [slot, enemy] of layout.enemies.entries()) {
         const root = enemyRoots.get(enemy.id);
         if (!root) continue;
@@ -706,7 +713,9 @@ export function createBattleView(
           combat,
           aliveEnemies,
           { x: state.position.x, z: state.position.z },
-          delta
+          delta,
+          9,
+          enemyReloadMs(difficulty)
         );
         combat = fire.state;
         for (const launch of fire.launches) {

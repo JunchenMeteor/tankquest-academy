@@ -90,7 +90,9 @@ export function advanceEnemyFire(
   enemies: TankPlacement[],
   player: { x: number; z: number },
   deltaSeconds: number,
-  damage = 9
+  damage = 9,
+  /** Reload between shots; a harder fight shortens it. */
+  intervalMs = ENEMY_FIRE_INTERVAL_MS
 ): { state: CombatState; launches: EnemyLaunch[] } {
   if (state.playerDestroyed) return { state, launches: [] };
   const cooldowns: Record<string, number> = { ...state.enemyCooldowns };
@@ -104,7 +106,7 @@ export function advanceEnemyFire(
       player.z - enemy.position.z
     );
     if (distance > ENEMY_FIRE_RANGE || next > 0) continue;
-    cooldowns[enemy.id] = ENEMY_FIRE_INTERVAL_MS;
+    cooldowns[enemy.id] = intervalMs;
     launches.push({
       x: enemy.position.x,
       z: enemy.position.z,
