@@ -434,7 +434,15 @@ export function ActiveTraining({
         </div>
       </div>
       {use3DBattle ? (
-        <Suspense fallback={<div className="game-canvas" />}>
+        <Suspense
+          fallback={
+            <div className="battle-loading" role="status" aria-live="polite">
+              <span className="battle-loading-radar" aria-hidden="true" />
+              <p>Loading training ground…</p>
+              <small>Preparing the 3D engine</small>
+            </div>
+          }
+        >
           <Battle3DCanvas
             config={config}
             onState={onRuntime}
