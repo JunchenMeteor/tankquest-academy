@@ -7,8 +7,6 @@ import {
   Vector3,
 } from 'three';
 
-import type { Object3D } from 'three';
-
 import type { TankPlacement } from './battle-scene-model.js';
 import { createTankTextures, type TankTextures } from './tank-textures.js';
 
