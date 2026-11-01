@@ -281,7 +281,8 @@ export function createBattleView(
   let rightHeld = false;
   const raycaster = new Raycaster();
   const aimPoint = new Vector3();
-  const gunPlane = new Plane(new Vector3(0, 1, 0), -1.2);
+  const barrelHeight = 1.57;
+  const gunPlane = new Plane(new Vector3(0, 1, 0), -barrelHeight);
   let camYaw = layout.player.heading;
   let camPitch = 0.15;
   /* Screen-space aim point (CSS pixels inside the canvas); the reticle follows it. */
@@ -344,7 +345,6 @@ export function createBattleView(
     aim.x = Math.max(0, Math.min(bounds.width, clientX - bounds.left));
     aim.y = Math.max(0, Math.min(bounds.height, clientY - bounds.top));
     aim.ready = true;
-    onReticle?.(aim.x, aim.y, bounds.width, bounds.height);
   };
 
   canvas.addEventListener('pointermove', (event) => {
@@ -520,6 +520,30 @@ export function createBattleView(
           targetWorld = aimYaw(muzzle, { x: aimPoint.x, z: aimPoint.z });
         }
         gunRig.rotation.z = 0;
+      }
+
+      /* The reticle is the barrel: project the gun axis to the screen each frame. */
+      {
+        const barrelYaw = state.heading + state.turret;
+        const muzzle = muzzlePoint(
+          { x: state.position.x, z: state.position.z },
+          state.heading,
+          state.turret,
+          layout.player.barrelLength
+        );
+        const reach = 60;
+        const tip = new Vector3(
+          muzzle.x + Math.cos(barrelYaw) * reach,
+          1.57,
+          muzzle.z - Math.sin(barrelYaw) * reach
+        ).project(camera);
+        const bounds = canvas.getBoundingClientRect();
+        onReticle?.(
+          (tip.x * 0.5 + 0.5) * bounds.width,
+          (0.5 - tip.y * 0.5) * bounds.height,
+          bounds.width,
+          bounds.height
+        );
       }
 
       if (targetWorld !== null) {
