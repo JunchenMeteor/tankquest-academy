@@ -33,7 +33,6 @@ import {
   buildSceneLayout,
   cameraPose,
   resolveObstacles,
-  stepEnemyToward,
   stepTank,
   type CameraMode,
   type SceneLayout,
@@ -42,6 +41,7 @@ import { driveCommand, normaliseAngle } from './battle-input.js';
 import { aimYaw, rotateTowards, scatterAimPoint } from './battle-aim.js';
 import { buildTankModel } from './tank-model.js';
 import { loadTankAsset, paintTank } from './tank-asset.js';
+import { advanceEnemy, enemyGoal, groupSpread } from './battle-enemy-ai.js';
 import { advanceReload } from './battle-combat.js';
 import {
   createFrameSampler,
@@ -563,15 +563,26 @@ export function createBattleView(
       const boundsRect = layout.playfield ?? layout.ground;
       const limitX = boundsRect.width / 2 - 2.4;
       const limitZ = boundsRect.depth / 2 - 2.4;
-      for (const enemy of layout.enemies) {
+      const difficulty = Math.min(
+        1,
+        Math.max(0, (config.enemies.length - 1) / 3)
+      );
+      for (const [slot, enemy] of layout.enemies.entries()) {
         const root = enemyRoots.get(enemy.id);
         if (!root) continue;
-        const step = stepEnemyToward(
+        const goal = enemyGoal(
           enemy,
           { x: state.position.x, z: state.position.z },
+          groupSpread(slot, layout.enemies.length, difficulty) *
+            layout.enemies.length,
+          layout.enemies.length,
+          layout.blocks
+        );
+        const step = advanceEnemy(
+          enemy,
+          goal,
           combat.playerDestroyed ? 0 : (enemySpeeds.get(enemy.id) ?? 0),
           delta,
-          8,
           boundsRect
         );
         if (step.moved) {
