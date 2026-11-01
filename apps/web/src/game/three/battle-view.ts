@@ -36,6 +36,13 @@ import { aimYaw, rotateTowards, scatterAimPoint } from './battle-aim.js';
 import { buildTankModel } from './tank-model.js';
 import { advanceReload } from './battle-combat.js';
 import {
+  createFrameSampler,
+  downgrade,
+  qualitySettings,
+  shouldDowngrade,
+  type QualityTier,
+} from './quality-tier.js';
+import {
   MAX_AMMO,
   SHELL_RANGE,
   advanceEnemyFire,
@@ -108,24 +115,34 @@ export function createBattleView(
   config: RuntimeLevelConfig,
   input?: GameInputController,
   onState?: (state: RuntimeState) => void,
-  onAmmo?: (ammo: number, max: number) => void
+  onAmmo?: (ammo: number, max: number) => void,
+  initialQuality: QualityTier = 'high',
+  onQualityChange?: (tier: QualityTier) => void
 ): Battle3DHandle {
   const layout = buildSceneLayout(config);
   const scene = new Scene();
   scene.background = new Color(0x1c2a22);
   scene.fog = new Fog(0x1c2a22, 70, 160);
 
-  const renderer = new WebGLRenderer({ antialias: true });
-  renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio ?? 1, 2));
-  renderer.shadowMap.enabled = true;
+  let quality: QualityTier = initialQuality;
+  const renderer = new WebGLRenderer({
+    antialias: qualitySettings[quality].antialias,
+  });
+  renderer.setPixelRatio(
+    Math.min(globalThis.devicePixelRatio ?? 1, qualitySettings[quality].dprCap)
+  );
+  renderer.shadowMap.enabled = qualitySettings[quality].shadows;
   renderer.shadowMap.type = PCFSoftShadowMap;
   renderer.domElement.dataset.renderMode = '3d';
   host.appendChild(renderer.domElement);
 
   const key = new DirectionalLight(0xfff4d6, 4.2);
   key.position.set(-14, 18, 10);
-  key.castShadow = true;
-  key.shadow.mapSize.set(1024, 1024);
+  key.castShadow = qualitySettings[quality].shadows;
+  key.shadow.mapSize.set(
+    qualitySettings[quality].shadowMapSize,
+    qualitySettings[quality].shadowMapSize
+  );
   key.shadow.camera.left = -30;
   key.shadow.camera.right = 30;
   key.shadow.camera.top = 30;
@@ -211,6 +228,26 @@ export function createBattleView(
   resize();
   globalThis.addEventListener('resize', resize);
 
+  /** Re-applies the tier to an existing renderer, cheapest knobs first. */
+  const applyQuality = (tier: QualityTier) => {
+    const settings = qualitySettings[tier];
+    renderer.setPixelRatio(
+      Math.min(globalThis.devicePixelRatio ?? 1, settings.dprCap)
+    );
+    renderer.shadowMap.enabled = settings.shadows;
+    key.castShadow = settings.shadows;
+    if (key.shadow.mapSize.x !== settings.shadowMapSize) {
+      key.shadow.map?.dispose();
+      key.shadow.map = null;
+      key.shadow.mapSize.set(settings.shadowMapSize, settings.shadowMapSize);
+      key.shadow.needsUpdate = true;
+    }
+    if (scene.fog instanceof Fog) {
+      scene.fog.far = settings.fogFar;
+    }
+    resize();
+  };
+
   const canvas = renderer.domElement;
   /*
    * Mouse look uses pointer lock, like a browser FPS: the cursor hides, so it
@@ -265,9 +302,20 @@ export function createBattleView(
 
   let frame = 0;
   let previous = performance.now();
+  const sampler = createFrameSampler(120);
   const loop = (now: number) => {
     const delta = Math.min(0.05, (now - previous) / 1000);
     previous = now;
+    /* Watch the real frame rate and step down once if the GPU cannot keep up. */
+    sampler.add(delta);
+    if (sampler.ready) {
+      if (shouldDowngrade(quality, sampler.averageFps)) {
+        quality = downgrade(quality);
+        applyQuality(quality);
+        onQualityChange?.(quality);
+      }
+      sampler.reset();
+    }
     if (input) {
       const command = driveCommand(input.snapshot());
       const next = stepTank(
