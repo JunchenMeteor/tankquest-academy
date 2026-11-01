@@ -51,7 +51,6 @@ export function Battle3DCanvas({
   });
   const initialTier = useRef(tier);
   const [ammo, setAmmo] = useState({ current: 1, max: 5 });
-  const [locked, setLocked] = useState(false);
   const [aimOffset, setAimOffset] = useState(0);
   const reticleRef = useRef<HTMLDivElement | null>(null);
 
@@ -68,7 +67,7 @@ export function Battle3DCanvas({
         setTier(next);
         if (typeof window !== 'undefined') storeTier(window.localStorage, next);
       },
-      setLocked,
+      () => {},
       (radians) => setAimOffset(radians),
       (x, y, w, h) => {
         /* Move the reticle imperatively: 60 updates a second would re-render. */
@@ -137,11 +136,9 @@ export function Battle3DCanvas({
         <p className="battle-quality" data-tier={tier}>
           Quality: {tier}
         </p>
-        {locked ? null : (
-          <p className="battle-pointer-hint">
-            Click the field to lock the mouse · Esc releases it
-          </p>
-        )}
+        <p className="battle-pointer-hint">
+          Right-drag to look · A/D to steer · the reticle follows the mouse
+        </p>
         {Math.abs(aimOffset) > 0.04 ? (
           <span
             className="battle-gun-marker"
