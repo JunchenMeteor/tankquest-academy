@@ -328,7 +328,6 @@ export function createBattleView(
    * Mouse look uses pointer lock, like a browser FPS: the cursor hides, so it
    * can never wander off the window while it steers the camera.
    */
-  const locked = () => document.pointerLockElement === canvas;
   const look = (movementX: number, movementY: number) => {
     camYaw -= movementX * 0.0016;
     camPitch = Math.max(-0.5, Math.min(0.8, camPitch - movementY * 0.0011));
@@ -364,9 +363,6 @@ export function createBattleView(
   globalThis.addEventListener('pointerup', (event) => {
     if (event.button === 0) input?.setCommand('fire', false, 'pointer');
     if (event.button === 2) rightHeld = false;
-  });
-  document.addEventListener('pointerlockchange', () => {
-    onPointerLock?.(false);
   });
   canvas.addEventListener('contextmenu', (event) => event.preventDefault());
   const observer =
