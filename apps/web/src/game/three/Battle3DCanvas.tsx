@@ -53,6 +53,7 @@ export function Battle3DCanvas({
   const [ammo, setAmmo] = useState({ current: 1, max: 5 });
   const [locked, setLocked] = useState(false);
   const [aimOffset, setAimOffset] = useState(0);
+  const reticleRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!hostRef.current) return;
@@ -68,7 +69,15 @@ export function Battle3DCanvas({
         if (typeof window !== 'undefined') storeTier(window.localStorage, next);
       },
       setLocked,
-      (radians) => setAimOffset(radians)
+      (radians) => setAimOffset(radians),
+      (x, y, w, h) => {
+        /* Move the reticle imperatively: 60 updates a second would re-render. */
+        const node = reticleRef.current;
+        if (!node) return;
+        const cx = Math.round((x - w / 2) * 100) / 100;
+        const cy = Math.round((y - h / 2) * 100) / 100;
+        node.style.transform = `translate(${cx}px, ${cy}px)`;
+      }
     );
     viewRef.current = view;
     return () => {
@@ -117,6 +126,7 @@ export function Battle3DCanvas({
         <div
           className="battle-reticle"
           aria-hidden="true"
+          ref={reticleRef}
           style={{
             ['--dispersion' as string]: `${Math.round(ammo.current > 0 ? 18 : 26)}px`,
           }}

@@ -19,9 +19,12 @@ import {
   SphereGeometry,
   PCFSoftShadowMap,
   PerspectiveCamera,
+  Plane,
   PlaneGeometry,
+  Raycaster,
   RingGeometry,
   Scene,
+  Vector2,
   Vector3,
   WebGLRenderer,
 } from 'three';
@@ -62,7 +65,7 @@ import {
   spawnShell,
   tickCooldown,
 } from './battle-combat.js';
-import type { Object3D } from 'three';
+import { Object3D } from 'three';
 import type { GameInputController } from '../input/GameInputController.js';
 import type { RuntimeState } from '../runtime/types.js';
 import type { RuntimeLevelConfig } from '../runtime/types.js';
@@ -154,7 +157,8 @@ export function createBattleView(
   initialQuality: QualityTier = 'high',
   onQualityChange?: (tier: QualityTier) => void,
   onPointerLock?: (locked: boolean) => void,
-  onAimOffset?: (radians: number) => void
+  onAimOffset?: (radians: number) => void,
+  onReticle?: (x: number, y: number, width: number, height: number) => void
 ): Battle3DHandle {
   const layout = buildSceneLayout(config);
   const scene = new Scene();
@@ -201,12 +205,15 @@ export function createBattleView(
   scene.add(skirt);
   scene.add(buildFence(layout));
 
+  let gunRig = new Object3D();
   let playerRig: { root: Group; turret: Object3D } = buildTankModel(
     layout.player,
     true
   );
   const playerMesh = playerRig.root;
   scene.add(playerMesh);
+  gunRig =
+    (playerRig.turret.userData.gun as Object3D | undefined) ?? new Object3D();
   const proceduralRigs = new Map<string, { root: Group; turret: Object3D }>();
   proceduralRigs.set('player', playerRig);
   let usingGlbTanks = false;
@@ -272,8 +279,13 @@ export function createBattleView(
   const traverseSpeed = config.player.turretTraverseSpeed;
   const dispersion = config.player.dispersionRadius;
   let rightHeld = false;
+  const raycaster = new Raycaster();
+  const aimPoint = new Vector3();
+  const gunPlane = new Plane(new Vector3(0, 1, 0), -1.2);
   let camYaw = layout.player.heading;
   let camPitch = 0.15;
+  /* Screen-space aim point (CSS pixels inside the canvas); the reticle follows it. */
+  const aim = { x: 0, y: 0, ready: false };
   const state = {
     mode: 'third' as CameraMode,
     heading: layout.player.heading,
@@ -324,6 +336,16 @@ export function createBattleView(
 
   canvas.addEventListener('pointermove', (event) => {
     look(event.movementX, event.movementY);
+    const bounds = canvas.getBoundingClientRect();
+    if (locked()) {
+      aim.x = Math.max(0, Math.min(bounds.width, aim.x + event.movementX));
+      aim.y = Math.max(0, Math.min(bounds.height, aim.y + event.movementY));
+    } else {
+      aim.x = event.clientX - bounds.left;
+      aim.y = event.clientY - bounds.top;
+    }
+    aim.ready = true;
+    onReticle?.(aim.x, aim.y, bounds.width, bounds.height);
   });
   canvas.addEventListener('pointerdown', (event) => {
     if (event.button === 2) rightHeld = true;
@@ -381,6 +403,8 @@ export function createBattleView(
         scene.remove(playerRig.root);
         scene.add(painted.root);
         playerRig = painted;
+        gunRig =
+          (painted.turret.userData.gun as Object3D | undefined) ?? gunRig;
         usingGlbTanks = true;
 
         for (const enemy of layout.enemies) {
@@ -474,7 +498,28 @@ export function createBattleView(
        * The gun follows the centre of the view, so the reticle is the aim point.
        * Holding the right button freezes the turret while the camera keeps turning.
        */
-      const targetWorld: number | null = rightHeld ? null : camYaw;
+      let targetWorld: number | null = rightHeld ? null : camYaw;
+      if (!rightHeld && aim.ready) {
+        const bounds = canvas.getBoundingClientRect();
+        const ndc = new Vector2(
+          (aim.x / Math.max(1, bounds.width)) * 2 - 1,
+          -(aim.y / Math.max(1, bounds.height)) * 2 + 1
+        );
+        raycaster.setFromCamera(ndc, camera);
+        const hit = raycaster.ray.intersectPlane(gunPlane, aimPoint);
+        if (hit) {
+          targetWorld = aimYaw(
+            { x: state.position.x, z: state.position.z },
+            { x: aimPoint.x, z: aimPoint.z }
+          );
+          const distance = Math.hypot(
+            aimPoint.x - state.position.x,
+            aimPoint.z - state.position.z
+          );
+          const elevation = Math.atan2(1.2 - aimPoint.y, distance);
+          gunRig.rotation.z = Math.max(-0.16, Math.min(0.12, -elevation));
+        }
+      }
 
       if (targetWorld !== null) {
         onAimOffset?.(
