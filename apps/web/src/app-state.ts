@@ -10,6 +10,8 @@ export function emptyRuntimeState(): RuntimeState {
   return {
     enemiesRemaining: 0,
     shotsFired: 0,
+    enemiesDestroyed: 0,
+    bestStreak: 0,
     playerHealth: 0,
     playerMaxHealth: 0,
     playerDestroyed: false,

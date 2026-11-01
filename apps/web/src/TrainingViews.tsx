@@ -55,6 +55,10 @@ export function AppHud({
           <dt>{t('hud.shots')}</dt>
           <dd>{runtime.shotsFired}</dd>
         </div>
+        <div>
+          <dt>Destroyed</dt>
+          <dd>{runtime.enemiesDestroyed}</dd>
+        </div>
         {active && (
           <div data-health={healthRatio <= 0.35 ? 'low' : 'normal'}>
             <dt>{t('hud.health')}</dt>
@@ -354,6 +358,14 @@ export function ActiveTraining({
             <div>
               <dt>{t('hud.shots')}</dt>
               <dd>{runtime.shotsFired}</dd>
+            </div>
+            <div>
+              <dt>Destroyed</dt>
+              <dd>{runtime.enemiesDestroyed}</dd>
+            </div>
+            <div>
+              <dt>Best streak</dt>
+              <dd>{runtime.bestStreak}</dd>
             </div>
             <div>
               <dt>{t('hud.objective')}</dt>

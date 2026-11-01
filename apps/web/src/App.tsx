@@ -210,6 +210,8 @@ export function App() {
       setRuntime({
         enemiesRemaining: startedRuntimeConfig.enemies.length,
         shotsFired: 0,
+        enemiesDestroyed: 0,
+        bestStreak: 0,
         playerHealth: startedRuntimeConfig.player.maxHealth,
         playerMaxHealth: startedRuntimeConfig.player.maxHealth,
         playerDestroyed: false,
