@@ -50,6 +50,7 @@ import {
 } from './battle-enemy-ai.js';
 import { advanceReload } from './battle-combat.js';
 import { applyAnswerCombo, emptyCombo } from './battle-combo.js';
+import { planWaves } from './battle-waves.js';
 import {
   createFrameSampler,
   downgrade,
@@ -239,11 +240,19 @@ export function createBattleView(
   for (const enemy of config.enemies) {
     enemySpeeds.set(enemy.id, enemy.speed * 0.06);
   }
+  /* Difficulty follows the group size: more tanks, sharper shooting. */
+  const difficulty = Math.min(1, Math.max(0, (config.enemies.length - 1) / 3));
   const enemyRoots = new Map<string, Group>();
-  for (const enemy of layout.enemies) {
+  const spawnEnemy = (enemy: (typeof layout.enemies)[number]) => {
     const rig = buildTankModel(enemy, false);
     enemyRoots.set(enemy.id, rig.root);
     scene.add(rig.root);
+  };
+  const waves = planWaves(layout.enemies.length, difficulty);
+  const pendingWaves = waves.slice(1);
+  for (const index of waves[0] ?? []) {
+    const enemy = layout.enemies[index];
+    if (enemy) spawnEnemy(enemy);
   }
 
   const shellGeometry = new SphereGeometry(0.16, 8, 8);
@@ -259,8 +268,6 @@ export function createBattleView(
     emissive: 0x7a2412,
     roughness: 0.45,
   });
-  /* Difficulty follows the group size: more tanks, sharper shooting. */
-  const difficulty = Math.min(1, Math.max(0, (config.enemies.length - 1) / 3));
   let combat = createCombatState(
     layout.enemies.length,
     1,
@@ -761,6 +768,13 @@ export function createBattleView(
             enemyRoots.delete(id);
           }
           destroyedCount += 1;
+        }
+        if (enemyRoots.size === 0 && pendingWaves.length > 0) {
+          for (const index of pendingWaves.shift() ?? []) {
+            const enemy = layout.enemies[index];
+            if (enemy) spawnEnemy(enemy);
+          }
+          publish();
         }
         if (result.destroyed.length > 0) publish();
       }
