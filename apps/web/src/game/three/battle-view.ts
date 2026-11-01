@@ -7,7 +7,6 @@ import {
   AmbientLight,
   BoxGeometry,
   Color,
-  CylinderGeometry,
   DirectionalLight,
   Fog,
   GridHelper,
