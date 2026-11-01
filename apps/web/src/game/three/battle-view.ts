@@ -509,13 +509,12 @@ export function createBattleView(
             { x: state.position.x, z: state.position.z },
             { x: aimPoint.x, z: aimPoint.z }
           );
-          const distance = Math.hypot(
-            aimPoint.x - state.position.x,
-            aimPoint.z - state.position.z
-          );
-          const elevation = Math.atan2(1.2 - aimPoint.y, distance);
-          gunRig.rotation.z = Math.max(-0.16, Math.min(0.12, -elevation));
         }
+        /* Barrel elevation follows the aim ray itself, not the flat hit point. */
+        const aimPitch = Math.asin(
+          Math.max(-1, Math.min(1, raycaster.ray.direction.y))
+        );
+        gunRig.rotation.z = Math.max(-0.22, Math.min(0.22, -aimPitch));
       }
 
       if (targetWorld !== null) {

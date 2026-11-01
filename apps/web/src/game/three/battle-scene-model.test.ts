@@ -76,9 +76,9 @@ describe('3D battle scene model', () => {
       position: { x: 0, y: 0, z: 0 },
       heading: 0,
     });
-    expect(pose.position).toEqual({ x: 0, y: 2.75, z: 0 });
+    expect(pose.position).toEqual({ x: 0, y: 1.95, z: 0 });
     expect(pose.target.x).toBeCloseTo(20);
-    expect(pose.target.y).toBeCloseTo(2.75);
+    expect(pose.target.y).toBeCloseTo(1.95);
   });
 
   it('tilts the first-person view with pitch and turns it with yaw', () => {
