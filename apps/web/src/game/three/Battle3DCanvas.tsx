@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 
+import {
+  chooseTier,
+  readDeviceSignals,
+  readStoredTier,
+  storeTier,
+  tierFromQuery,
+  type QualityTier,
+} from './quality-tier.js';
+
 import { createBattleView, type Battle3DHandle } from './battle-view.js';
 import { GameInputController } from '../input/GameInputController.js';
 import { keyToCommand } from './battle-input.js';
@@ -31,6 +40,16 @@ export function Battle3DCanvas({
   inputRef.current ??= new GameInputController();
   const input = inputRef.current;
   const [mode, setMode] = useState<'third' | 'first'>('third');
+  /* Query beats a remembered choice, which beats the device guess. */
+  const [tier, setTier] = useState<QualityTier>(() => {
+    if (typeof window === 'undefined') return 'high';
+    return (
+      tierFromQuery(window.location.search) ??
+      readStoredTier(window.localStorage) ??
+      chooseTier(readDeviceSignals())
+    );
+  });
+  const initialTier = useRef(tier);
   const [ammo, setAmmo] = useState({ current: 1, max: 5 });
 
   useEffect(() => {
@@ -40,7 +59,12 @@ export function Battle3DCanvas({
       config,
       input,
       onState,
-      (current, max) => setAmmo({ current, max })
+      (current, max) => setAmmo({ current, max }),
+      initialTier.current,
+      (next) => {
+        setTier(next);
+        if (typeof window !== 'undefined') storeTier(window.localStorage, next);
+      }
     );
     viewRef.current = view;
     return () => {
@@ -96,6 +120,9 @@ export function Battle3DCanvas({
           <span className="battle-reticle-ring" />
           <span className="battle-reticle-dot" />
         </div>
+        <p className="battle-quality" data-tier={tier}>
+          Quality: {tier}
+        </p>
         <p className="battle-pointer-hint">
           Click the field to lock the mouse · Esc releases it
         </p>
