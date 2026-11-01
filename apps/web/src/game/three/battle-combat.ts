@@ -35,6 +35,8 @@ export interface CombatState {
   playerHealth: number;
   playerMaxHealth: number;
   playerDestroyed: boolean;
+  /** Time banked toward the next automatically loaded shell. */
+  reloadMs: number;
 }
 
 export const SHELL_SPEED = 42;
@@ -47,6 +49,8 @@ export const WRONG_ANSWER_PENALTY_MS = 2500;
 export const ENEMY_FIRE_INTERVAL_MS = 3200;
 export const ENEMY_FIRE_RANGE = 34;
 export const PLAYER_HIT_RADIUS = 1.7;
+/** A shell slides into the breech on its own this often. */
+export const AUTO_RELOAD_MS = 2600;
 
 export function createCombatState(
   enemyCount: number,
@@ -65,6 +69,7 @@ export function createCombatState(
     playerHealth,
     playerMaxHealth: playerHealth,
     playerDestroyed: false,
+    reloadMs: 0,
   };
 }
 
@@ -304,5 +309,25 @@ export function muzzlePoint(
   return {
     x: position.x + Math.cos(angle) * barrelLength,
     z: position.z - Math.sin(angle) * barrelLength,
+  };
+}
+
+/**
+ * Loads shells over time so the gun keeps working without an answer, while a
+ * correct answer still tops the magazine up instantly.
+ */
+export function advanceReload(
+  state: CombatState,
+  deltaSeconds: number
+): CombatState {
+  if (state.ammo >= MAX_AMMO) {
+    return state.reloadMs === 0 ? state : { ...state, reloadMs: 0 };
+  }
+  const reloadMs = state.reloadMs + deltaSeconds * 1000;
+  if (reloadMs < AUTO_RELOAD_MS) return { ...state, reloadMs };
+  return {
+    ...state,
+    ammo: Math.min(MAX_AMMO, state.ammo + 1),
+    reloadMs: reloadMs - AUTO_RELOAD_MS,
   };
 }

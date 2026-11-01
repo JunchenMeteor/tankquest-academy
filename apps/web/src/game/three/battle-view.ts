@@ -35,6 +35,8 @@ import {
 } from './battle-scene-model.js';
 import { driveCommand, normaliseAngle } from './battle-input.js';
 import { aimYaw, rotateTowards, scatterAimPoint } from './battle-aim.js';
+import { buildTankModel } from './tank-model.js';
+import { advanceReload } from './battle-combat.js';
 import {
   MAX_AMMO,
   SHELL_RANGE,
@@ -62,113 +64,11 @@ export interface Battle3DHandle {
   dispose(): void;
 }
 
-const TRACK_COLOR = 0x1a201d;
-
-function buildTank(
-  placement: TankPlacement,
-  isPlayer: boolean
-): { root: Group; turret: Group } {
-  const group = new Group();
-  const turretGroup = new Group();
-  const body = new MeshStandardMaterial({
-    color: placement.color,
-    roughness: 0.5,
-    metalness: 0.72,
-  });
-  const dark = new MeshStandardMaterial({
-    color: 0x3a453f,
-    roughness: 0.65,
-    metalness: 0.7,
-  });
-  const track = new MeshStandardMaterial({
-    color: TRACK_COLOR,
-    roughness: 0.95,
-  });
-
-  const [hullWidth, hullHeight, hullDepth] = placement.hull;
-  const hull = new Mesh(
-    new BoxGeometry(hullWidth, hullHeight, hullDepth),
-    body
-  );
-  hull.position.y = hullHeight / 2 + 0.28;
-  hull.castShadow = true;
-  hull.receiveShadow = true;
-  group.add(hull);
-
-  const glacis = new Mesh(new BoxGeometry(0.9, 0.7, hullDepth), body);
-  glacis.position.set(hullWidth / 2, hullHeight / 2 + 0.44, 0);
-  glacis.rotation.z = -0.5;
-  glacis.castShadow = true;
-  group.add(glacis);
-
-  for (const z of [-hullDepth / 2 - 0.22, hullDepth / 2 + 0.22]) {
-    const belt = new Mesh(new BoxGeometry(hullWidth + 0.5, 0.5, 0.42), track);
-    belt.position.set(0, 0.25, z);
-    belt.castShadow = true;
-    belt.receiveShadow = true;
-    group.add(belt);
-    for (let index = -2; index <= 2; index += 1) {
-      const wheel = new Mesh(new CylinderGeometry(0.26, 0.26, 0.46, 12), dark);
-      wheel.rotation.x = Math.PI / 2;
-      wheel.position.set(index * 0.72, 0.28, z);
-      wheel.castShadow = true;
-      group.add(wheel);
-    }
-  }
-
-  const turret = new Mesh(
-    new CylinderGeometry(
-      placement.turretRadius,
-      placement.turretRadius * 1.12,
-      0.62,
-      8
-    ),
-    body
-  );
-  turret.position.y = hullHeight + 0.58;
-  turret.castShadow = true;
-  turretGroup.add(turret);
-
-  const gun = new Mesh(
-    new CylinderGeometry(0.11, 0.13, placement.barrelLength, 10),
-    dark
-  );
-  gun.rotation.z = Math.PI / 2;
-  gun.position.set(
-    placement.barrelLength / 2 + placement.turretRadius * 0.75,
-    hullHeight + 0.62,
-    0
-  );
-  gun.castShadow = true;
-  turretGroup.add(gun);
-
-  const brake = new Mesh(new CylinderGeometry(0.19, 0.19, 0.42, 10), dark);
-  brake.rotation.z = Math.PI / 2;
-  brake.position.set(
-    placement.barrelLength + placement.turretRadius * 0.75,
-    hullHeight + 0.62,
-    0
-  );
-  brake.castShadow = true;
-  turretGroup.add(brake);
-
-  group.position.set(
-    placement.position.x,
-    placement.position.y,
-    placement.position.z
-  );
-  group.rotation.y = placement.heading;
-  group.userData.isPlayer = isPlayer;
-  turretGroup.position.y = 0;
-  group.add(turretGroup);
-  return { root: group, turret: turretGroup };
-}
-
 function buildGround(layout: SceneLayout): Group {
   const ground = new Group();
-  /* The visible ground runs past the playable bounds so the edge never shows. */
-  const visualWidth = layout.ground.width * 2.4;
-  const visualDepth = layout.ground.depth * 2.4;
+  /* The ground matches the playable bounds, so the edge you see is the edge you hit. */
+  const visualWidth = layout.ground.width;
+  const visualDepth = layout.ground.depth;
   const geometry = new PlaneGeometry(visualWidth, visualDepth, 64, 64);
   const attribute = geometry.getAttribute('position');
   for (let index = 0; index < attribute.count; index += 1) {
@@ -239,7 +139,7 @@ export function createBattleView(
   const ground = buildGround(layout);
   scene.add(ground);
 
-  const playerRig = buildTank(layout.player, true);
+  const playerRig = buildTankModel(layout.player, true);
   const playerMesh = playerRig.root;
   scene.add(playerMesh);
   const enemySpeeds = new Map<string, number>();
@@ -248,7 +148,7 @@ export function createBattleView(
   }
   const enemyRoots = new Map<string, Group>();
   for (const enemy of layout.enemies) {
-    const rig = buildTank(enemy, false);
+    const rig = buildTankModel(enemy, false);
     enemyRoots.set(enemy.id, rig.root);
     scene.add(rig.root);
   }
@@ -427,12 +327,63 @@ export function createBattleView(
         if (step.moved) {
           enemy.position = step.position;
           enemy.heading = step.heading;
-          root.position.set(step.position.x, step.position.y, step.position.z);
-          root.rotation.y = step.heading;
         }
+        root.position.set(enemy.position.x, enemy.position.y, enemy.position.z);
+        root.rotation.y = enemy.heading;
       }
 
+      /* Hull-to-hull separation: enemies and the player never share a spot. */
+      const bodies = [
+        { id: 'player', position: state.position, radius: 2.6 },
+        ...layout.enemies.map((enemy) => ({
+          id: enemy.id,
+          position: enemy.position,
+          radius: 2.6,
+        })),
+      ];
+      for (let a = 0; a < bodies.length; a += 1) {
+        for (let b = a + 1; b < bodies.length; b += 1) {
+          const first = bodies[a]!;
+          const second = bodies[b]!;
+          const dx = second.position.x - first.position.x;
+          const dz = second.position.z - first.position.z;
+          const distance = Math.hypot(dx, dz);
+          const minimum = first.radius + second.radius;
+          if (distance <= 0.0001 || distance >= minimum) continue;
+          const push = (minimum - distance) / 2;
+          const nx = (dx / distance) * push;
+          const nz = (dz / distance) * push;
+          if (first.id !== 'player') {
+            first.position.x -= nx;
+            first.position.z -= nz;
+          }
+          if (second.id !== 'player') {
+            second.position.x += nx;
+            second.position.z += nz;
+          }
+          if (first.id === 'player') {
+            state.position.x -= nx;
+            state.position.z -= nz;
+          }
+          if (second.id === 'player') {
+            state.position.x += nx;
+            state.position.z += nz;
+          }
+        }
+      }
+      for (const enemy of layout.enemies) {
+        const root = enemyRoots.get(enemy.id);
+        if (!root) continue;
+        root.position.set(enemy.position.x, enemy.position.y, enemy.position.z);
+      }
+      playerRig.root.position.copy(
+        new Vector3(state.position.x, state.position.y, state.position.z)
+      );
+
+      const beforeAmmo = combat.ammo;
+      combat = advanceReload(combat, delta);
       combat = tickCooldown(combat, delta);
+      if (combat.ammo !== beforeAmmo) onAmmo?.(combat.ammo, MAX_AMMO);
       if (canFire(combat) && input.consumeFireRequest()) {
         const muzzle = muzzlePoint(
           { x: state.position.x, z: state.position.z },

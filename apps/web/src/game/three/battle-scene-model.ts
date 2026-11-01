@@ -61,7 +61,7 @@ const PLAYER_HULL: [number, number, number] = [3.6, 1.05, 2.1];
  * Field pixels per world unit. Smaller values stretch the battlefield, so the
  * field spans more tank lengths without shrinking the tanks themselves.
  */
-export const FIELD_SCALE = 26;
+export const FIELD_SCALE = 14;
 
 /** Converts field coordinates (top-down, y down) into world coordinates (y up). */
 export function toWorld(x: number, y: number, height = 0): Vec3 {
@@ -131,9 +131,10 @@ export function buildSceneLayout(config: RuntimeLevelConfig): SceneLayout {
   }));
 
   return {
+    /* Pad the field so the spawn and the chase camera stay inside the ground. */
     ground: {
-      width: config.width / FIELD_SCALE,
-      depth: config.height / FIELD_SCALE,
+      width: config.width / FIELD_SCALE + 24,
+      depth: config.height / FIELD_SCALE + 24,
     },
     player,
     enemies,
