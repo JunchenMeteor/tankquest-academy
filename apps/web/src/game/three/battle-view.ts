@@ -34,6 +34,7 @@ import {
 import { driveCommand, normaliseAngle } from './battle-input.js';
 import { aimYaw, rotateTowards, scatterAimPoint } from './battle-aim.js';
 import { buildTankModel } from './tank-model.js';
+import { loadTankAsset, paintTank } from './tank-asset.js';
 import { advanceReload } from './battle-combat.js';
 import {
   createFrameSampler,
@@ -57,6 +58,7 @@ import {
   spawnShell,
   tickCooldown,
 } from './battle-combat.js';
+import type { Object3D } from 'three';
 import type { GameInputController } from '../input/GameInputController.js';
 import type { RuntimeState } from '../runtime/types.js';
 import type { RuntimeLevelConfig } from '../runtime/types.js';
@@ -154,7 +156,10 @@ export function createBattleView(
   const ground = buildGround(layout);
   scene.add(ground);
 
-  const playerRig = buildTankModel(layout.player, true);
+  let playerRig: { root: Group; turret: Object3D } = buildTankModel(
+    layout.player,
+    true
+  );
   const playerMesh = playerRig.root;
   scene.add(playerMesh);
   const enemySpeeds = new Map<string, number>();
@@ -299,6 +304,43 @@ export function createBattleView(
     camera.lookAt(new Vector3(pose.target.x, pose.target.y, pose.target.z));
     playerMesh.visible = state.mode !== 'first';
   };
+
+  /*
+   * The baked GLB is opt-in for now (?model=glb): the pipeline works but the
+   * generated mesh is not yet prettier than the procedural tanks, so the
+   * shipped default stays procedural until a real model is dropped in.
+   */
+  const wantsGlbModel =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('model') === 'glb';
+  if (wantsGlbModel && quality !== 'low') {
+    void loadTankAsset()
+      .then((asset) => {
+        const painted = paintTank(asset, layout.player.color);
+        painted.root.position.copy(playerRig.root.position);
+        painted.root.rotation.y = playerRig.root.rotation.y;
+        scene.remove(playerRig.root);
+        scene.add(painted.root);
+        playerRig = painted;
+
+        for (const enemy of layout.enemies) {
+          const root = enemyRoots.get(enemy.id);
+          if (!root) continue;
+          const model = paintTank(asset, enemy.color);
+          root.clear();
+          root.add(model.root);
+          root.position.set(
+            enemy.position.x,
+            enemy.position.y,
+            enemy.position.z
+          );
+          root.rotation.y = enemy.heading;
+        }
+      })
+      .catch(() => {
+        /* Keep the procedural tanks when the asset cannot load. */
+      });
+  }
 
   let frame = 0;
   let previous = performance.now();
