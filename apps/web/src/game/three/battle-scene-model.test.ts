@@ -156,3 +156,24 @@ describe('enemy approach', () => {
     expect(close.position.x).toBe(1);
   });
 });
+
+describe('reverse steering', () => {
+  const layout = buildSceneLayout(config as RuntimeLevelConfig);
+
+  it('turns the other way when the tank backs up', () => {
+    const forward = stepTank(
+      { position: { x: 0, y: 0, z: 0 }, heading: 0 },
+      { forward: 1, turn: 1 },
+      0.5,
+      layout
+    );
+    const backward = stepTank(
+      { position: { x: 0, y: 0, z: 0 }, heading: 0 },
+      { forward: -1, turn: 1 },
+      0.5,
+      layout
+    );
+    expect(forward.heading).toBeGreaterThan(0);
+    expect(backward.heading).toBeLessThan(0);
+  });
+});
