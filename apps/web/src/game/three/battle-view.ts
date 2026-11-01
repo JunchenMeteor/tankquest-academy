@@ -481,7 +481,18 @@ export function createBattleView(
           }
         }
       }
+      /* Separation can push hulls outward, so clamp both sides to the field. */
+      state.position.x = Math.max(-limitX, Math.min(limitX, state.position.x));
+      state.position.z = Math.max(-limitZ, Math.min(limitZ, state.position.z));
       for (const enemy of layout.enemies) {
+        enemy.position.x = Math.max(
+          -limitX,
+          Math.min(limitX, enemy.position.x)
+        );
+        enemy.position.z = Math.max(
+          -limitZ,
+          Math.min(limitZ, enemy.position.z)
+        );
         const root = enemyRoots.get(enemy.id);
         if (!root) continue;
         root.position.set(enemy.position.x, enemy.position.y, enemy.position.z);
