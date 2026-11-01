@@ -4,6 +4,7 @@ import {
   Group,
   Mesh,
   MeshStandardMaterial,
+  Vector2,
   Vector3,
 } from 'three';
 
@@ -40,6 +41,8 @@ function materialsFor(color: number): TankMaterials {
       metalness: 0.42,
       map: textures?.map ?? null,
       roughnessMap: textures?.roughnessMap ?? null,
+      normalMap: textures?.normalMap ?? null,
+      normalScale: new Vector2(0.7, 0.7),
     }),
     armorDark: new MeshStandardMaterial({
       color: new MeshStandardMaterial({ color }).color
@@ -59,6 +62,8 @@ function materialsFor(color: number): TankMaterials {
       metalness: 0.55,
       map: textures?.map ?? null,
       roughnessMap: textures?.roughnessMap ?? null,
+      normalMap: textures?.normalMap ?? null,
+      normalScale: new Vector2(1, 1),
     }),
     rubber: new MeshStandardMaterial({ color: 0x161a1b, roughness: 0.95 }),
     glass: new MeshStandardMaterial({
