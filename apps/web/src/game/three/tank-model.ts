@@ -202,7 +202,10 @@ function addTrackBand(
   }
 }
 
-function addTurret(placement: TankPlacement, materials: TankMaterials): Group {
+function addTurretGroups(
+  placement: TankPlacement,
+  materials: TankMaterials
+): { turret: Group; gunGroup: Group } {
   const turretGroup = new Group();
   const radius = placement.turretRadius;
 
@@ -232,13 +235,15 @@ function addTurret(placement: TankPlacement, materials: TankMaterials): Group {
 
   /* Mantlet and gun: tube, reinforcing collar and a slotted muzzle brake. */
   const barrelLength = placement.barrelLength;
+  const gunGroup = new Group();
+  turretGroup.add(gunGroup);
   const mantlet = new Mesh(
     new BoxGeometry(0.34, 0.34, 0.46),
     materials.armorDark
   );
   mantlet.position.set(radius * 0.92, 0.02, 0);
   mantlet.castShadow = true;
-  turretGroup.add(mantlet);
+  gunGroup.add(mantlet);
 
   const barrel = new Mesh(
     new CylinderGeometry(0.075, 0.095, barrelLength, 14),
@@ -247,7 +252,7 @@ function addTurret(placement: TankPlacement, materials: TankMaterials): Group {
   barrel.rotation.z = Math.PI / 2;
   barrel.position.set(radius * 0.92 + barrelLength / 2, 0.02, 0);
   barrel.castShadow = true;
-  turretGroup.add(barrel);
+  gunGroup.add(barrel);
 
   const brake = new Mesh(
     new CylinderGeometry(0.13, 0.13, 0.34, 12),
@@ -256,7 +261,7 @@ function addTurret(placement: TankPlacement, materials: TankMaterials): Group {
   brake.rotation.z = Math.PI / 2;
   brake.position.set(radius * 0.92 + barrelLength + 0.1, 0.02, 0);
   brake.castShadow = true;
-  turretGroup.add(brake);
+  gunGroup.add(brake);
 
   /* Commander cupola, hatch, coax machine gun and a stowage basket. */
   const cupola = new Mesh(
@@ -287,7 +292,7 @@ function addTurret(placement: TankPlacement, materials: TankMaterials): Group {
   );
   coax.rotation.z = Math.PI / 2;
   coax.position.set(radius * 0.9, 0.16, -0.2);
-  turretGroup.add(coax);
+  gunGroup.add(coax);
 
   const basket = new Mesh(new BoxGeometry(0.44, 0.3, 0.5), materials.armorDark);
   basket.position.set(-radius * 0.86, 0.06, -0.3);
@@ -311,7 +316,7 @@ function addTurret(placement: TankPlacement, materials: TankMaterials): Group {
     }
   }
 
-  return turretGroup;
+  return { turret: turretGroup, gunGroup };
 }
 
 /** Builds a detailed tank: sloped hull, running gear and a cast turret. */
@@ -429,7 +434,8 @@ export function buildTankModel(
   group.userData.wheelRadius = 0.3;
   addTrackBand(group, materials, hullDepth, trackOffset);
 
-  const turret = addTurret(placement, materials);
+  const { turret, gunGroup } = addTurretGroups(placement, materials);
+  turret.userData.gun = gunGroup;
   turret.position.y = floor + hullHeight * 0.92 + 0.24;
   group.add(turret);
 
