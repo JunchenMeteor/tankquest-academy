@@ -177,18 +177,20 @@ export function cameraPose(
       },
     };
   }
-  const distance = 11;
-  const height = 6.8 + Math.sin(pitch) * distance;
+  const distance = 13;
+  /* Positive pitch looks up, so it lowers the chase camera's elevation. */
+  const elevation = Math.max(0.06, Math.min(1.05, 1.0 - pitch));
+  const height = Math.max(1.9, 1.4 + Math.tan(elevation) * distance);
   return {
     position: {
       x: player.position.x - Math.cos(heading) * distance * horizontal,
-      y: Math.max(1.6, height),
+      y: height,
       z: player.position.z + Math.sin(heading) * distance * horizontal,
     },
     target: {
-      x: player.position.x + Math.cos(heading) * 7,
-      y: 1.4 + Math.sin(pitch) * 7,
-      z: player.position.z - Math.sin(heading) * 7,
+      x: player.position.x + Math.cos(heading) * 6,
+      y: 1.4 + Math.sin(pitch) * 12,
+      z: player.position.z - Math.sin(heading) * 6,
     },
   };
 }
@@ -263,4 +265,36 @@ export function stepTank(
       ),
     },
   };
+}
+
+/**
+ * Pushes a hull out of any obstacle it overlaps.
+ *
+ * Obstacles are axis-aligned boxes, so the cheapest escape is along the axis
+ * with the smallest penetration. The hull is treated as a circle of `radius`.
+ */
+export function resolveObstacles(
+  position: Vec3,
+  radius: number,
+  blocks: readonly BlockPlacement[]
+): Vec3 {
+  let x = position.x;
+  let z = position.z;
+  for (const block of blocks) {
+    const halfX = block.size[0] / 2;
+    const halfZ = block.size[2] / 2;
+    const dx = x - block.position.x;
+    const dz = z - block.position.z;
+    const overlapX = halfX + radius - Math.abs(dx);
+    const overlapZ = halfZ + radius - Math.abs(dz);
+    if (overlapX <= 0 || overlapZ <= 0) continue;
+    if (overlapX < overlapZ) {
+      x += dx >= 0 ? overlapX : -overlapX;
+    } else {
+      z += dz >= 0 ? overlapZ : -overlapZ;
+    }
+  }
+  return x === position.x && z === position.z
+    ? position
+    : { x, y: position.y, z };
 }

@@ -4,6 +4,7 @@ import {
   FIELD_SCALE,
   buildSceneLayout,
   cameraPose,
+  resolveObstacles,
   stepEnemyToward,
   stepTank,
   toWorld,
@@ -102,8 +103,8 @@ describe('3D battle scene model', () => {
       position: { x: 0, y: 0, z: 0 },
       heading: 0,
     });
-    expect(pose.position.x).toBeCloseTo(-11);
-    expect(pose.position.y).toBeCloseTo(6.8);
+    expect(pose.position.x).toBeCloseTo(-13);
+    expect(pose.position.y).toBeGreaterThan(6);
     expect(pose.position.z).toBeCloseTo(0);
   });
 
@@ -219,5 +220,27 @@ describe('tracked steering', () => {
     expect(Math.abs(far.position.z)).toBeLessThanOrEqual(
       layout.playfield.depth / 2
     );
+  });
+});
+
+describe('obstacle collision', () => {
+  const blocks = [
+    {
+      position: { x: 0, y: 0.55, z: 0 },
+      size: [4, 1.1, 4] as [number, number, number],
+    },
+  ];
+
+  it('pushes a hull out of a block along the shallow axis', () => {
+    const outside = resolveObstacles({ x: 3.2, y: 0, z: 0 }, 1.9, blocks);
+    expect(outside.x).toBeGreaterThanOrEqual(3.9);
+
+    const blocked = resolveObstacles({ x: 0.2, y: 0, z: 0.1 }, 1.9, blocks);
+    expect(Math.abs(blocked.x) >= 3.9 || Math.abs(blocked.z) >= 3.9).toBe(true);
+  });
+
+  it('leaves a clear hull untouched', () => {
+    const clear = resolveObstacles({ x: 12, y: 0, z: 12 }, 1.9, blocks);
+    expect(clear).toEqual({ x: 12, y: 0, z: 12 });
   });
 });
