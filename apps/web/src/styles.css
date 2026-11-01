@@ -1698,3 +1698,25 @@ body {
   margin: -60px 0 0 -60px;
   will-change: transform;
 }
+
+/* Answer streak badge: only visible from two correct answers in a row. */
+.battle-combo {
+  position: absolute;
+  left: 50%;
+  bottom: 150px;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(38, 28, 16, 0.86);
+  border: 1px solid rgba(255, 196, 96, 0.45);
+  color: #ffd27a;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  z-index: 3;
+}
+
+.battle-combo[data-bonus='true'] {
+  background: rgba(56, 38, 12, 0.92);
+  border-color: rgba(255, 214, 122, 0.8);
+}

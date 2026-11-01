@@ -53,6 +53,7 @@ export function Battle3DCanvas({
   const [ammo, setAmmo] = useState({ current: 1, max: 5 });
   const [aimOffset, setAimOffset] = useState(0);
   const reticleRef = useRef<HTMLDivElement | null>(null);
+  const [combo, setCombo] = useState({ streak: 0, bonus: 0 });
 
   useEffect(() => {
     if (!hostRef.current) return;
@@ -76,7 +77,8 @@ export function Battle3DCanvas({
         const cx = Math.round((x - w / 2) * 100) / 100;
         const cy = Math.round((y - h / 2) * 100) / 100;
         node.style.transform = `translate(${cx}px, ${cy}px)`;
-      }
+      },
+      (streak, bonus) => setCombo({ streak, bonus })
     );
     viewRef.current = view;
     return () => {
@@ -150,6 +152,12 @@ export function Battle3DCanvas({
               )}px`,
             }}
           />
+        ) : null}
+        {combo.streak >= 2 ? (
+          <p className="battle-combo" data-bonus={combo.bonus > 0}>
+            {combo.streak}× streak
+            {combo.bonus > 0 ? ' · extra shell' : ''}
+          </p>
         ) : null}
         <p className="battle-ammo" role="status">
           Ammo {ammo.current} / {ammo.max}
