@@ -3,6 +3,7 @@ import { CanvasTexture, RepeatWrapping, SRGBColorSpace } from 'three';
 export interface TankTextures {
   map: CanvasTexture;
   roughnessMap: CanvasTexture;
+  normalMap: CanvasTexture;
 }
 
 /**
@@ -19,11 +20,19 @@ export function createTankTextures(size = 512): TankTextures {
   rough.width = size;
   rough.height = size;
   const rctx = rough.getContext('2d');
+  const height = document.createElement('canvas');
+  height.width = size;
+  height.height = size;
+  const hctx = height.getContext('2d');
 
-  if (!ctx || !rctx) {
+  if (!ctx || !rctx || !hctx) {
     const blank = new CanvasTexture(color);
-    return { map: blank, roughnessMap: blank };
+    return { map: blank, roughnessMap: blank, normalMap: blank };
   }
+
+  /* The height field the normal map is derived from. */
+  hctx.fillStyle = '#808080';
+  hctx.fillRect(0, 0, size, size);
 
   /* Base steel with a mottled finish. */
   ctx.fillStyle = '#b8bcc0';
@@ -39,23 +48,35 @@ export function createTankTextures(size = 512): TankTextures {
   /* Panel grid and weld beads. */
   ctx.strokeStyle = 'rgba(60, 66, 70, 0.55)';
   ctx.lineWidth = 2;
-  for (const y of [96, 208, 320, 432]) {
+  for (const y of [128, 384]) {
     ctx.beginPath();
     ctx.moveTo(0, y);
     ctx.lineTo(size, y);
     ctx.stroke();
+    hctx.strokeStyle = 'rgba(40, 40, 40, 0.9)';
+    hctx.lineWidth = 3;
+    hctx.beginPath();
+    hctx.moveTo(0, y);
+    hctx.lineTo(size, y);
+    hctx.stroke();
   }
-  for (const x of [128, 300, 430]) {
+  for (const x of [260]) {
     ctx.beginPath();
     ctx.moveTo(x, 0);
     ctx.lineTo(x, size);
     ctx.stroke();
+    hctx.strokeStyle = 'rgba(48, 48, 48, 0.85)';
+    hctx.lineWidth = 3;
+    hctx.beginPath();
+    hctx.moveTo(x, 0);
+    hctx.lineTo(x, size);
+    hctx.stroke();
   }
   ctx.strokeStyle = 'rgba(120, 128, 132, 0.5)';
   ctx.lineWidth = 1;
   for (let index = 0; index < 4; index += 1) {
     const y = 96 + index * 112;
-    for (let x = 6; x < size; x += 12) {
+    for (let x = 10; x < size; x += 26) {
       ctx.beginPath();
       ctx.moveTo(x, y - 3);
       ctx.lineTo(x + 6, y + 3);
@@ -65,11 +86,18 @@ export function createTankTextures(size = 512): TankTextures {
 
   /* Rivets along the seams. */
   for (let y = 100; y < size; y += 112) {
-    for (let x = 10; x < size; x += 18) {
+    for (let x = 14; x < size; x += 34) {
       ctx.beginPath();
       ctx.fillStyle = 'rgba(90, 96, 100, 0.85)';
       ctx.arc(x, y + 6, 1.8, 0, Math.PI * 2);
       ctx.fill();
+      const bump = hctx.createRadialGradient(x, y + 6, 0, x, y + 6, 3.4);
+      bump.addColorStop(0, 'rgba(228, 228, 228, 0.95)');
+      bump.addColorStop(1, 'rgba(128, 128, 128, 0)');
+      hctx.fillStyle = bump;
+      hctx.beginPath();
+      hctx.arc(x, y + 6, 3.4, 0, Math.PI * 2);
+      hctx.fill();
       ctx.fillStyle = 'rgba(220, 226, 230, 0.35)';
       ctx.beginPath();
       ctx.arc(x - 0.6, y + 5.2, 0.9, 0, Math.PI * 2);
@@ -122,13 +150,56 @@ export function createTankTextures(size = 512): TankTextures {
   map.colorSpace = SRGBColorSpace;
   map.wrapS = RepeatWrapping;
   map.wrapT = RepeatWrapping;
-  map.repeat.set(2, 2);
+  map.repeat.set(1, 1);
   map.anisotropy = 4;
+
+  /* Sobel the height field into a tangent-space normal map. */
+  const normalCanvas = document.createElement('canvas');
+  normalCanvas.width = size;
+  normalCanvas.height = size;
+  const nctx = normalCanvas.getContext('2d');
+  if (nctx) {
+    const source = hctx.getImageData(0, 0, size, size).data;
+    const out = nctx.createImageData(size, size);
+    const at = (x: number, y: number) =>
+      source[(((y + size) % size) * size + ((x + size) % size)) << 2] ?? 128;
+    for (let y = 0; y < size; y += 1) {
+      for (let x = 0; x < size; x += 1) {
+        const dx =
+          (at(x + 1, y - 1) +
+            2 * at(x + 1, y) +
+            at(x + 1, y + 1) -
+            at(x - 1, y - 1) -
+            2 * at(x - 1, y) -
+            at(x - 1, y + 1)) /
+          1024;
+        const dy =
+          (at(x - 1, y + 1) +
+            2 * at(x, y + 1) +
+            at(x + 1, y + 1) -
+            at(x - 1, y - 1) -
+            2 * at(x, y - 1) -
+            at(x + 1, y - 1)) /
+          1024;
+        const length = Math.hypot(dx, dy, 1);
+        const offset = (y * size + x) << 2;
+        out.data[offset] = ((-dx / length) * 0.5 + 0.5) * 255;
+        out.data[offset + 1] = ((-dy / length) * 0.5 + 0.5) * 255;
+        out.data[offset + 2] = ((1 / length) * 0.5 + 0.5) * 255;
+        out.data[offset + 3] = 255;
+      }
+    }
+    nctx.putImageData(out, 0, 0);
+  }
+  const normalMap = new CanvasTexture(normalCanvas);
+  normalMap.wrapS = RepeatWrapping;
+  normalMap.wrapT = RepeatWrapping;
+  normalMap.repeat.set(1, 1);
 
   const roughnessMap = new CanvasTexture(rough);
   roughnessMap.wrapS = RepeatWrapping;
   roughnessMap.wrapT = RepeatWrapping;
-  roughnessMap.repeat.set(2, 2);
+  roughnessMap.repeat.set(1, 1);
 
-  return { map, roughnessMap };
+  return { map, roughnessMap, normalMap };
 }
