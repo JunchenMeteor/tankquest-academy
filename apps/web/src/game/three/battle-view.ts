@@ -309,13 +309,14 @@ export function createBattleView(
   };
 
   /*
-   * Medium and high tiers use the baked GLB; the low tier keeps the procedural
-   * tanks, which cost no download at all. ?model=procedural opts out.
+   * The procedural tanks stay the default: the generated GLB reads flatter than
+   * the layered procedural hull at close range. ?model=glb opts in until a real
+   * model replaces the file.
    */
-  const wantsProcedural =
+  const wantsGlb =
     typeof window !== 'undefined' &&
-    new URLSearchParams(window.location.search).get('model') === 'procedural';
-  if (!wantsProcedural && quality !== 'low') {
+    new URLSearchParams(window.location.search).get('model') === 'glb';
+  if (wantsGlb && quality !== 'low') {
     void loadTankAsset()
       .then((asset) => {
         const painted = paintTank(asset, layout.player.color);
