@@ -7,8 +7,10 @@ import type { TankPlacement } from './battle-scene-model.js';
 export interface Shell {
   id: number;
   x: number;
+  y: number;
   z: number;
   heading: number;
+  pitch: number;
   distanceTravelled: number;
 }
 
@@ -195,13 +197,16 @@ export function canFire(state: CombatState): boolean {
 export function spawnShell(
   state: CombatState,
   muzzle: { x: number; z: number },
-  heading: number
+  heading: number,
+  pitch = 0
 ): CombatState {
   const shell: Shell = {
     id: state.nextShellId,
     x: muzzle.x,
+    y: 1.2,
     z: muzzle.z,
     heading,
+    pitch,
     distanceTravelled: 0,
   };
   return {
@@ -235,16 +240,19 @@ export function advanceShells(
 
   for (const shell of state.shells) {
     const step = stepDistance * deltaSeconds;
-    const nextX = shell.x + Math.cos(shell.heading) * step;
-    const nextZ = shell.z - Math.sin(shell.heading) * step;
+    const horizontal = Math.cos(shell.pitch);
+    const nextX = shell.x + Math.cos(shell.heading) * step * horizontal;
+    const nextY = shell.y - Math.sin(shell.pitch) * step;
+    const nextZ = shell.z - Math.sin(shell.heading) * step * horizontal;
     const travelled = shell.distanceTravelled + step;
 
     let hitId: string | null = null;
     for (const enemy of enemies) {
       if (!alive.has(enemy.id)) continue;
       const dx = nextX - enemy.position.x;
+      const dy = nextY - (enemy.position.y + 1.2);
       const dz = nextZ - enemy.position.z;
-      if (Math.hypot(dx, dz) <= SHELL_RADIUS + ENEMY_HIT_RADIUS) {
+      if (Math.hypot(dx, dy, dz) <= SHELL_RADIUS + ENEMY_HIT_RADIUS) {
         hitId = enemy.id;
         break;
       }

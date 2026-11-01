@@ -314,23 +314,36 @@ export function createBattleView(
   globalThis.addEventListener('resize', resize);
 
   const canvas = renderer.domElement;
+  /*
+   * Mouse look uses pointer lock, like a browser FPS: the cursor hides, so it
+   * can never wander off the window while it steers the camera.
+   */
+  const locked = () => document.pointerLockElement === canvas;
+  const look = (movementX: number, movementY: number) => {
+    camYaw += movementX * 0.0016;
+    camPitch = Math.max(-0.35, Math.min(0.75, camPitch - movementY * 0.0011));
+  };
+
   canvas.addEventListener('pointermove', (event) => {
-    /* The view always follows the mouse; the right button only freezes the gun. */
-    camYaw += event.movementX * 0.0016;
-    camPitch = Math.max(
-      -0.35,
-      Math.min(0.75, camPitch + event.movementY * 0.0011)
-    );
+    look(event.movementX, event.movementY);
   });
   canvas.addEventListener('pointerdown', (event) => {
     if (event.button === 2) rightHeld = true;
-    if (event.button === 0) input?.setCommand('fire', true, 'pointer');
+    if (event.button !== 0) return;
+    if (!locked()) {
+      void canvas.requestPointerLock?.();
+      host.dataset.pointerLock = 'on';
+      return;
+    }
+    input?.setCommand('fire', true, 'pointer');
   });
   globalThis.addEventListener('pointerup', (event) => {
     if (event.button === 0) input?.setCommand('fire', false, 'pointer');
-  });
-  globalThis.addEventListener('pointerup', (event) => {
     if (event.button === 2) rightHeld = false;
+  });
+  document.addEventListener('pointerlockchange', () => {
+    canvas.classList.toggle('battle-canvas--locked', locked());
+    host.dataset.pointerLock = locked() ? 'on' : 'off';
   });
   canvas.addEventListener('contextmenu', (event) => event.preventDefault());
   const observer =
@@ -379,6 +392,7 @@ export function createBattleView(
           state.turret + command.turret * traverseSpeed * delta
         );
         playerRig.turret.rotation.y = state.turret;
+        playerRig.turret.rotation.z = -camPitch;
       }
 
       /*
@@ -395,6 +409,7 @@ export function createBattleView(
           traverseSpeed * delta
         );
         playerRig.turret.rotation.y = state.turret;
+        playerRig.turret.rotation.z = -camPitch;
       }
 
       /* Enemies close the distance until they are inside their firing standoff. */
@@ -426,12 +441,18 @@ export function createBattleView(
           layout.player.barrelLength
         );
         const turretWorld = state.heading + state.turret;
+        const horizontal = Math.cos(camPitch);
         const baseAim = {
-          x: muzzle.x + Math.cos(turretWorld) * SHELL_RANGE,
-          z: muzzle.z - Math.sin(turretWorld) * SHELL_RANGE,
+          x: muzzle.x + Math.cos(turretWorld) * SHELL_RANGE * horizontal,
+          z: muzzle.z - Math.sin(turretWorld) * SHELL_RANGE * horizontal,
         };
         const scattered = scatterAimPoint(baseAim, Math.random, dispersion);
-        combat = spawnShell(combat, muzzle, aimYaw(muzzle, scattered));
+        combat = spawnShell(
+          combat,
+          muzzle,
+          aimYaw(muzzle, scattered),
+          camPitch
+        );
         publish();
         onAmmo?.(combat.ammo, MAX_AMMO);
       }

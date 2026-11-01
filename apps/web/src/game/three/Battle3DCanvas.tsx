@@ -96,6 +96,9 @@ export function Battle3DCanvas({
           <span className="battle-reticle-ring" />
           <span className="battle-reticle-dot" />
         </div>
+        <p className="battle-pointer-hint">
+          Click the field to lock the mouse · Esc releases it
+        </p>
         <p className="battle-ammo" role="status">
           Ammo {ammo.current} / {ammo.max}
         </p>
