@@ -104,7 +104,7 @@ function addRoadWheels(
   hullDepth: number,
   trackOffset: number,
   wheelRadius: number
-): void {
+): Group[] {
   const wheelGeometry = new CylinderGeometry(
     wheelRadius,
     wheelRadius,
@@ -120,18 +120,22 @@ function addRoadWheels(
   );
   const positions = [-2, -1, 0, 1, 2].map((index) => index * (hullDepth / 5.4));
 
+  const wheels: Group[] = [];
   for (const z of [-trackOffset, trackOffset]) {
     for (const x of positions) {
+      const holder = new Group();
+      holder.position.set(x, wheelRadius + 0.04, z);
+      wheels.push(holder);
+
       const wheel = new Mesh(wheelGeometry, materials.rubber);
       wheel.rotation.x = Math.PI / 2;
-      wheel.position.set(x, wheelRadius + 0.04, z);
       wheel.castShadow = true;
-      group.add(wheel);
+      holder.add(wheel);
 
       const hub = new Mesh(hubGeometry, materials.steel);
       hub.rotation.x = Math.PI / 2;
-      hub.position.copy(wheel.position);
-      group.add(hub);
+      holder.add(hub);
+      group.add(holder);
     }
 
     /* Sprocket at the back, idler at the front, return rollers on top. */
@@ -158,6 +162,7 @@ function addRoadWheels(
       group.add(roller);
     }
   }
+  return wheels;
 }
 
 function addTrackBand(
@@ -404,7 +409,9 @@ export function buildTankModel(
     group.add(spare);
   }
 
-  addRoadWheels(group, materials, hullDepth, trackOffset, 0.3);
+  const wheels = addRoadWheels(group, materials, hullDepth, trackOffset, 0.3);
+  group.userData.wheels = wheels;
+  group.userData.wheelRadius = 0.3;
   addTrackBand(group, materials, hullDepth, trackOffset);
 
   const turret = addTurret(placement, materials);

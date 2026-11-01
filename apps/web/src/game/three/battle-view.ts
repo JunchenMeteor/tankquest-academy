@@ -5,9 +5,11 @@
  */
 import {
   AmbientLight,
+  MeshBasicMaterial,
   BoxGeometry,
   Color,
   DirectionalLight,
+  DoubleSide,
   Fog,
   GridHelper,
   Group,
@@ -18,6 +20,7 @@ import {
   PCFSoftShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
+  RingGeometry,
   Scene,
   Vector3,
   WebGLRenderer,
@@ -26,6 +29,7 @@ import {
 import {
   buildSceneLayout,
   cameraPose,
+  resolveObstacles,
   stepEnemyToward,
   stepTank,
   type CameraMode,
@@ -112,6 +116,35 @@ function buildGround(layout: SceneLayout): Group {
   return ground;
 }
 
+/** A low fence around the walkable field, so the ground edge never shows. */
+function buildFence(layout: SceneLayout): Group {
+  const group = new Group();
+  const bounds = layout.ground;
+  const halfWidth = bounds.width / 2 - 1;
+  const halfDepth = bounds.depth / 2 - 1;
+  const material = new MeshStandardMaterial({
+    color: 0x2a352c,
+    roughness: 0.9,
+    metalness: 0.1,
+  });
+  const height = 1.6;
+  const thickness = 0.5;
+  const sides: Array<[number, number, number, number]> = [
+    [0, -halfDepth, bounds.width, thickness],
+    [0, halfDepth, bounds.width, thickness],
+    [-halfWidth, 0, thickness, bounds.depth],
+    [halfWidth, 0, thickness, bounds.depth],
+  ];
+  for (const [x, z, width, depth] of sides) {
+    const wall = new Mesh(new BoxGeometry(width, height, depth), material);
+    wall.position.set(x, height / 2 - 0.2, z);
+    wall.castShadow = true;
+    wall.receiveShadow = true;
+    group.add(wall);
+  }
+  return group;
+}
+
 export function createBattleView(
   host: HTMLElement,
   config: RuntimeLevelConfig,
@@ -119,12 +152,14 @@ export function createBattleView(
   onState?: (state: RuntimeState) => void,
   onAmmo?: (ammo: number, max: number) => void,
   initialQuality: QualityTier = 'high',
-  onQualityChange?: (tier: QualityTier) => void
+  onQualityChange?: (tier: QualityTier) => void,
+  onPointerLock?: (locked: boolean) => void,
+  onAimOffset?: (radians: number) => void
 ): Battle3DHandle {
   const layout = buildSceneLayout(config);
   const scene = new Scene();
-  scene.background = new Color(0x1c2a22);
-  scene.fog = new Fog(0x1c2a22, 70, 160);
+  scene.background = new Color(0x9fb0b8);
+  scene.fog = new Fog(0x8d9a7c, 60, 190);
 
   let quality: QualityTier = initialQuality;
   const renderer = new WebGLRenderer({
@@ -155,6 +190,16 @@ export function createBattleView(
 
   const ground = buildGround(layout);
   scene.add(ground);
+  /* A distant skirt keeps the horizon filled; the fence marks the real edge. */
+  const skirt = new Mesh(
+    new PlaneGeometry(600, 600),
+    new MeshStandardMaterial({ color: 0x6b7350, roughness: 1, metalness: 0 })
+  );
+  skirt.rotation.x = -Math.PI / 2;
+  skirt.position.y = -0.02;
+  skirt.receiveShadow = true;
+  scene.add(skirt);
+  scene.add(buildFence(layout));
 
   let playerRig: { root: Group; turret: Object3D } = buildTankModel(
     layout.player,
@@ -165,6 +210,16 @@ export function createBattleView(
   const proceduralRigs = new Map<string, { root: Group; turret: Object3D }>();
   proceduralRigs.set('player', playerRig);
   let usingGlbTanks = false;
+  const effects: Array<{
+    mesh: Mesh;
+    ttl: number;
+    life: number;
+    growth: number;
+  }> = [];
+  const spawnEffect = (mesh: Mesh, life: number, growth: number) => {
+    scene.add(mesh);
+    effects.push({ mesh, ttl: life, life, growth });
+  };
   const enemySpeeds = new Map<string, number>();
   for (const enemy of config.enemies) {
     enemySpeeds.set(enemy.id, enemy.speed * 0.06);
@@ -218,7 +273,7 @@ export function createBattleView(
   const dispersion = config.player.dispersionRadius;
   let rightHeld = false;
   let camYaw = layout.player.heading;
-  let camPitch = 0.34;
+  let camPitch = 0.15;
   const state = {
     mode: 'third' as CameraMode,
     heading: layout.player.heading,
@@ -288,6 +343,7 @@ export function createBattleView(
   document.addEventListener('pointerlockchange', () => {
     canvas.classList.toggle('battle-canvas--locked', locked());
     host.dataset.pointerLock = locked() ? 'on' : 'off';
+    onPointerLock?.(locked());
   });
   canvas.addEventListener('contextmenu', (event) => event.preventDefault());
   const observer =
@@ -354,7 +410,7 @@ export function createBattleView(
   let previous = performance.now();
   const sampler = createFrameSampler(120);
   const loop = (now: number) => {
-    const delta = Math.min(0.05, (now - previous) / 1000);
+    const delta = Math.min(0.1, (now - previous) / 1000);
     previous = now;
     /* Watch the real frame rate and step down once if the GPU cannot keep up. */
     sampler.add(delta);
@@ -389,12 +445,22 @@ export function createBattleView(
       if (next.heading !== state.heading || next.position !== state.position) {
         camYaw += next.heading - state.heading;
         state.heading = next.heading;
-        state.position = next.position;
+        state.position = resolveObstacles(next.position, 1.9, layout.blocks);
         playerMesh.position.set(
           next.position.x,
           next.position.y,
           next.position.z
         );
+        const travelled =
+          Math.hypot(
+            next.position.x - state.position.x,
+            next.position.z - state.position.z
+          ) || 0;
+        const wheels = playerRig.root.userData.wheels as
+          Array<{ rotation: { z: number } }> | undefined;
+        for (const wheel of wheels ?? []) {
+          wheel.rotation.z -= travelled / 0.3;
+        }
         playerMesh.rotation.y = next.heading;
       }
       if (command.turret !== 0) {
@@ -411,6 +477,9 @@ export function createBattleView(
       const targetWorld: number | null = rightHeld ? null : camYaw;
 
       if (targetWorld !== null) {
+        onAimOffset?.(
+          normaliseAngle(targetWorld - (state.heading + state.turret))
+        );
         const localTarget = normaliseAngle(targetWorld - state.heading);
         state.turret = rotateTowards(
           state.turret,
@@ -436,7 +505,7 @@ export function createBattleView(
           boundsRect
         );
         if (step.moved) {
-          enemy.position = step.position;
+          enemy.position = resolveObstacles(step.position, 1.7, layout.blocks);
           enemy.heading = step.heading;
         }
         root.position.set(enemy.position.x, enemy.position.y, enemy.position.z);
@@ -482,17 +551,25 @@ export function createBattleView(
           }
         }
       }
-      /* Separation can push hulls outward, so clamp both sides to the field. */
-      state.position.x = Math.max(-limitX, Math.min(limitX, state.position.x));
-      state.position.z = Math.max(-limitZ, Math.min(limitZ, state.position.z));
+      /* Separation can push hulls outward or into walls, so resolve both again. */
+      state.position = resolveObstacles(
+        {
+          x: Math.max(-limitX, Math.min(limitX, state.position.x)),
+          y: state.position.y,
+          z: Math.max(-limitZ, Math.min(limitZ, state.position.z)),
+        },
+        1.9,
+        layout.blocks
+      );
       for (const enemy of layout.enemies) {
-        enemy.position.x = Math.max(
-          -limitX,
-          Math.min(limitX, enemy.position.x)
-        );
-        enemy.position.z = Math.max(
-          -limitZ,
-          Math.min(limitZ, enemy.position.z)
+        enemy.position = resolveObstacles(
+          {
+            x: Math.max(-limitX, Math.min(limitX, enemy.position.x)),
+            y: enemy.position.y,
+            z: Math.max(-limitZ, Math.min(limitZ, enemy.position.z)),
+          },
+          1.7,
+          layout.blocks
         );
         const root = enemyRoots.get(enemy.id);
         if (!root) continue;
@@ -526,6 +603,16 @@ export function createBattleView(
           aimYaw(muzzle, scattered),
           camPitch
         );
+        const flash = new Mesh(
+          new SphereGeometry(0.42, 8, 8),
+          new MeshBasicMaterial({
+            color: 0xffd27a,
+            transparent: true,
+            opacity: 0.95,
+          })
+        );
+        flash.position.set(muzzle.x, 1.2, muzzle.z);
+        spawnEffect(flash, 0.14, 5);
         publish();
         onAmmo?.(combat.ammo, MAX_AMMO);
       }
@@ -563,6 +650,18 @@ export function createBattleView(
         for (const id of result.destroyed) {
           const root = enemyRoots.get(id);
           if (root) {
+            const impact = new Mesh(
+              new RingGeometry(0.6, 1.4, 24),
+              new MeshBasicMaterial({
+                color: 0xffa24a,
+                transparent: true,
+                opacity: 0.85,
+                side: DoubleSide,
+              })
+            );
+            impact.rotation.x = -Math.PI / 2;
+            impact.position.set(root.position.x, 0.35, root.position.z);
+            spawnEffect(impact, 0.55, 4);
             scene.remove(root);
             enemyRoots.delete(id);
           }
@@ -570,6 +669,22 @@ export function createBattleView(
         }
         if (result.destroyed.length > 0) publish();
       }
+    }
+
+    for (let index = effects.length - 1; index >= 0; index -= 1) {
+      const effect = effects[index]!;
+      effect.ttl -= delta;
+      const material = effect.mesh.material as MeshBasicMaterial;
+      if (effect.ttl <= 0) {
+        scene.remove(effect.mesh);
+        effect.mesh.geometry.dispose();
+        material.dispose();
+        effects.splice(index, 1);
+        continue;
+      }
+      const scale = 1 + (1 - effect.ttl / effect.life) * effect.growth;
+      effect.mesh.scale.setScalar(scale);
+      material.opacity = Math.max(0, effect.ttl / effect.life) * 0.9;
     }
 
     for (const shell of combat.shells) {
