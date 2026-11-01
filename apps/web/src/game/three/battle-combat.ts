@@ -7,8 +7,10 @@ import type { TankPlacement } from './battle-scene-model.js';
 export interface Shell {
   id: number;
   x: number;
+  y: number;
   z: number;
   heading: number;
+  pitch: number;
   distanceTravelled: number;
 }
 
@@ -33,6 +35,8 @@ export interface CombatState {
   playerHealth: number;
   playerMaxHealth: number;
   playerDestroyed: boolean;
+  /** Time banked toward the next automatically loaded shell. */
+  reloadMs: number;
 }
 
 export const SHELL_SPEED = 42;
@@ -45,6 +49,8 @@ export const WRONG_ANSWER_PENALTY_MS = 2500;
 export const ENEMY_FIRE_INTERVAL_MS = 3200;
 export const ENEMY_FIRE_RANGE = 34;
 export const PLAYER_HIT_RADIUS = 1.7;
+/** A shell slides into the breech on its own this often. */
+export const AUTO_RELOAD_MS = 2600;
 
 export function createCombatState(
   enemyCount: number,
@@ -63,6 +69,7 @@ export function createCombatState(
     playerHealth,
     playerMaxHealth: playerHealth,
     playerDestroyed: false,
+    reloadMs: 0,
   };
 }
 
@@ -195,13 +202,16 @@ export function canFire(state: CombatState): boolean {
 export function spawnShell(
   state: CombatState,
   muzzle: { x: number; z: number },
-  heading: number
+  heading: number,
+  pitch = 0
 ): CombatState {
   const shell: Shell = {
     id: state.nextShellId,
     x: muzzle.x,
+    y: 1.2,
     z: muzzle.z,
     heading,
+    pitch,
     distanceTravelled: 0,
   };
   return {
@@ -235,16 +245,19 @@ export function advanceShells(
 
   for (const shell of state.shells) {
     const step = stepDistance * deltaSeconds;
-    const nextX = shell.x + Math.cos(shell.heading) * step;
-    const nextZ = shell.z - Math.sin(shell.heading) * step;
+    const horizontal = Math.cos(shell.pitch);
+    const nextX = shell.x + Math.cos(shell.heading) * step * horizontal;
+    const nextY = shell.y - Math.sin(shell.pitch) * step;
+    const nextZ = shell.z - Math.sin(shell.heading) * step * horizontal;
     const travelled = shell.distanceTravelled + step;
 
     let hitId: string | null = null;
     for (const enemy of enemies) {
       if (!alive.has(enemy.id)) continue;
       const dx = nextX - enemy.position.x;
+      const dy = nextY - (enemy.position.y + 1.2);
       const dz = nextZ - enemy.position.z;
-      if (Math.hypot(dx, dz) <= SHELL_RADIUS + ENEMY_HIT_RADIUS) {
+      if (Math.hypot(dx, dy, dz) <= SHELL_RADIUS + ENEMY_HIT_RADIUS) {
         hitId = enemy.id;
         break;
       }
@@ -296,5 +309,25 @@ export function muzzlePoint(
   return {
     x: position.x + Math.cos(angle) * barrelLength,
     z: position.z - Math.sin(angle) * barrelLength,
+  };
+}
+
+/**
+ * Loads shells over time so the gun keeps working without an answer, while a
+ * correct answer still tops the magazine up instantly.
+ */
+export function advanceReload(
+  state: CombatState,
+  deltaSeconds: number
+): CombatState {
+  if (state.ammo >= MAX_AMMO) {
+    return state.reloadMs === 0 ? state : { ...state, reloadMs: 0 };
+  }
+  const reloadMs = state.reloadMs + deltaSeconds * 1000;
+  if (reloadMs < AUTO_RELOAD_MS) return { ...state, reloadMs };
+  return {
+    ...state,
+    ammo: Math.min(MAX_AMMO, state.ammo + 1),
+    reloadMs: reloadMs - AUTO_RELOAD_MS,
   };
 }

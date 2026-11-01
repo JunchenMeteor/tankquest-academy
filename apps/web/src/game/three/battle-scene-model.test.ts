@@ -59,8 +59,9 @@ describe('3D battle scene model', () => {
 
   it('places the player, enemies and obstacles from the runtime config', () => {
     const layout = buildSceneLayout(config);
-    expect(layout.ground.width).toBeCloseTo(960 / FIELD_SCALE);
-    expect(layout.ground.depth).toBeCloseTo(540 / FIELD_SCALE);
+    /* The ground adds a margin so the spawn and chase camera stay inside it. */
+    expect(layout.ground.width).toBeCloseTo(960 / FIELD_SCALE + 24);
+    expect(layout.ground.depth).toBeCloseTo(540 / FIELD_SCALE + 24);
     expect(layout.player.position.x).toBeCloseTo(120 / FIELD_SCALE);
     expect(layout.player.position.z).toBeCloseTo(270 / FIELD_SCALE);
     expect(layout.enemies).toHaveLength(1);
@@ -153,5 +154,26 @@ describe('enemy approach', () => {
     );
     expect(close.moved).toBe(false);
     expect(close.position.x).toBe(1);
+  });
+});
+
+describe('reverse steering', () => {
+  const layout = buildSceneLayout(config as RuntimeLevelConfig);
+
+  it('turns the other way when the tank backs up', () => {
+    const forward = stepTank(
+      { position: { x: 0, y: 0, z: 0 }, heading: 0 },
+      { forward: 1, turn: 1 },
+      0.5,
+      layout
+    );
+    const backward = stepTank(
+      { position: { x: 0, y: 0, z: 0 }, heading: 0 },
+      { forward: -1, turn: 1 },
+      0.5,
+      layout
+    );
+    expect(forward.heading).toBeGreaterThan(0);
+    expect(backward.heading).toBeLessThan(0);
   });
 });
