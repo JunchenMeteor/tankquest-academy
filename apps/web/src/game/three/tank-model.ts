@@ -7,7 +7,19 @@ import {
   Vector3,
 } from 'three';
 
+import type { Object3D } from 'three';
+
 import type { TankPlacement } from './battle-scene-model.js';
+import { createTankTextures, type TankTextures } from './tank-textures.js';
+
+let sharedTextures: TankTextures | null = null;
+
+/** One set of painted textures is shared by every tank. */
+function tankTextures(): TankTextures | null {
+  if (typeof document === 'undefined') return null;
+  sharedTextures ??= createTankTextures();
+  return sharedTextures;
+}
 
 const TRACK_COLOR = 0x23282a;
 const STEEL_COLOR = 0x4b5357;
@@ -22,11 +34,14 @@ interface TankMaterials {
 }
 
 function materialsFor(color: number): TankMaterials {
+  const textures = tankTextures();
   return {
     armor: new MeshStandardMaterial({
       color,
       roughness: 0.58,
       metalness: 0.42,
+      map: textures?.map ?? null,
+      roughnessMap: textures?.roughnessMap ?? null,
     }),
     armorDark: new MeshStandardMaterial({
       color: new MeshStandardMaterial({ color }).color
@@ -44,6 +59,8 @@ function materialsFor(color: number): TankMaterials {
       color: TRACK_COLOR,
       roughness: 0.82,
       metalness: 0.55,
+      map: textures?.map ?? null,
+      roughnessMap: textures?.roughnessMap ?? null,
     }),
     rubber: new MeshStandardMaterial({ color: 0x161a1b, roughness: 0.95 }),
     glass: new MeshStandardMaterial({
