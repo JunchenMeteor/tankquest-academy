@@ -24,7 +24,6 @@ const out = resolve(
   '../apps/web/public/models/tank.glb'
 );
 
-
 /** Places a geometry with a translation and optional Euler rotation. */
 function place(geometry, translate, rotate = [0, 0, 0]) {
   const matrix = new Matrix4();
@@ -65,10 +64,22 @@ const floor = 0.34;
 
 /* Hull: lower box, upper box and sloped front and rear plates. */
 armorParts.push(
-  place(new BoxGeometry(hullWidth * 0.94, 0.62, hullDepth * 0.94), [0, floor + 0.31, 0]),
+  place(new BoxGeometry(hullWidth * 0.94, 0.62, hullDepth * 0.94), [
+    0,
+    floor + 0.31,
+    0,
+  ]),
   place(new BoxGeometry(hullWidth, 0.72, hullDepth), [0, floor + 0.98, 0]),
-  place(new BoxGeometry(hullWidth * 0.99, 0.8, 0.18), [0, floor + 1.02, hullDepth / 2 + 0.02], [-0.62, 0, 0]),
-  place(new BoxGeometry(hullWidth * 0.96, 0.92, 0.16), [0, floor + 1.0, -hullDepth / 2 - 0.03], [0.52, 0, 0])
+  place(
+    new BoxGeometry(hullWidth * 0.99, 0.8, 0.18),
+    [0, floor + 1.02, hullDepth / 2 + 0.02],
+    [-0.62, 0, 0]
+  ),
+  place(
+    new BoxGeometry(hullWidth * 0.96, 0.92, 0.16),
+    [0, floor + 1.0, -hullDepth / 2 - 0.03],
+    [0.52, 0, 0]
+  )
 );
 
 /* Fenders and engine deck. */
@@ -93,29 +104,37 @@ turretArmorParts.push(
   place(new CylinderGeometry(0.92, 1.02, 0.18, 24), [0, turretY + 0.36, 0]),
   place(new CylinderGeometry(0.72, 0.8, 0.16, 20), [0, turretY - 0.34, 0]),
   place(new BoxGeometry(0.4, 0.42, 0.5), [1.02, turretY + 0.02, 0]),
-  place(new CylinderGeometry(0.22, 0.24, 0.24, 16), [-0.34, turretY + 0.5, 0.26]),
+  place(new CylinderGeometry(0.22, 0.24, 0.24, 16), [
+    -0.34,
+    turretY + 0.5,
+    0.26,
+  ]),
   place(new BoxGeometry(0.5, 0.34, 0.56), [-0.98, turretY + 0.08, -0.34])
 );
 
 /* Gun: barrel, reinforcing collar and a slotted muzzle brake. */
 const barrelLength = 2.6;
 turretSteelParts.push(
-  place(new CylinderGeometry(0.085, 0.1, barrelLength, 16), [
-    1.02 + barrelLength / 2,
-    turretY + 0.02,
-    0,
-  ], [0, 0, Math.PI / 2]),
-  place(new CylinderGeometry(0.16, 0.16, 0.36, 14), [
-    1.02 + barrelLength + 0.12,
-    turretY + 0.02,
-    0,
-  ], [0, 0, Math.PI / 2]),
-  place(new CylinderGeometry(0.12, 0.12, 0.4, 12), [
-    1.02 + barrelLength * 0.35,
-    turretY + 0.02,
-    0,
-  ], [0, 0, Math.PI / 2]),
-  place(new CylinderGeometry(0.035, 0.035, 0.44, 8), [0.9, turretY + 0.18, -0.22], [0, 0, Math.PI / 2])
+  place(
+    new CylinderGeometry(0.085, 0.1, barrelLength, 16),
+    [1.02 + barrelLength / 2, turretY + 0.02, 0],
+    [0, 0, Math.PI / 2]
+  ),
+  place(
+    new CylinderGeometry(0.16, 0.16, 0.36, 14),
+    [1.02 + barrelLength + 0.12, turretY + 0.02, 0],
+    [0, 0, Math.PI / 2]
+  ),
+  place(
+    new CylinderGeometry(0.12, 0.12, 0.4, 12),
+    [1.02 + barrelLength * 0.35, turretY + 0.02, 0],
+    [0, 0, Math.PI / 2]
+  ),
+  place(
+    new CylinderGeometry(0.035, 0.035, 0.44, 8),
+    [0.9, turretY + 0.18, -0.22],
+    [0, 0, Math.PI / 2]
+  )
 );
 
 /* Smoke dischargers. */
@@ -189,7 +208,8 @@ for (const side of [-1, 1]) {
         y = radius;
         angle = Math.PI;
       } else {
-        const phase = Math.PI / 2 + (distance - straight * 4 - Math.PI * radius) / radius;
+        const phase =
+          Math.PI / 2 + (distance - straight * 4 - Math.PI * radius) / radius;
         x = -straight + radius * Math.cos(phase);
         y = radius * Math.sin(phase);
         angle = phase + Math.PI / 2;
@@ -343,14 +363,15 @@ for (const node of nodes) {
     });
     const indexAccessor = accessors.length - 1;
 
-    const materialIndex = materials.push({
-      name: group.name,
-      pbrMetallicRoughness: {
-        baseColorFactor: group.color,
-        metallicFactor: group.metallic,
-        roughnessFactor: group.roughness,
-      },
-    }) - 1;
+    const materialIndex =
+      materials.push({
+        name: group.name,
+        pbrMetallicRoughness: {
+          baseColorFactor: group.color,
+          metallicFactor: group.metallic,
+          roughnessFactor: group.roughness,
+        },
+      }) - 1;
 
     nodeMeshes.push(meshes.length);
     meshes.push({

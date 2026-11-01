@@ -1,4 +1,5 @@
-import { Group, Mesh, MeshStandardMaterial, Object3D } from 'three';
+import { Group, Mesh, MeshStandardMaterial } from 'three';
+import type { Object3D } from 'three';
 
 /** Bump this when the GLB changes so cached copies are refetched. */
 export const tankAssetVersion = 'v1';

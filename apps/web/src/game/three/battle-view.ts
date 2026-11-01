@@ -11,7 +11,6 @@ import {
   Fog,
   GridHelper,
   Group,
-  Object3D,
   HemisphereLight,
   Mesh,
   MeshStandardMaterial,
@@ -59,6 +58,7 @@ import {
   spawnShell,
   tickCooldown,
 } from './battle-combat.js';
+import type { Object3D } from 'three';
 import type { GameInputController } from '../input/GameInputController.js';
 import type { RuntimeState } from '../runtime/types.js';
 import type { RuntimeLevelConfig } from '../runtime/types.js';
