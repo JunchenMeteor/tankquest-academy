@@ -230,7 +230,9 @@ export function stepTank(
   deltaSeconds: number,
   layout: SceneLayout
 ): { position: Vec3; heading: number } {
-  const heading = player.heading + input.turn * 1.6 * deltaSeconds;
+  /* Reversing flips the steering, the way a real tracked vehicle pivots. */
+  const steerSign = input.forward < 0 ? -1 : 1;
+  const heading = player.heading + input.turn * steerSign * 1.6 * deltaSeconds;
   const speed = 6 * deltaSeconds * input.forward;
   const halfWidth = layout.ground.width / 2;
   const halfDepth = layout.ground.depth / 2;
