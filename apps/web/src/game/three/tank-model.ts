@@ -193,8 +193,8 @@ function addTrackBand(
 ): void {
   const radius = 0.34;
   const halfLength = hullDepth / 2 + 0.16;
-  const links = 44;
-  const linkGeometry = new BoxGeometry(0.19, 0.075, 0.56);
+  const links = 120;
+  const linkGeometry = new BoxGeometry(0.26, 0.085, 0.62);
   for (const z of [-trackOffset, trackOffset]) {
     const path = trackPath(halfLength, radius, links);
     for (const point of path) {
@@ -385,6 +385,20 @@ export function buildTankModel(
     );
     fender.castShadow = true;
     group.add(fender);
+  }
+
+  for (const side of [-1, 1]) {
+    const skirt = new Mesh(
+      new BoxGeometry(1.9, 0.34, 0.08),
+      materials.armorDark
+    );
+    skirt.position.set(
+      0,
+      floor + hullHeight * 0.52,
+      side * (hullWidth / 2 + 0.34)
+    );
+    skirt.castShadow = true;
+    group.add(skirt);
   }
 
   for (let index = 0; index < 4; index += 1) {
