@@ -263,8 +263,8 @@ export function createBattleView(
    */
   const locked = () => document.pointerLockElement === canvas;
   const look = (movementX: number, movementY: number) => {
-    camYaw += movementX * 0.0016;
-    camPitch = Math.max(-0.35, Math.min(0.75, camPitch - movementY * 0.0011));
+    camYaw -= movementX * 0.0016;
+    camPitch = Math.max(-0.5, Math.min(0.8, camPitch - movementY * 0.0011));
   };
 
   canvas.addEventListener('pointermove', (event) => {
@@ -386,6 +386,7 @@ export function createBattleView(
         layout
       );
       if (next.heading !== state.heading || next.position !== state.position) {
+        camYaw += next.heading - state.heading;
         state.heading = next.heading;
         state.position = next.position;
         playerMesh.position.set(
@@ -400,7 +401,6 @@ export function createBattleView(
           state.turret + command.turret * traverseSpeed * delta
         );
         playerRig.turret.rotation.y = state.turret;
-        playerRig.turret.rotation.z = -camPitch;
       }
 
       /*
@@ -417,20 +417,22 @@ export function createBattleView(
           traverseSpeed * delta
         );
         playerRig.turret.rotation.y = state.turret;
-        playerRig.turret.rotation.z = -camPitch;
       }
 
       /* Enemies close the distance until they are inside their firing standoff. */
+      const boundsRect = layout.playfield ?? layout.ground;
+      const limitX = boundsRect.width / 2 - 2.4;
+      const limitZ = boundsRect.depth / 2 - 2.4;
       for (const enemy of layout.enemies) {
         const root = enemyRoots.get(enemy.id);
         if (!root) continue;
         const step = stepEnemyToward(
           enemy,
           { x: state.position.x, z: state.position.z },
-          enemySpeeds.get(enemy.id) ?? 0,
+          combat.playerDestroyed ? 0 : (enemySpeeds.get(enemy.id) ?? 0),
           delta,
           8,
-          layout.ground
+          boundsRect
         );
         if (step.moved) {
           enemy.position = step.position;

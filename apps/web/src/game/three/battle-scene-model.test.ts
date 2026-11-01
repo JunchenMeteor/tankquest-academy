@@ -177,3 +177,47 @@ describe('reverse steering', () => {
     expect(backward.heading).toBeLessThan(0);
   });
 });
+
+describe('tracked steering', () => {
+  const layout = buildSceneLayout(config as RuntimeLevelConfig);
+
+  it('pivots on the spot without moving when only turning', () => {
+    const turned = stepTank(
+      { position: { x: 0, y: 0, z: 0 }, heading: 0 },
+      { forward: 0, turn: 1 },
+      0.5,
+      layout
+    );
+    expect(turned.heading).toBeGreaterThan(0);
+    expect(turned.position.x).toBeCloseTo(0);
+    expect(turned.position.z).toBeCloseTo(0);
+  });
+
+  it('keeps the turning circle tight enough to stay around the hull', () => {
+    const moving = stepTank(
+      { position: { x: 0, y: 0, z: 0 }, heading: 0 },
+      { forward: 1, turn: 1 },
+      1,
+      layout
+    );
+    const turned = Math.abs(moving.heading);
+    const travelled = Math.hypot(moving.position.x, moving.position.z);
+    const radius = travelled / turned;
+    expect(radius).toBeLessThan(3);
+  });
+
+  it('clamps the hull to the playfield, not the camera padding', () => {
+    const far = stepTank(
+      { position: { x: 999, y: 0, z: 999 }, heading: 0 },
+      { forward: 1, turn: 0 },
+      1,
+      layout
+    );
+    expect(Math.abs(far.position.x)).toBeLessThanOrEqual(
+      layout.playfield.width / 2
+    );
+    expect(Math.abs(far.position.z)).toBeLessThanOrEqual(
+      layout.playfield.depth / 2
+    );
+  });
+});

@@ -29,6 +29,7 @@ export interface BlockPlacement {
 
 export interface SceneLayout {
   ground: { width: number; depth: number };
+  playfield: { width: number; depth: number };
   player: TankPlacement;
   enemies: TankPlacement[];
   blocks: BlockPlacement[];
@@ -136,6 +137,11 @@ export function buildSceneLayout(config: RuntimeLevelConfig): SceneLayout {
       width: config.width / FIELD_SCALE + 24,
       depth: config.height / FIELD_SCALE + 24,
     },
+    /* Tanks stay inside the field proper; the padding is camera room only. */
+    playfield: {
+      width: config.width / FIELD_SCALE,
+      depth: config.height / FIELD_SCALE,
+    },
     player,
     enemies,
     blocks,
@@ -230,12 +236,19 @@ export function stepTank(
   deltaSeconds: number,
   layout: SceneLayout
 ): { position: Vec3; heading: number } {
-  /* Reversing flips the steering, the way a real tracked vehicle pivots. */
+  /*
+   * Tracked steering: the hull pivots around its own centre when it is still and
+   * traces a wider arc as speed rises, so the circle never drifts off the tank.
+   */
   const steerSign = input.forward < 0 ? -1 : 1;
-  const heading = player.heading + input.turn * steerSign * 1.6 * deltaSeconds;
+  const speedFactor = Math.abs(input.forward);
+  const turnRate = 2.2 + speedFactor * 0.8;
+  const heading =
+    player.heading + input.turn * steerSign * turnRate * deltaSeconds;
   const speed = 6 * deltaSeconds * input.forward;
-  const halfWidth = layout.ground.width / 2;
-  const halfDepth = layout.ground.depth / 2;
+  const bounds = layout.playfield ?? layout.ground;
+  const halfWidth = bounds.width / 2 - 2.2;
+  const halfDepth = bounds.depth / 2 - 2.2;
   return {
     heading,
     position: {
