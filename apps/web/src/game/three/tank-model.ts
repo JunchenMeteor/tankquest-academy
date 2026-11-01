@@ -216,7 +216,7 @@ function addTurretGroups(
 
   /* Cast turret: a tapered drum with a rounded roof, like a real casting. */
   const drum = new Mesh(
-    new CylinderGeometry(radius * 0.94, radius * 1.12, 0.5, 18),
+    new CylinderGeometry(radius * 0.94, radius * 1.15, 0.72, 18),
     materials.armor
   );
   drum.castShadow = true;
@@ -251,7 +251,7 @@ function addTurretGroups(
   gunGroup.add(mantlet);
 
   const barrel = new Mesh(
-    new CylinderGeometry(0.075, 0.095, barrelLength, 14),
+    new CylinderGeometry(0.11, 0.13, barrelLength, 14),
     materials.steel
   );
   barrel.rotation.z = Math.PI / 2;
@@ -359,7 +359,7 @@ export function buildTankModel(
     new BoxGeometry(hullWidth * 0.99, hullHeight * 0.58, 0.16),
     materials.armor
   );
-  glacis.position.set(0, floor + hullHeight * 0.72, hullDepth / 2 + 0.02);
+  glacis.position.set(0, floor + hullHeight * 0.66, hullDepth / 2 - 0.12);
   glacis.rotation.x = -0.62;
   glacis.castShadow = true;
   group.add(glacis);
