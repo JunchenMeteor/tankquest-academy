@@ -162,6 +162,9 @@ export function createBattleView(
   );
   const playerMesh = playerRig.root;
   scene.add(playerMesh);
+  const proceduralRigs = new Map<string, { root: Group; turret: Object3D }>();
+  proceduralRigs.set('player', playerRig);
+  let usingGlbTanks = false;
   const enemySpeeds = new Map<string, number>();
   for (const enemy of config.enemies) {
     enemySpeeds.set(enemy.id, enemy.speed * 0.06);
@@ -321,11 +324,16 @@ export function createBattleView(
         scene.remove(playerRig.root);
         scene.add(painted.root);
         playerRig = painted;
+        usingGlbTanks = true;
 
         for (const enemy of layout.enemies) {
           const root = enemyRoots.get(enemy.id);
           if (!root) continue;
           const model = paintTank(asset, enemy.color);
+          proceduralRigs.set(`enemy:${enemy.id}`, {
+            root: root.children[0] as Group,
+            turret: new Group(),
+          });
           root.clear();
           root.add(model.root);
           root.position.set(
@@ -354,6 +362,18 @@ export function createBattleView(
         quality = downgrade(quality);
         applyQuality(quality);
         onQualityChange?.(quality);
+        if (quality === 'low' && usingGlbTanks) {
+          const procedural = proceduralRigs.get('player');
+          if (procedural) {
+            const current = playerRig.root;
+            scene.remove(current);
+            procedural.root.position.copy(current.position);
+            procedural.root.rotation.y = current.rotation.y;
+            scene.add(procedural.root);
+            playerRig = procedural;
+            usingGlbTanks = false;
+          }
+        }
       }
       sampler.reset();
     }
