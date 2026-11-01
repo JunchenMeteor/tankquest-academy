@@ -73,6 +73,7 @@ export function paintTank(asset: TankAsset, color: number): PaintedTank {
         : child.material;
       if (!(material instanceof MeshStandardMaterial)) return;
       const clone = material.clone();
+      clone.vertexColors = true;
       if (material.name === 'armor') clone.color.setHex(color);
       child.material = clone;
     });

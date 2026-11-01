@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 /**
  * Builds the GLB tank asset used by the medium and high quality tiers.
  *
@@ -11,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   BoxGeometry,
-  BufferGeometry,
+  BufferAttribute,
   CylinderGeometry,
   Matrix4,
   Quaternion,
@@ -54,129 +55,132 @@ function place(geometry, translate, rotate = [0, 0, 0]) {
   return cloned;
 }
 
-const armorParts = [];
-const steelParts = [];
-const trackParts = [];
-
-const hullWidth = 3.6;
-const hullDepth = 6.4;
+/* Hull matches PLAYER_HULL: 3.6 long (x), 1.05 tall, 2.1 wide (z). */
+const hullLength = 3.6;
+const hullWidth = 2.1;
+const hullHeight = 1.05;
 const floor = 0.34;
 
-/* Hull: lower box, upper box and sloped front and rear plates. */
-armorParts.push(
-  place(new BoxGeometry(hullWidth * 0.94, 0.62, hullDepth * 0.94), [
+const hullArmorParts = [];
+const hullSteelParts = [];
+const trackParts = [];
+const turretArmorParts = [];
+const turretSteelParts = [];
+
+/* Lower hull, upper hull and sloped front and rear plates. */
+hullArmorParts.push(
+  place(
+    new BoxGeometry(hullLength * 0.9, hullHeight * 0.45, hullWidth * 0.92),
+    [0, floor + hullHeight * 0.22, 0]
+  ),
+  place(new BoxGeometry(hullLength, hullHeight * 0.55, hullWidth), [
     0,
-    floor + 0.31,
+    floor + hullHeight * 0.72,
     0,
   ]),
-  place(new BoxGeometry(hullWidth, 0.72, hullDepth), [0, floor + 0.98, 0]),
   place(
-    new BoxGeometry(hullWidth * 0.99, 0.8, 0.18),
-    [0, floor + 1.02, hullDepth / 2 + 0.02],
-    [-0.62, 0, 0]
+    new BoxGeometry(0.16, hullHeight * 0.8, hullWidth * 0.99),
+    [hullLength / 2 + 0.04, floor + hullHeight * 0.66, 0],
+    [0, 0, -0.62]
   ),
   place(
-    new BoxGeometry(hullWidth * 0.96, 0.92, 0.16),
-    [0, floor + 1.0, -hullDepth / 2 - 0.03],
-    [0.52, 0, 0]
+    new BoxGeometry(0.14, hullHeight * 0.82, hullWidth * 0.96),
+    [-hullLength / 2 - 0.03, floor + hullHeight * 0.62, 0],
+    [0, 0, 0.5]
   )
 );
 
-/* Fenders and engine deck. */
+/* Fenders over the tracks. */
 for (const side of [-1, 1]) {
-  armorParts.push(
-    place(new BoxGeometry(0.46, 0.08, hullDepth * 0.94), [
-      side * (hullWidth / 2 + 0.2),
-      floor + 1.28,
+  hullArmorParts.push(
+    place(new BoxGeometry(hullLength * 0.92, 0.07, 0.4), [
       0,
+      floor + hullHeight * 0.9,
+      side * (hullWidth / 2 + 0.16),
     ])
   );
 }
 
-/* Turret: tapered drum, roof, collar, mantlet, cupola and basket. */
-const turretY = floor + 1.34 + 0.28;
-const turretArmorParts = [];
-const turretSteelParts = [];
-const hullArmorParts = armorParts;
-const hullSteelParts = steelParts;
+/* Turret: tapered drum, roof, collar, mantlet, cupola and stowage basket. */
+const turretY = floor + hullHeight * 1.02 + 0.26;
 turretArmorParts.push(
-  place(new CylinderGeometry(1.0, 1.2, 0.56, 24), [0, turretY, 0]),
-  place(new CylinderGeometry(0.92, 1.02, 0.18, 24), [0, turretY + 0.36, 0]),
-  place(new CylinderGeometry(0.72, 0.8, 0.16, 20), [0, turretY - 0.34, 0]),
-  place(new BoxGeometry(0.4, 0.42, 0.5), [1.02, turretY + 0.02, 0]),
-  place(new CylinderGeometry(0.22, 0.24, 0.24, 16), [
-    -0.34,
-    turretY + 0.5,
-    0.26,
+  place(new CylinderGeometry(0.92, 1.06, 0.5, 22), [0, turretY, 0]),
+  place(new CylinderGeometry(0.84, 0.94, 0.16, 22), [0, turretY + 0.32, 0]),
+  place(new CylinderGeometry(0.66, 0.74, 0.14, 18), [0, turretY - 0.3, 0]),
+  place(new BoxGeometry(0.34, 0.36, 0.46), [0.92, turretY + 0.01, 0]),
+  place(new CylinderGeometry(0.2, 0.22, 0.22, 14), [
+    -0.3,
+    turretY + 0.44,
+    0.22,
   ]),
-  place(new BoxGeometry(0.5, 0.34, 0.56), [-0.98, turretY + 0.08, -0.34])
+  place(new BoxGeometry(0.44, 0.3, 0.5), [-0.86, turretY + 0.06, -0.3])
 );
 
 /* Gun: barrel, reinforcing collar and a slotted muzzle brake. */
 const barrelLength = 2.6;
 turretSteelParts.push(
   place(
-    new CylinderGeometry(0.085, 0.1, barrelLength, 16),
-    [1.02 + barrelLength / 2, turretY + 0.02, 0],
+    new CylinderGeometry(0.075, 0.095, barrelLength, 16),
+    [0.92 + barrelLength / 2, turretY + 0.01, 0],
     [0, 0, Math.PI / 2]
   ),
   place(
-    new CylinderGeometry(0.16, 0.16, 0.36, 14),
-    [1.02 + barrelLength + 0.12, turretY + 0.02, 0],
+    new CylinderGeometry(0.14, 0.14, 0.34, 14),
+    [0.92 + barrelLength + 0.12, turretY + 0.01, 0],
     [0, 0, Math.PI / 2]
   ),
   place(
-    new CylinderGeometry(0.12, 0.12, 0.4, 12),
-    [1.02 + barrelLength * 0.35, turretY + 0.02, 0],
+    new CylinderGeometry(0.11, 0.11, 0.36, 12),
+    [0.92 + barrelLength * 0.4, turretY + 0.01, 0],
     [0, 0, Math.PI / 2]
   ),
   place(
-    new CylinderGeometry(0.035, 0.035, 0.44, 8),
-    [0.9, turretY + 0.18, -0.22],
+    new CylinderGeometry(0.032, 0.032, 0.4, 8),
+    [0.8, turretY + 0.16, -0.2],
     [0, 0, Math.PI / 2]
   )
 );
 
-/* Smoke dischargers. */
+/* Smoke dischargers on the turret cheeks. */
 for (const side of [-1, 1]) {
   for (let index = 0; index < 4; index += 1) {
     turretSteelParts.push(
       place(
-        new CylinderGeometry(0.05, 0.05, 0.22, 8),
-        [0.42 + index * 0.1, turretY + 0.22, side * (0.66 + index * 0.05)],
+        new CylinderGeometry(0.045, 0.045, 0.2, 8),
+        [0.36 + index * 0.09, turretY + 0.2, side * (0.6 + index * 0.04)],
         [0, 0, Math.PI / 2.6]
       )
     );
   }
 }
 
-/* Running gear: road wheels, sprockets, idlers and return rollers. */
-const wheelRadius = 0.3;
-const trackOffset = hullWidth / 2 + 0.2;
+/* Running gear: five road wheels, a sprocket, an idler and return rollers. */
+const wheelRadius = 0.29;
+const trackOffset = hullWidth / 2 + 0.19;
 for (const side of [-1, 1]) {
   for (let index = -2; index <= 2; index += 1) {
-    steelParts.push(
+    hullSteelParts.push(
       place(
-        new CylinderGeometry(wheelRadius, wheelRadius, 0.52, 20),
-        [index * (hullDepth / 5.4), wheelRadius + 0.12, side * trackOffset],
+        new CylinderGeometry(wheelRadius, wheelRadius, 0.5, 20),
+        [index * (hullLength / 5.6), wheelRadius + 0.1, side * trackOffset],
         [Math.PI / 2, 0, 0]
       )
     );
   }
-  for (const x of [hullDepth / 2 - 0.24, -hullDepth / 2 + 0.24]) {
-    steelParts.push(
+  for (const x of [hullLength / 2 - 0.16, -hullLength / 2 + 0.16]) {
+    hullSteelParts.push(
       place(
-        new CylinderGeometry(wheelRadius * 0.92, wheelRadius * 0.92, 0.5, 16),
-        [x, wheelRadius + 0.1, side * trackOffset],
+        new CylinderGeometry(wheelRadius * 0.9, wheelRadius * 0.9, 0.48, 16),
+        [x, wheelRadius + 0.08, side * trackOffset],
         [Math.PI / 2, 0, 0]
       )
     );
   }
-  for (const x of [-hullDepth / 3.2, 0, hullDepth / 3.2]) {
-    steelParts.push(
+  for (const x of [-hullLength / 3.4, 0, hullLength / 3.4]) {
+    hullSteelParts.push(
       place(
-        new CylinderGeometry(0.14, 0.14, 0.42, 10),
-        [x, 0.86, side * trackOffset],
+        new CylinderGeometry(0.13, 0.13, 0.4, 10),
+        [x, 0.78, side * trackOffset],
         [Math.PI / 2, 0, 0]
       )
     );
@@ -185,19 +189,20 @@ for (const side of [-1, 1]) {
 
 /* Track band: individual links walked along a stadium path. */
 {
-  const radius = 0.36;
-  const straight = hullDepth / 2 + 0.02 - radius;
+  const radius = 0.33;
+  const straight = hullLength / 2 + 0.02 - radius;
   const perimeter = straight * 4 + Math.PI * 2 * radius;
-  const links = 96;
+  const links = 88;
   for (const side of [-1, 1]) {
     for (let index = 0; index < links; index += 1) {
       const distance = (index / links) * perimeter;
-      let x = 0;
-      let y = 0;
-      let angle = 0;
+      let x;
+      let y;
+      let angle;
       if (distance < straight * 2) {
         x = -straight + distance;
         y = -radius;
+        angle = 0;
       } else if (distance < straight * 2 + Math.PI * radius) {
         const phase = -Math.PI / 2 + (distance - straight * 2) / radius;
         x = straight + radius * Math.cos(phase);
@@ -216,8 +221,8 @@ for (const side of [-1, 1]) {
       }
       trackParts.push(
         place(
-          new BoxGeometry(0.2, 0.08, 0.58),
-          [x, y + 0.42, side * trackOffset],
+          new BoxGeometry(0.19, 0.075, 0.54),
+          [x, y + 0.4, side * trackOffset],
           [0, 0, angle]
         )
       );
@@ -289,7 +294,6 @@ const accessors = [];
 const bufferViews = [];
 const meshes = [];
 const materials = [];
-const sceneNodes = [];
 
 for (const node of nodes) {
   const nodeMeshes = [];
@@ -301,6 +305,22 @@ for (const node of nodes) {
       const shift = new Matrix4().makeTranslation(0, -pivot, 0);
       merged.applyMatrix4(shift);
     }
+
+    /* Bake a little grime per vertex: darker near the ground, mottled overall. */
+    const positions = merged.getAttribute('position');
+    const colors = new Float32Array(positions.count * 3);
+    for (let index = 0; index < positions.count; index += 1) {
+      const x = positions.getX(index);
+      const y = positions.getY(index);
+      const z = positions.getZ(index);
+      const noise =
+        Math.sin(x * 4.1 + z * 2.7) * Math.cos(y * 5.3 - x * 1.9) * 0.5 + 0.5;
+      const dirt = 0.78 + noise * 0.16 + Math.min(0.1, y * 0.03);
+      colors[index * 3] = dirt;
+      colors[index * 3 + 1] = dirt;
+      colors[index * 3 + 2] = dirt;
+    }
+    merged.setAttribute('color', new BufferAttribute(colors, 3));
     merged.computeVertexNormals();
     merged.computeBoundingBox();
 
@@ -332,6 +352,22 @@ for (const node of nodes) {
       ],
     });
     const positionAccessor = accessors.length - 1;
+
+    const color = merged.getAttribute('color');
+    const colorView = pushBuffer(color.array.buffer.slice(0));
+    bufferViews.push({
+      buffer: 0,
+      byteOffset: colorView,
+      byteLength: color.array.byteLength,
+      target: 34962,
+    });
+    accessors.push({
+      bufferView: bufferViews.length - 1,
+      componentType: 5126,
+      count: color.count,
+      type: 'VEC3',
+    });
+    const colorAccessor = accessors.length - 1;
 
     const normalView = pushBuffer(normal.array.buffer.slice(0));
     bufferViews.push({
@@ -378,15 +414,17 @@ for (const node of nodes) {
       name: `${node.name}-${group.name}`,
       primitives: [
         {
-          attributes: { POSITION: positionAccessor, NORMAL: normalAccessor },
+          attributes: {
+            POSITION: positionAccessor,
+            NORMAL: normalAccessor,
+            COLOR_0: colorAccessor,
+          },
           indices: indexAccessor,
           material: materialIndex,
         },
       ],
     });
   }
-  sceneNodes.push(sceneNodes.length);
-  sceneNodes.length = sceneNodes.length;
   node.meshes = nodeMeshes;
 }
 
