@@ -51,6 +51,8 @@ export function Battle3DCanvas({
   });
   const initialTier = useRef(tier);
   const [ammo, setAmmo] = useState({ current: 1, max: 5 });
+  const [locked, setLocked] = useState(false);
+  const [aimOffset, setAimOffset] = useState(0);
 
   useEffect(() => {
     if (!hostRef.current) return;
@@ -64,7 +66,9 @@ export function Battle3DCanvas({
       (next) => {
         setTier(next);
         if (typeof window !== 'undefined') storeTier(window.localStorage, next);
-      }
+      },
+      setLocked,
+      (radians) => setAimOffset(radians)
     );
     viewRef.current = view;
     return () => {
@@ -123,9 +127,23 @@ export function Battle3DCanvas({
         <p className="battle-quality" data-tier={tier}>
           Quality: {tier}
         </p>
-        <p className="battle-pointer-hint">
-          Click the field to lock the mouse · Esc releases it
-        </p>
+        {locked ? null : (
+          <p className="battle-pointer-hint">
+            Click the field to lock the mouse · Esc releases it
+          </p>
+        )}
+        {Math.abs(aimOffset) > 0.04 ? (
+          <span
+            className="battle-gun-marker"
+            aria-hidden="true"
+            style={{
+              ['--gun-offset' as string]: `${Math.max(
+                -260,
+                Math.min(260, aimOffset * 320)
+              )}px`,
+            }}
+          />
+        ) : null}
         <p className="battle-ammo" role="status">
           Ammo {ammo.current} / {ammo.max}
         </p>

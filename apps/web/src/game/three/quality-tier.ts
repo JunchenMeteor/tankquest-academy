@@ -16,21 +16,21 @@ export const qualitySettings: Record<QualityTier, QualitySettings> = {
     shadows: false,
     shadowMapSize: 512,
     antialias: false,
-    fogFar: 90,
+    fogFar: 150,
   },
   medium: {
     dprCap: 1.5,
     shadows: true,
     shadowMapSize: 1024,
     antialias: true,
-    fogFar: 130,
+    fogFar: 210,
   },
   high: {
     dprCap: 2,
     shadows: true,
     shadowMapSize: 2048,
     antialias: true,
-    fogFar: 170,
+    fogFar: 260,
   },
 };
 
