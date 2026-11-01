@@ -4,8 +4,10 @@ import {
   ENEMY_STANDOFF,
   advanceEnemy,
   enemyGoal,
+  enemyReloadMs,
   groupSpread,
   lineOfSightBlocked,
+  openingDelayMs,
 } from './battle-enemy-ai.js';
 import type { BlockPlacement } from './battle-scene-model.js';
 
@@ -93,5 +95,18 @@ describe('enemy cover logic', () => {
     expect(Math.abs(groupSpread(0, 3, 1))).toBeLessThan(
       Math.abs(groupSpread(0, 3, 0))
     );
+  });
+});
+
+describe('enemy cadence', () => {
+  it('reloads faster as the fight gets harder', () => {
+    expect(enemyReloadMs(0)).toBeGreaterThan(enemyReloadMs(1));
+    expect(enemyReloadMs(0)).toBe(4600);
+    expect(enemyReloadMs(1)).toBe(2400);
+  });
+
+  it('staggers the opening shot less as difficulty rises', () => {
+    expect(openingDelayMs(2, 0)).toBeGreaterThan(openingDelayMs(2, 1));
+    expect(openingDelayMs(0, 0)).toBe(0);
   });
 });
