@@ -168,18 +168,20 @@ export function cameraPose(
   const heading = player.heading + lookYaw;
   const horizontal = Math.cos(pitch);
   if (mode === 'first') {
+    /* Eye height sits just above the turret roof, like a commander's sight. */
+    const eye = 1.95;
     return {
-      position: { x: player.position.x, y: 2.75, z: player.position.z },
+      position: { x: player.position.x, y: eye, z: player.position.z },
       target: {
         x: player.position.x + Math.cos(heading) * 20 * horizontal,
-        y: 2.75 + Math.sin(pitch) * 20,
+        y: eye + Math.sin(pitch) * 20,
         z: player.position.z - Math.sin(heading) * 20 * horizontal,
       },
     };
   }
   const distance = 13;
   /* Positive pitch looks up, so it lowers the chase camera's elevation. */
-  const elevation = Math.max(0.06, Math.min(1.05, 1.0 - pitch));
+  const elevation = Math.max(0.08, Math.min(0.85, 0.45 - pitch));
   const height = Math.max(1.9, 1.4 + Math.tan(elevation) * distance);
   return {
     position: {
