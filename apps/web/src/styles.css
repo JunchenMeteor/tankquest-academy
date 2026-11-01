@@ -1690,3 +1690,11 @@ body {
   pointer-events: none;
   transition: transform 0.08s linear;
 }
+
+/* The reticle is translated to the pointer by the view, not centred. */
+.battle-reticle {
+  left: 50%;
+  top: 50%;
+  margin: -60px 0 0 -60px;
+  will-change: transform;
+}
