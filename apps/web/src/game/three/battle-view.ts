@@ -49,6 +49,7 @@ import {
   openingDelayMs,
 } from './battle-enemy-ai.js';
 import { advanceReload } from './battle-combat.js';
+import { applyAnswerCombo, emptyCombo } from './battle-combo.js';
 import {
   createFrameSampler,
   downgrade,
@@ -164,7 +165,8 @@ export function createBattleView(
   onQualityChange?: (tier: QualityTier) => void,
   onPointerLock?: (locked: boolean) => void,
   onAimOffset?: (radians: number) => void,
-  onReticle?: (x: number, y: number, width: number, height: number) => void
+  onReticle?: (x: number, y: number, width: number, height: number) => void,
+  onCombo?: (streak: number, bonusAmmo: number) => void
 ): Battle3DHandle {
   const layout = buildSceneLayout(config);
   const scene = new Scene();
@@ -269,6 +271,7 @@ export function createBattleView(
   }
   const totalEnemies = layout.enemies.length;
   let destroyedCount = 0;
+  let combo = emptyCombo();
 
   const publish = () => {
     onState?.({
@@ -822,8 +825,13 @@ export function createBattleView(
       applyCamera();
     },
     applyAnswer(correct, reward) {
-      combat = correct ? loadAmmo(combat, reward) : applyWrongAnswer(combat);
+      const result = applyAnswerCombo(combo, correct);
+      combo = result.state;
+      combat = correct
+        ? loadAmmo(combat, reward + result.bonusAmmo)
+        : applyWrongAnswer(combat);
       onAmmo?.(combat.ammo, MAX_AMMO);
+      onCombo?.(combo.streak, result.bonusAmmo);
     },
     getMode() {
       return state.mode;
