@@ -82,6 +82,10 @@ export interface RuntimeLevelConfig {
 export interface RuntimeState {
   enemiesRemaining: number;
   shotsFired: number;
+  /** Tanks destroyed this battle, for the summary. */
+  enemiesDestroyed: number;
+  /** Longest run of correct answers this battle. */
+  bestStreak: number;
   playerHealth: number;
   playerMaxHealth: number;
   playerDestroyed: boolean;

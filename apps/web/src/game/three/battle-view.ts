@@ -277,6 +277,8 @@ export function createBattleView(
     onState?.({
       enemiesRemaining: combat.enemiesRemaining,
       shotsFired: combat.shotsFired,
+      enemiesDestroyed: destroyedCount,
+      bestStreak: combo.best,
       playerHealth: combat.playerHealth,
       playerMaxHealth: combat.playerMaxHealth,
       playerDestroyed: combat.playerDestroyed,
