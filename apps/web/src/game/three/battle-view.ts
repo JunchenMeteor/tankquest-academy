@@ -411,10 +411,10 @@ export function createBattleView(
    * the layered procedural hull at close range. ?model=glb opts in until a real
    * model replaces the file.
    */
-  const wantsGlb =
+  const wantsProcedural =
     typeof window !== 'undefined' &&
-    new URLSearchParams(window.location.search).get('model') === 'glb';
-  if (wantsGlb && quality !== 'low') {
+    new URLSearchParams(window.location.search).get('model') === 'procedural';
+  if (!wantsProcedural && quality !== 'low') {
     void loadTankAsset()
       .then((asset) => {
         const painted = paintTank(asset, layout.player.color);
