@@ -1,18 +1,23 @@
-import { Box3, Group, Mesh, MeshStandardMaterial, Vector3 } from 'three';
-import type { Object3D } from 'three';
+import {
+  Box3,
+  Group,
+  Matrix4,
+  Mesh,
+  MeshStandardMaterial,
+  Vector3,
+} from 'three';
+import type { BufferGeometry, Object3D } from 'three';
 
 /** Bump this when the GLB changes so cached copies are refetched. */
-export const tankAssetVersion = 'v2-quaternius';
+export const tankAssetVersion = 'v3-baked';
 export const tankAssetUrl = `/models/tank.glb?v=${tankAssetVersion}`;
 const cacheName = `tankquest-models-${tankAssetVersion}`;
 
 export interface TankAsset {
-  /** Whole scene, already scaled and centred; used as the hull root. */
-  hull: Object3D;
-  /** Turret node inside the scene, or the scene itself when there is none. */
-  turret: Object3D;
-  /** Turret node name, so clones can find their own. */
-  turretName: string | null;
+  /** Clean group: hull meshes plus a turret pivot group. */
+  root: Group;
+  /** Turret pivot, already centred on the rotation axis. */
+  turret: Group;
 }
 
 export interface PaintedTank {
@@ -36,43 +41,80 @@ async function fetchTankAsset(): Promise<TankAsset> {
   const loader = new GLTFLoader();
   const data = await readCached(tankAssetUrl);
   const gltf = await loader.parseAsync(data, '');
-  normalise(gltf.scene);
-  const turret = findNode(gltf.scene, /turret|tower/i);
-  return {
-    hull: gltf.scene,
-    turret: turret ?? gltf.scene,
-    turretName: turret ? turret.name : null,
-  };
+  const baked = bake(gltf.scene);
+  normalise(baked.root);
+  return baked;
 }
 
-function findNode(root: Object3D, pattern: RegExp): Object3D | null {
-  let match: Object3D | null = null;
-  root.traverse((child) => {
-    if (!match && child.name && pattern.test(child.name)) match = child;
-  });
-  return match;
+function inTurret(node: Object3D, scene: Object3D): boolean {
+  let current: Object3D | null = node;
+  while (current && current !== scene) {
+    if (/turret|gun|barrel/i.test(current.name)) return true;
+    current = current.parent;
+  }
+  return false;
 }
 
-/** Scales the scene so the tank is `length` units long and rests on the ground. */
-export function normalise(scene: Object3D, length = 6): void {
-  /* The artist exports the barrel toward -X; the game drives along +X. */
-  scene.rotation.y = Math.PI;
+/**
+ * Flattens the imported hierarchy.
+ *
+ * Artist exports often carry wild nested transforms (this one has a 2117x2415x352
+ * turret scale), which makes rotating a node in place tear the model apart. Every
+ * mesh is re-created with its world matrix baked into the geometry, then the parts
+ * are regrouped into a plain hull and a turret pivot.
+ */
+export function bake(scene: Object3D): TankAsset {
   scene.updateMatrixWorld(true);
-  /* Match the procedural footprint, barrel included. */
-  const box = new Box3().setFromObject(scene);
+  const hullMeshes: Mesh[] = [];
+  const turretMeshes: Mesh[] = [];
+
+  scene.traverse((node) => {
+    if (!(node instanceof Mesh)) return;
+    const geometry = node.geometry.clone();
+    geometry.applyMatrix4(node.matrixWorld);
+    const mesh = new Mesh(geometry, node.material);
+    (inTurret(node, scene) ? turretMeshes : hullMeshes).push(mesh);
+  });
+
+  const root = new Group();
+  const hull = new Group();
+  hull.name = 'hull';
+  hull.add(...hullMeshes);
+  root.add(hull);
+
+  const turret = new Group();
+  turret.name = 'turret-pivot';
+  if (turretMeshes.length > 0) {
+    const box = new Box3();
+    for (const mesh of turretMeshes) box.expandByObject(mesh);
+    const centre = box.getCenter(new Vector3());
+    const shift = new Matrix4().makeTranslation(-centre.x, 0, -centre.z);
+    for (const mesh of turretMeshes) mesh.geometry.applyMatrix4(shift);
+    turret.position.set(centre.x, 0, centre.z);
+    turret.add(...turretMeshes);
+    root.add(turret);
+  }
+
+  return { root, turret };
+}
+
+/** Scales to the battle footprint, faces the barrel forward and rests on the ground. */
+export function normalise(root: Object3D, length = 6): void {
+  root.updateMatrixWorld(true);
+  const box = new Box3().setFromObject(root);
   const size = box.getSize(new Vector3());
   const horizontal = Math.max(size.x, size.z) || 1;
-  scene.scale.multiplyScalar(length / horizontal);
-  /* A gentle lift: the raw model is flatter than the procedural hull. */
-  scene.scale.y *= 1.35;
-  scene.updateMatrixWorld(true);
+  root.scale.multiplyScalar(length / horizontal);
+  root.scale.y *= 1.35;
+  root.rotation.y = Math.PI;
+  root.updateMatrixWorld(true);
 
-  const scaled = new Box3().setFromObject(scene);
+  const scaled = new Box3().setFromObject(root);
   const centre = scaled.getCenter(new Vector3());
-  scene.position.x -= centre.x;
-  scene.position.z -= centre.z;
-  scene.position.y -= scaled.min.y;
-  scene.updateMatrixWorld(true);
+  root.position.x -= centre.x;
+  root.position.z -= centre.z;
+  root.position.y -= scaled.min.y;
+  root.updateMatrixWorld(true);
 }
 
 async function readCached(url: string): Promise<ArrayBuffer> {
@@ -94,12 +136,10 @@ async function readCached(url: string): Promise<ArrayBuffer> {
   return response.arrayBuffer();
 }
 
-/** Clones the asset, tints armour materials and hands back the turret to spin. */
+/** Clones the asset, tints the armour and hands back the turret pivot to spin. */
 export function paintTank(asset: TankAsset, color: number): PaintedTank {
-  const root = asset.hull.clone(true);
-  const turret = asset.turretName
-    ? (root.getObjectByName(asset.turretName) ?? root)
-    : root;
+  const root = asset.root.clone(true);
+  const turret = root.getObjectByName('turret-pivot') ?? root;
   root.traverse((child) => {
     if (!(child instanceof Mesh)) return;
     const material = Array.isArray(child.material)
@@ -107,13 +147,11 @@ export function paintTank(asset: TankAsset, color: number): PaintedTank {
       : child.material;
     if (!(material instanceof MeshStandardMaterial)) return;
     const clone = material.clone();
-    clone.vertexColors = child.geometry.hasAttribute('color');
-    if (/^main$/i.test(material.name ?? '')) {
-      clone.color.setHex(color);
-    }
+    clone.vertexColors = (child.geometry as BufferGeometry).hasAttribute(
+      'color'
+    );
+    if (/^main$/i.test(material.name ?? '')) clone.color.setHex(color);
     child.material = clone;
   });
-  const group = new Group();
-  group.add(root);
-  return { root: group, turret };
+  return { root, turret };
 }
