@@ -519,7 +519,7 @@ export function createBattleView(
        */
       if (!rightHeld) {
         const gap = normaliseAngle(state.heading - camYaw);
-        camYaw += gap * Math.min(1, delta * 4.5);
+        camYaw += gap * Math.min(1, delta * 1.2);
       }
 
       let targetWorld: number | null = rightHeld ? null : camYaw;

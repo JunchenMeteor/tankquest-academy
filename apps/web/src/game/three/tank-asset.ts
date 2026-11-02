@@ -9,7 +9,7 @@ import {
 import type { BufferGeometry, Object3D } from 'three';
 
 /** Bump this when the GLB changes so cached copies are refetched. */
-export const tankAssetVersion = 'v3-baked';
+export const tankAssetVersion = 'v4-pivot';
 export const tankAssetUrl = `/models/tank.glb?v=${tankAssetVersion}`;
 const cacheName = `tankquest-models-${tankAssetVersion}`;
 
@@ -85,9 +85,18 @@ export function bake(scene: Object3D): TankAsset {
   const turret = new Group();
   turret.name = 'turret-pivot';
   if (turretMeshes.length > 0) {
+    /* Pivot on the turret drum, not on the gun sticking out of it. */
+    const drum = turretMeshes.filter(
+      (mesh) =>
+        !/gun|barrel/i.test(mesh.name) &&
+        !/gun|barrel/i.test(mesh.parent?.name ?? '')
+    );
     const box = new Box3();
-    for (const mesh of turretMeshes) box.expandByObject(mesh);
+    for (const mesh of drum.length > 0 ? drum : turretMeshes) {
+      box.expandByObject(mesh);
+    }
     const centre = box.getCenter(new Vector3());
+    centre.y = 0;
     const shift = new Matrix4().makeTranslation(-centre.x, 0, -centre.z);
     for (const mesh of turretMeshes) mesh.geometry.applyMatrix4(shift);
     turret.position.set(centre.x, 0, centre.z);
