@@ -58,8 +58,8 @@ function projectUVs(geometry: BufferGeometry, scale = 0.16): void {
     const nx = Math.abs(normal?.getX(index) ?? 0);
     const ny = Math.abs(normal?.getY(index) ?? 1);
     const nz = Math.abs(normal?.getZ(index) ?? 0);
-    let u = 0;
-    let v = 0;
+    let u: number;
+    let v: number;
     if (nx >= ny && nx >= nz) {
       u = position.getZ(index);
       v = position.getY(index);
