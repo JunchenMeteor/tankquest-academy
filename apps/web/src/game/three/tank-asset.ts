@@ -6,10 +6,13 @@ import {
   MeshStandardMaterial,
   Vector3,
 } from 'three';
+import { BufferAttribute } from 'three';
 import type { BufferGeometry, Object3D } from 'three';
 
+import { createTankTextures, type TankTextures } from './tank-textures.js';
+
 /** Bump this when the GLB changes so cached copies are refetched. */
-export const tankAssetVersion = 'v4-pivot';
+export const tankAssetVersion = 'v5-textured';
 export const tankAssetUrl = `/models/tank.glb?v=${tankAssetVersion}`;
 const cacheName = `tankquest-models-${tankAssetVersion}`;
 
@@ -46,6 +49,33 @@ async function fetchTankAsset(): Promise<TankAsset> {
   return baked;
 }
 
+/** Box-projects UVs from the dominant normal axis, so textures stick to plates. */
+function projectUVs(geometry: BufferGeometry, scale = 0.16): void {
+  const position = geometry.getAttribute('position');
+  const normal = geometry.getAttribute('normal');
+  const uv = new Float32Array(position.count * 2);
+  for (let index = 0; index < position.count; index += 1) {
+    const nx = Math.abs(normal?.getX(index) ?? 0);
+    const ny = Math.abs(normal?.getY(index) ?? 1);
+    const nz = Math.abs(normal?.getZ(index) ?? 0);
+    let u = 0;
+    let v = 0;
+    if (nx >= ny && nx >= nz) {
+      u = position.getZ(index);
+      v = position.getY(index);
+    } else if (ny >= nx && ny >= nz) {
+      u = position.getX(index);
+      v = position.getZ(index);
+    } else {
+      u = position.getX(index);
+      v = position.getY(index);
+    }
+    uv[index * 2] = u * scale;
+    uv[index * 2 + 1] = v * scale;
+  }
+  geometry.setAttribute('uv', new BufferAttribute(uv, 2));
+}
+
 function inTurret(node: Object3D, scene: Object3D): boolean {
   let current: Object3D | null = node;
   while (current && current !== scene) {
@@ -72,6 +102,8 @@ export function bake(scene: Object3D): TankAsset {
     if (!(node instanceof Mesh)) return;
     const geometry = node.geometry.clone();
     geometry.applyMatrix4(node.matrixWorld);
+    /* The export ships no UVs, so project them per face orientation. */
+    if (!geometry.getAttribute('uv')) projectUVs(geometry);
     const mesh = new Mesh(geometry, node.material);
     (inTurret(node, scene) ? turretMeshes : hullMeshes).push(mesh);
   });
@@ -145,8 +177,17 @@ async function readCached(url: string): Promise<ArrayBuffer> {
   return response.arrayBuffer();
 }
 
+let textures: TankTextures | null = null;
+
+function tankTextures(): TankTextures | null {
+  if (typeof document === 'undefined') return null;
+  textures ??= createTankTextures();
+  return textures;
+}
+
 /** Clones the asset, tints the armour and hands back the turret pivot to spin. */
 export function paintTank(asset: TankAsset, color: number): PaintedTank {
+  const maps = tankTextures();
   const root = asset.root.clone(true);
   const turret = root.getObjectByName('turret-pivot') ?? root;
   root.traverse((child) => {
@@ -160,6 +201,15 @@ export function paintTank(asset: TankAsset, color: number): PaintedTank {
       'color'
     );
     if (/^main$/i.test(material.name ?? '')) clone.color.setHex(color);
+    if (maps) {
+      clone.map = maps.map;
+      clone.normalMap = maps.normalMap;
+      clone.roughnessMap = maps.roughnessMap;
+      clone.normalScale.set(0.8, 0.8);
+      clone.roughness = 0.75;
+      clone.metalness = 0.35;
+      clone.needsUpdate = true;
+    }
     child.material = clone;
   });
   return { root, turret };
