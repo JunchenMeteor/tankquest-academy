@@ -487,7 +487,6 @@ export function createBattleView(
         layout
       );
       if (next.heading !== state.heading || next.position !== state.position) {
-        camYaw += next.heading - state.heading;
         state.heading = next.heading;
         state.position = resolveObstacles(next.position, 1.9, layout.blocks);
         playerMesh.position.set(
@@ -518,6 +517,11 @@ export function createBattleView(
        * The gun follows the centre of the view, so the reticle is the aim point.
        * Holding the right button freezes the turret while the camera keeps turning.
        */
+      if (!rightHeld) {
+        const gap = normaliseAngle(state.heading - camYaw);
+        camYaw += gap * Math.min(1, delta * 4.5);
+      }
+
       let targetWorld: number | null = rightHeld ? null : camYaw;
       if (!rightHeld && aim.ready) {
         const bounds = canvas.getBoundingClientRect();
