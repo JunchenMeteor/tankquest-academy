@@ -9,6 +9,7 @@ import {
   applyWrongAnswer,
   canFire,
   createCombatState,
+  elevatedMuzzleHeight,
   loadAmmo,
   muzzlePoint,
   spawnEnemyShell,
@@ -76,15 +77,21 @@ describe('3D battle combat', () => {
     expect(elevated.x).toBeCloseTo(2.5);
     expect(elevated.z).toBeCloseTo(2);
 
+    const muzzleY = elevatedMuzzleHeight(1.57, 3, Math.PI / 3);
+    expect(muzzleY).toBeCloseTo(1.57 - 3 * Math.sin(Math.PI / 3));
     const fired = spawnShell(
       createCombatState(2),
       elevated,
       0,
       Math.PI / 3,
-      1.57
+      muzzleY
     );
-    expect(fired.shells[0]?.y).toBeCloseTo(1.57);
+    expect(fired.shells[0]?.y).toBeCloseTo(muzzleY);
     expect(fired.shells[0]?.pitch).toBeCloseTo(Math.PI / 3);
+    const advanced = advanceShells(fired, 0.1, [], 42);
+    expect(advanced.state.shells[0]?.y).toBeCloseTo(
+      muzzleY - Math.sin(Math.PI / 3) * 4.2
+    );
   });
 
   it('destroys the enemy the shell reaches and decrements the count', () => {

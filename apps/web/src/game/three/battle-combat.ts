@@ -275,6 +275,7 @@ export function advanceShells(
     remaining.push({
       ...shell,
       x: nextX,
+      y: nextY,
       z: nextZ,
       distanceTravelled: travelled,
     });
@@ -315,6 +316,14 @@ export function muzzlePoint(
     x: position.x + Math.cos(angle) * horizontal,
     z: position.z - Math.sin(angle) * horizontal,
   };
+}
+
+export function elevatedMuzzleHeight(
+  barrelHeight: number,
+  barrelLength: number,
+  pitch: number
+): number {
+  return barrelHeight - Math.sin(pitch) * barrelLength;
 }
 
 /**
