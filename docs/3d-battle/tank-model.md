@@ -1,12 +1,12 @@
 # 坦克模型接入说明
 
-战斗画面在中/高画质下会加载 `apps/web/public/models/tank.glb`，低画质回退到程序化模型。
+战斗画面仅在高画质下加载 `apps/web/public/models/tank.glb`，中/低画质使用程序化模型。
 
 ## 文件要求
 
 - 格式：`.glb`（二进制 glTF 2.0），单文件，贴图内嵌
-- 坐标：**+X 为车头方向**，Y 向上，单位与车体一致（车长约 3.6）
-- 朝向：模型原点在车体中心地面处（履带底面 y≈0）
+- 坐标：源文件需为 Y 向上；运行时归一化为 **+X 车头方向**、车长 6 个世界单位
+- 朝向：运行时把模型原点移到车体中心地面处（履带底面 y≈0）
 
 ## 节点结构（推荐）
 
@@ -22,21 +22,21 @@ scene
 
 ## 体积与性能
 
-| 项         | 建议                              |
-| ---------- | --------------------------------- |
-| 未压缩大小 | ≤ 1.5 MB                          |
-| 三角面     | ≤ 30k                             |
-| 贴图       | ≤ 3 张 1024²，优先 KTX2           |
-| 材质       | Standard / PBR，避免自定义 shader |
+| 项       | 建议                                  |
+| -------- | ------------------------------------- |
+| GLB 大小 | ≤ 3 MB                                |
+| 三角面   | ≤ 30k                                 |
+| 贴图     | 原生 albedo / normal / roughness / AO |
+| 压缩     | Draco 几何压缩，WebP 或 KTX2 贴图     |
+| 材质     | Standard / PBR，避免自定义 shader     |
 
-模型只在**中/高画质**加载，低画质不下载；文件走 Cache Storage 缓存，版本号由 `tankAssetVersion` 控制。
+模型只在**高画质**加载，中/低画质不下载；文件走 Cache Storage 缓存，版本号由 `tankAssetVersion` 控制。Draco 解码器随站点本地部署，不依赖外部 CDN。
 
 ## 换模型步骤
 
 1. 覆盖 `apps/web/public/models/tank.glb`
 2. 修改 `apps/web/src/game/three/tank-asset.ts` 里的 `tankAssetVersion`（例如 `v1` → `v2`），否则老缓存会命中旧文件
-3. 用 `?model=glb` 打开战斗确认
-4. 确认无误后，把 `battle-view.ts` 里的 `?model=glb` 判断改成默认启用
+3. 用 `?model=glb&quality=high` 打开战斗确认
 
 ## 许可证
 

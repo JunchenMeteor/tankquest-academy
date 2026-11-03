@@ -30,6 +30,8 @@ for (const name of buildFiles) {
   const bytes = await readFile(resolve(distAssets, name));
   const gzipBytes = gzipSync(bytes).byteLength;
   if (name.endsWith('.css')) cssGzip += gzipBytes;
+  /* Draco workers and WASM are fetched on demand, not application shell code. */
+  else if (name.startsWith('draco_')) continue;
   else if (name.endsWith('.js') && name.startsWith('create-game-')) {
     gameJsGzip += gzipBytes;
   } else if (name.endsWith('.js')) shellJsGzip += gzipBytes;

@@ -3,5 +3,6 @@ coverage
 node_modules
 package-lock.json
 scripts/*.ps1
+apps/web/public/draco/*.js
 docs/*.md
 !docs/development-rules.md
