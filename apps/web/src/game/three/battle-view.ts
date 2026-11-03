@@ -406,15 +406,10 @@ export function createBattleView(
     playerMesh.visible = state.mode !== 'first';
   };
 
-  /*
-   * The procedural tanks stay the default: the generated GLB reads flatter than
-   * the layered procedural hull at close range. ?model=glb opts in until a real
-   * model replaces the file.
-   */
   const wantsProcedural =
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('model') === 'procedural';
-  if (!wantsProcedural && quality !== 'low') {
+  if (!wantsProcedural && quality === 'high') {
     void loadTankAsset()
       .then((asset) => {
         const painted = paintTank(asset, layout.player.color);

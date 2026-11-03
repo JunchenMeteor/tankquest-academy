@@ -1,18 +1,16 @@
 import {
   Box3,
+  BufferAttribute,
   Group,
   Matrix4,
   Mesh,
   MeshStandardMaterial,
   Vector3,
 } from 'three';
-import { BufferAttribute } from 'three';
 import type { BufferGeometry, Object3D } from 'three';
 
-import { createTankTextures, type TankTextures } from './tank-textures.js';
-
 /** Bump this when the GLB changes so cached copies are refetched. */
-export const tankAssetVersion = 'v5-textured';
+export const tankAssetVersion = 'v6-pbr';
 export const tankAssetUrl = `/models/tank.glb?v=${tankAssetVersion}`;
 const cacheName = `tankquest-models-${tankAssetVersion}`;
 
@@ -39,14 +37,21 @@ export function loadTankAsset(): Promise<TankAsset> {
 }
 
 async function fetchTankAsset(): Promise<TankAsset> {
-  const { GLTFLoader } =
-    await import('three/examples/jsm/loaders/GLTFLoader.js');
-  const loader = new GLTFLoader();
+  const [{ GLTFLoader }, { DRACOLoader }] = await Promise.all([
+    import('three/examples/jsm/loaders/GLTFLoader.js'),
+    import('three/examples/jsm/loaders/DRACOLoader.js'),
+  ]);
+  const draco = new DRACOLoader().setDecoderPath('/draco/');
+  const loader = new GLTFLoader().setDRACOLoader(draco);
   const data = await readCached(tankAssetUrl);
-  const gltf = await loader.parseAsync(data, '');
-  const baked = bake(gltf.scene);
-  normalise(baked.root);
-  return baked;
+  try {
+    const gltf = await loader.parseAsync(data, '');
+    const baked = bake(gltf.scene);
+    normalise(baked.root);
+    return baked;
+  } finally {
+    draco.dispose();
+  }
 }
 
 /** Box-projects UVs from the dominant normal axis, so textures stick to plates. */
@@ -86,12 +91,8 @@ function inTurret(node: Object3D, scene: Object3D): boolean {
 }
 
 /**
- * Flattens the imported hierarchy.
- *
- * Artist exports often carry wild nested transforms (this one has a 2117x2415x352
- * turret scale), which makes rotating a node in place tear the model apart. Every
- * mesh is re-created with its world matrix baked into the geometry, then the parts
- * are regrouped into a plain hull and a turret pivot.
+ * Bakes world transforms into each mesh, then regroups the parts into a plain
+ * hull and a turret pivot so artist hierarchy transforms cannot skew rotation.
  */
 export function bake(scene: Object3D): TankAsset {
   scene.updateMatrixWorld(true);
@@ -102,9 +103,9 @@ export function bake(scene: Object3D): TankAsset {
     if (!(node instanceof Mesh)) return;
     const geometry = node.geometry.clone();
     geometry.applyMatrix4(node.matrixWorld);
-    /* The export ships no UVs, so project them per face orientation. */
     if (!geometry.getAttribute('uv')) projectUVs(geometry);
     const mesh = new Mesh(geometry, node.material);
+    mesh.name = node.name;
     (inTurret(node, scene) ? turretMeshes : hullMeshes).push(mesh);
   });
 
@@ -146,8 +147,7 @@ export function normalise(root: Object3D, length = 6): void {
   const size = box.getSize(new Vector3());
   const horizontal = Math.max(size.x, size.z) || 1;
   root.scale.multiplyScalar(length / horizontal);
-  root.scale.y *= 1.35;
-  root.rotation.y = Math.PI;
+  root.rotation.y = Math.PI / 2;
   root.updateMatrixWorld(true);
 
   const scaled = new Box3().setFromObject(root);
@@ -177,17 +177,8 @@ async function readCached(url: string): Promise<ArrayBuffer> {
   return response.arrayBuffer();
 }
 
-let textures: TankTextures | null = null;
-
-function tankTextures(): TankTextures | null {
-  if (typeof document === 'undefined') return null;
-  textures ??= createTankTextures();
-  return textures;
-}
-
-/** Clones the asset, tints the armour and hands back the turret pivot to spin. */
+/** Clones the asset without replacing its authored PBR maps. */
 export function paintTank(asset: TankAsset, color: number): PaintedTank {
-  const maps = tankTextures();
   const root = asset.root.clone(true);
   const turret = root.getObjectByName('turret-pivot') ?? root;
   root.traverse((child) => {
@@ -201,15 +192,6 @@ export function paintTank(asset: TankAsset, color: number): PaintedTank {
       'color'
     );
     if (/^main$/i.test(material.name ?? '')) clone.color.setHex(color);
-    if (maps) {
-      clone.map = maps.map;
-      clone.normalMap = maps.normalMap;
-      clone.roughnessMap = maps.roughnessMap;
-      clone.normalScale.set(0.8, 0.8);
-      clone.roughness = 0.75;
-      clone.metalness = 0.35;
-      clone.needsUpdate = true;
-    }
     child.material = clone;
   });
   return { root, turret };
