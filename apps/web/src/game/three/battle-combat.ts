@@ -205,12 +205,13 @@ export function spawnShell(
   state: CombatState,
   muzzle: { x: number; z: number },
   heading: number,
-  pitch = 0
+  pitch = 0,
+  height = 1.2
 ): CombatState {
   const shell: Shell = {
     id: state.nextShellId,
     x: muzzle.x,
-    y: 1.2,
+    y: height,
     z: muzzle.z,
     heading,
     pitch,
@@ -305,12 +306,14 @@ export function muzzlePoint(
   position: { x: number; z: number },
   heading: number,
   turret: number,
-  barrelLength: number
+  barrelLength: number,
+  pitch = 0
 ): { x: number; z: number } {
   const angle = heading + turret;
+  const horizontal = Math.cos(pitch) * barrelLength;
   return {
-    x: position.x + Math.cos(angle) * barrelLength,
-    z: position.z - Math.sin(angle) * barrelLength,
+    x: position.x + Math.cos(angle) * horizontal,
+    z: position.z - Math.sin(angle) * horizontal,
   };
 }
 
