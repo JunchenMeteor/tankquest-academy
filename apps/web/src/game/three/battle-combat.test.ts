@@ -71,6 +71,20 @@ describe('3D battle combat', () => {
     const point = muzzlePoint({ x: 1, z: 2 }, 0, 0, 3);
     expect(point.x).toBeCloseTo(4);
     expect(point.z).toBeCloseTo(2);
+
+    const elevated = muzzlePoint({ x: 1, z: 2 }, 0, 0, 3, Math.PI / 3);
+    expect(elevated.x).toBeCloseTo(2.5);
+    expect(elevated.z).toBeCloseTo(2);
+
+    const fired = spawnShell(
+      createCombatState(2),
+      elevated,
+      0,
+      Math.PI / 3,
+      1.57
+    );
+    expect(fired.shells[0]?.y).toBeCloseTo(1.57);
+    expect(fired.shells[0]?.pitch).toBeCloseTo(Math.PI / 3);
   });
 
   it('destroys the enemy the shell reaches and decrements the count', () => {

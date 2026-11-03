@@ -24,6 +24,8 @@ export interface TankAsset {
 export interface PaintedTank {
   root: Group;
   turret: Object3D;
+  barrelLength?: number;
+  barrelHeight?: number;
 }
 
 let pending: Promise<TankAsset> | null = null;
@@ -124,6 +126,7 @@ export function bake(scene: Object3D): TankAsset {
         !/gun|barrel/i.test(mesh.name) &&
         !/gun|barrel/i.test(mesh.parent?.name ?? '')
     );
+    const gunMeshes = turretMeshes.filter((mesh) => !drum.includes(mesh));
     const box = new Box3();
     for (const mesh of drum.length > 0 ? drum : turretMeshes) {
       box.expandByObject(mesh);
@@ -133,7 +136,21 @@ export function bake(scene: Object3D): TankAsset {
     const shift = new Matrix4().makeTranslation(-centre.x, 0, -centre.z);
     for (const mesh of turretMeshes) mesh.geometry.applyMatrix4(shift);
     turret.position.set(centre.x, 0, centre.z);
-    turret.add(...turretMeshes);
+
+    const gunBox = new Box3();
+    for (const mesh of gunMeshes) gunBox.expandByObject(mesh);
+    const gunHeight = gunBox.isEmpty() ? 0 : gunBox.getCenter(new Vector3()).y;
+    for (const mesh of gunMeshes) {
+      mesh.geometry.applyMatrix4(
+        new Matrix4().makeTranslation(0, -gunHeight, 0)
+      );
+    }
+    const gun = new Group();
+    gun.name = 'gun-pivot';
+    gun.position.y = gunHeight;
+    gun.add(...gunMeshes);
+    turret.userData.gun = gun;
+    turret.add(...drum, gun);
     root.add(turret);
   }
 
@@ -194,5 +211,17 @@ export function paintTank(asset: TankAsset, color: number): PaintedTank {
     if (/^main$/i.test(material.name ?? '')) clone.color.setHex(color);
     child.material = clone;
   });
-  return { root, turret };
+  const gun = root.getObjectByName('gun-pivot');
+  if (gun) turret.userData.gun = gun;
+  const barrel = root.getObjectByName('Barrel_Cannon_13');
+  if (!barrel) return { root, turret };
+  root.updateMatrixWorld(true);
+  const bounds = new Box3().setFromObject(barrel);
+  const centre = bounds.getCenter(new Vector3());
+  return {
+    root,
+    turret,
+    barrelLength: bounds.max.x,
+    barrelHeight: centre.y,
+  };
 }
