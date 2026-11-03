@@ -12,6 +12,14 @@ export function aimYaw(
   return Math.atan2(-(to.z - from.z), to.x - from.x);
 }
 
+/** Positive pitch points down, matching shell travel and camera pitch. */
+export function aimPitch(
+  from: { x: number; y: number; z: number },
+  to: { x: number; y: number; z: number }
+): number {
+  return Math.atan2(-(to.y - from.y), Math.hypot(to.x - from.x, to.z - from.z));
+}
+
 /**
  * Turns `current` toward `target` by at most `maxStep` radians, taking the
  * shorter way round. Returns the normalised result.

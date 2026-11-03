@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  aimPitch,
   aimYaw,
   dispersionOffset,
   rotateTowards,
@@ -11,6 +12,13 @@ describe('3D battle aiming', () => {
   it('points at a target with the same convention as the hull heading', () => {
     expect(aimYaw({ x: 0, z: 0 }, { x: 10, z: 0 })).toBeCloseTo(0);
     expect(aimYaw({ x: 0, z: 0 }, { x: 0, z: 10 })).toBeCloseTo(-Math.PI / 2);
+  });
+
+  it('uses the same positive-down pitch convention as shell travel', () => {
+    const from = { x: 0, y: 2, z: 0 };
+    expect(aimPitch(from, { x: 10, y: 2, z: 0 })).toBeCloseTo(0);
+    expect(aimPitch(from, { x: 10, y: 12, z: 0 })).toBeCloseTo(-Math.PI / 4);
+    expect(aimPitch(from, { x: 10, y: -8, z: 0 })).toBeCloseTo(Math.PI / 4);
   });
 
   it('turns toward the target no faster than the traverse speed', () => {

@@ -19,7 +19,6 @@ import {
   SphereGeometry,
   PCFSoftShadowMap,
   PerspectiveCamera,
-  Plane,
   PlaneGeometry,
   Raycaster,
   RingGeometry,
@@ -38,7 +37,12 @@ import {
   type SceneLayout,
 } from './battle-scene-model.js';
 import { driveCommand, normaliseAngle } from './battle-input.js';
-import { aimYaw, rotateTowards, scatterAimPoint } from './battle-aim.js';
+import {
+  aimPitch,
+  aimYaw,
+  rotateTowards,
+  scatterAimPoint,
+} from './battle-aim.js';
 import { buildTankModel } from './tank-model.js';
 import { loadTankAsset, paintTank } from './tank-asset.js';
 import {
@@ -304,10 +308,11 @@ export function createBattleView(
   let rightHeld = false;
   const raycaster = new Raycaster();
   const aimPoint = new Vector3();
-  const barrelHeight = 1.57;
-  const gunPlane = new Plane(new Vector3(0, 1, 0), -barrelHeight);
+  let barrelHeight = 1.57;
+  let activeBarrelLength = layout.player.barrelLength;
   let camYaw = layout.player.heading;
   let camPitch = 0.15;
+  let gunPitch = camPitch;
   /* Screen-space aim point (CSS pixels inside the canvas); the reticle follows it. */
   const aim = { x: 0, y: 0, ready: false };
   const state = {
@@ -413,6 +418,8 @@ export function createBattleView(
     void loadTankAsset()
       .then((asset) => {
         const painted = paintTank(asset, layout.player.color);
+        barrelHeight = painted.barrelHeight ?? barrelHeight;
+        activeBarrelLength = painted.barrelLength ?? activeBarrelLength;
         painted.root.position.copy(playerRig.root.position);
         painted.root.rotation.y = playerRig.root.rotation.y;
         scene.remove(playerRig.root);
@@ -467,6 +474,11 @@ export function createBattleView(
             procedural.root.rotation.y = current.rotation.y;
             scene.add(procedural.root);
             playerRig = procedural;
+            gunRig =
+              (procedural.turret.userData.gun as Object3D | undefined) ??
+              gunRig;
+            barrelHeight = 1.57;
+            activeBarrelLength = layout.player.barrelLength;
             usingGlbTanks = false;
           }
         }
@@ -508,10 +520,7 @@ export function createBattleView(
         playerRig.turret.rotation.y = state.turret;
       }
 
-      /*
-       * The gun follows the centre of the view, so the reticle is the aim point.
-       * Holding the right button freezes the turret while the camera keeps turning.
-       */
+      /* Holding the right button freezes the turret while the camera turns. */
       if (!rightHeld) {
         const gap = normaliseAngle(state.heading - camYaw);
         camYaw += gap * Math.min(1, delta * 1.2);
@@ -525,47 +534,25 @@ export function createBattleView(
           -(aim.y / Math.max(1, bounds.height)) * 2 + 1
         );
         raycaster.setFromCamera(ndc, camera);
-        let hit = raycaster.ray.intersectPlane(gunPlane, aimPoint);
-        if (!hit) {
-          /* Cursor above the horizon: aim far along the ray instead of giving up. */
-          aimPoint.copy(raycaster.ray.at(160, new Vector3()));
-          hit = aimPoint;
-        }
-        if (hit) {
-          /* Aim from the muzzle, not the hull centre, so parallax is not baked in. */
-          const muzzle = muzzlePoint(
-            { x: state.position.x, z: state.position.z },
-            state.heading,
-            state.turret,
-            layout.player.barrelLength
-          );
-          targetWorld = aimYaw(muzzle, { x: aimPoint.x, z: aimPoint.z });
-        }
-        gunRig.rotation.z = 0;
-      }
-
-      /* The reticle is the barrel: project the gun axis to the screen each frame. */
-      {
-        const barrelYaw = state.heading + state.turret;
+        raycaster.ray.at(SHELL_RANGE, aimPoint);
         const muzzle = muzzlePoint(
           { x: state.position.x, z: state.position.z },
           state.heading,
           state.turret,
-          layout.player.barrelLength
+          activeBarrelLength,
+          gunPitch
         );
-        const reach = 60;
-        const tip = new Vector3(
-          muzzle.x + Math.cos(barrelYaw) * reach,
-          1.57,
-          muzzle.z - Math.sin(barrelYaw) * reach
-        ).project(camera);
+        targetWorld = aimYaw(state.position, aimPoint);
+        gunPitch = aimPitch(
+          { x: muzzle.x, y: barrelHeight, z: muzzle.z },
+          aimPoint
+        );
+        gunRig.rotation.z = -gunPitch;
+      }
+
+      if (aim.ready) {
         const bounds = canvas.getBoundingClientRect();
-        onReticle?.(
-          (tip.x * 0.5 + 0.5) * bounds.width,
-          (0.5 - tip.y * 0.5) * bounds.height,
-          bounds.width,
-          bounds.height
-        );
+        onReticle?.(aim.x, aim.y, bounds.width, bounds.height);
       }
 
       if (targetWorld !== null) {
@@ -687,10 +674,11 @@ export function createBattleView(
           { x: state.position.x, z: state.position.z },
           state.heading,
           state.turret,
-          layout.player.barrelLength
+          activeBarrelLength,
+          gunPitch
         );
         const turretWorld = state.heading + state.turret;
-        const horizontal = Math.cos(camPitch);
+        const horizontal = Math.cos(gunPitch);
         const baseAim = {
           x: muzzle.x + Math.cos(turretWorld) * SHELL_RANGE * horizontal,
           z: muzzle.z - Math.sin(turretWorld) * SHELL_RANGE * horizontal,
@@ -700,7 +688,8 @@ export function createBattleView(
           combat,
           muzzle,
           aimYaw(muzzle, scattered),
-          camPitch
+          gunPitch,
+          barrelHeight
         );
         const flash = new Mesh(
           new SphereGeometry(0.42, 8, 8),
@@ -710,7 +699,7 @@ export function createBattleView(
             opacity: 0.95,
           })
         );
-        flash.position.set(muzzle.x, 1.2, muzzle.z);
+        flash.position.set(muzzle.x, barrelHeight, muzzle.z);
         spawnEffect(flash, 0.14, 5);
         publish();
         onAmmo?.(combat.ammo, MAX_AMMO);
