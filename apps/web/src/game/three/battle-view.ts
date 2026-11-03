@@ -40,6 +40,7 @@ import { driveCommand, normaliseAngle } from './battle-input.js';
 import {
   aimPitch,
   aimYaw,
+  clampGunPitch,
   rotateTowards,
   scatterAimPoint,
 } from './battle-aim.js';
@@ -71,6 +72,7 @@ import {
   applyWrongAnswer,
   canFire,
   createCombatState,
+  elevatedMuzzleHeight,
   loadAmmo,
   muzzlePoint,
   spawnEnemyShell,
@@ -223,8 +225,7 @@ export function createBattleView(
     layout.player,
     true
   );
-  const playerMesh = playerRig.root;
-  scene.add(playerMesh);
+  scene.add(playerRig.root);
   gunRig =
     (playerRig.turret.userData.gun as Object3D | undefined) ?? new Object3D();
   const proceduralRigs = new Map<string, { root: Group; turret: Object3D }>();
@@ -408,7 +409,7 @@ export function createBattleView(
     );
     camera.position.set(pose.position.x, pose.position.y, pose.position.z);
     camera.lookAt(new Vector3(pose.target.x, pose.target.y, pose.target.z));
-    playerMesh.visible = state.mode !== 'first';
+    playerRig.root.visible = state.mode !== 'first';
   };
 
   const wantsProcedural =
@@ -496,7 +497,7 @@ export function createBattleView(
       if (next.heading !== state.heading || next.position !== state.position) {
         state.heading = next.heading;
         state.position = resolveObstacles(next.position, 1.9, layout.blocks);
-        playerMesh.position.set(
+        playerRig.root.position.set(
           next.position.x,
           next.position.y,
           next.position.z
@@ -511,7 +512,7 @@ export function createBattleView(
         for (const wheel of wheels ?? []) {
           wheel.rotation.z -= travelled / 0.3;
         }
-        playerMesh.rotation.y = next.heading;
+        playerRig.root.rotation.y = next.heading;
       }
       if (command.turret !== 0) {
         state.turret = normaliseAngle(
@@ -542,10 +543,14 @@ export function createBattleView(
           activeBarrelLength,
           gunPitch
         );
+        const muzzleY = elevatedMuzzleHeight(
+          barrelHeight,
+          activeBarrelLength,
+          gunPitch
+        );
         targetWorld = aimYaw(state.position, aimPoint);
-        gunPitch = aimPitch(
-          { x: muzzle.x, y: barrelHeight, z: muzzle.z },
-          aimPoint
+        gunPitch = clampGunPitch(
+          aimPitch({ x: muzzle.x, y: muzzleY, z: muzzle.z }, aimPoint)
         );
         gunRig.rotation.z = -gunPitch;
       }
@@ -677,6 +682,11 @@ export function createBattleView(
           activeBarrelLength,
           gunPitch
         );
+        const muzzleY = elevatedMuzzleHeight(
+          barrelHeight,
+          activeBarrelLength,
+          gunPitch
+        );
         const turretWorld = state.heading + state.turret;
         const horizontal = Math.cos(gunPitch);
         const baseAim = {
@@ -689,7 +699,7 @@ export function createBattleView(
           muzzle,
           aimYaw(muzzle, scattered),
           gunPitch,
-          barrelHeight
+          muzzleY
         );
         const flash = new Mesh(
           new SphereGeometry(0.42, 8, 8),
@@ -699,7 +709,7 @@ export function createBattleView(
             opacity: 0.95,
           })
         );
-        flash.position.set(muzzle.x, barrelHeight, muzzle.z);
+        flash.position.set(muzzle.x, muzzleY, muzzle.z);
         spawnEffect(flash, 0.14, 5);
         publish();
         onAmmo?.(combat.ammo, MAX_AMMO);

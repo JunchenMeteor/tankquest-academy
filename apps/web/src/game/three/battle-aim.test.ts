@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  MAX_GUN_PITCH,
   aimPitch,
   aimYaw,
+  clampGunPitch,
   dispersionOffset,
   rotateTowards,
   scatterAimPoint,
@@ -19,6 +21,13 @@ describe('3D battle aiming', () => {
     expect(aimPitch(from, { x: 10, y: 2, z: 0 })).toBeCloseTo(0);
     expect(aimPitch(from, { x: 10, y: 12, z: 0 })).toBeCloseTo(-Math.PI / 4);
     expect(aimPitch(from, { x: 10, y: -8, z: 0 })).toBeCloseTo(Math.PI / 4);
+  });
+
+  it('limits gun elevation to fifteen degrees in either direction', () => {
+    expect(MAX_GUN_PITCH).toBeCloseTo(Math.PI / 12);
+    expect(clampGunPitch(1)).toBeCloseTo(MAX_GUN_PITCH);
+    expect(clampGunPitch(-1)).toBeCloseTo(-MAX_GUN_PITCH);
+    expect(clampGunPitch(0.1)).toBeCloseTo(0.1);
   });
 
   it('turns toward the target no faster than the traverse speed', () => {

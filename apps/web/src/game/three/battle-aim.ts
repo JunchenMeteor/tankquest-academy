@@ -20,6 +20,12 @@ export function aimPitch(
   return Math.atan2(-(to.y - from.y), Math.hypot(to.x - from.x, to.z - from.z));
 }
 
+export const MAX_GUN_PITCH = Math.PI / 12;
+
+export function clampGunPitch(pitch: number): number {
+  return Math.max(-MAX_GUN_PITCH, Math.min(MAX_GUN_PITCH, pitch));
+}
+
 /**
  * Turns `current` toward `target` by at most `maxStep` radians, taking the
  * shorter way round. Returns the normalised result.
