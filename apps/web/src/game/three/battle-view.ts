@@ -72,9 +72,7 @@ import {
   applyWrongAnswer,
   canFire,
   createCombatState,
-  elevatedMuzzleHeight,
   loadAmmo,
-  muzzlePoint,
   spawnEnemyShell,
   spawnShell,
   tickCooldown,
@@ -309,8 +307,10 @@ export function createBattleView(
   let rightHeld = false;
   const raycaster = new Raycaster();
   const aimPoint = new Vector3();
-  let barrelHeight = 1.57;
-  let activeBarrelLength = layout.player.barrelLength;
+  const activeMuzzle = (
+    (gunRig.userData.muzzle as Vector3 | undefined) ??
+    new Vector3(layout.player.barrelLength, 0, 0)
+  ).clone();
   let camYaw = layout.player.heading;
   let camPitch = 0.15;
   let gunPitch = camPitch;
@@ -419,8 +419,7 @@ export function createBattleView(
     void loadTankAsset()
       .then((asset) => {
         const painted = paintTank(asset, layout.player.color);
-        barrelHeight = painted.barrelHeight ?? barrelHeight;
-        activeBarrelLength = painted.barrelLength ?? activeBarrelLength;
+        if (painted.muzzle) activeMuzzle.copy(painted.muzzle);
         painted.root.position.copy(playerRig.root.position);
         painted.root.rotation.y = playerRig.root.rotation.y;
         scene.remove(playerRig.root);
@@ -478,8 +477,10 @@ export function createBattleView(
             gunRig =
               (procedural.turret.userData.gun as Object3D | undefined) ??
               gunRig;
-            barrelHeight = 1.57;
-            activeBarrelLength = layout.player.barrelLength;
+            activeMuzzle.copy(
+              (gunRig.userData.muzzle as Vector3 | undefined) ??
+                new Vector3(layout.player.barrelLength, 0, 0)
+            );
             usingGlbTanks = false;
           }
         }
@@ -536,23 +537,15 @@ export function createBattleView(
         );
         raycaster.setFromCamera(ndc, camera);
         raycaster.ray.at(SHELL_RANGE, aimPoint);
-        const muzzle = muzzlePoint(
-          { x: state.position.x, z: state.position.z },
-          state.heading,
-          state.turret,
-          activeBarrelLength,
-          gunPitch
-        );
-        const muzzleY = elevatedMuzzleHeight(
-          barrelHeight,
-          activeBarrelLength,
-          gunPitch
-        );
-        targetWorld = aimYaw(state.position, aimPoint);
-        gunPitch = clampGunPitch(
-          aimPitch({ x: muzzle.x, y: muzzleY, z: muzzle.z }, aimPoint)
-        );
-        gunRig.rotation.z = -gunPitch;
+        const pivot = playerRig.turret.getWorldPosition(new Vector3());
+        const muzzle = gunRig.localToWorld(activeMuzzle.clone());
+        targetWorld = aimYaw(pivot, aimPoint);
+        gunPitch = clampGunPitch(aimPitch(muzzle, aimPoint));
+        if (gunRig.userData.pitchAxis === 'x') {
+          gunRig.rotation.x = gunPitch;
+        } else {
+          gunRig.rotation.z = -gunPitch;
+        }
       }
 
       if (aim.ready) {
@@ -572,7 +565,6 @@ export function createBattleView(
         );
         playerRig.turret.rotation.y = state.turret;
       }
-
       /* Enemies close the distance until they are inside their firing standoff. */
       const boundsRect = layout.playfield ?? layout.ground;
       const limitX = boundsRect.width / 2 - 2.4;
@@ -675,18 +667,7 @@ export function createBattleView(
       combat = tickCooldown(combat, delta);
       if (combat.ammo !== beforeAmmo) onAmmo?.(combat.ammo, MAX_AMMO);
       if (canFire(combat) && input.consumeFireRequest()) {
-        const muzzle = muzzlePoint(
-          { x: state.position.x, z: state.position.z },
-          state.heading,
-          state.turret,
-          activeBarrelLength,
-          gunPitch
-        );
-        const muzzleY = elevatedMuzzleHeight(
-          barrelHeight,
-          activeBarrelLength,
-          gunPitch
-        );
+        const muzzle = gunRig.localToWorld(activeMuzzle.clone());
         const turretWorld = state.heading + state.turret;
         const horizontal = Math.cos(gunPitch);
         const baseAim = {
@@ -699,7 +680,7 @@ export function createBattleView(
           muzzle,
           aimYaw(muzzle, scattered),
           gunPitch,
-          muzzleY
+          muzzle.y
         );
         const flash = new Mesh(
           new SphereGeometry(0.42, 8, 8),
@@ -709,7 +690,7 @@ export function createBattleView(
             opacity: 0.95,
           })
         );
-        flash.position.set(muzzle.x, muzzleY, muzzle.z);
+        flash.position.copy(muzzle);
         spawnEffect(flash, 0.14, 5);
         publish();
         onAmmo?.(combat.ammo, MAX_AMMO);
@@ -801,7 +782,7 @@ export function createBattleView(
         shellMeshes.set(shell.id, mesh);
         scene.add(mesh);
       }
-      mesh.position.set(shell.x, 0.9, shell.z);
+      mesh.position.set(shell.x, shell.y, shell.z);
     }
     for (const [id, mesh] of shellMeshes) {
       if (!combat.shells.some((shell) => shell.id === id)) {
