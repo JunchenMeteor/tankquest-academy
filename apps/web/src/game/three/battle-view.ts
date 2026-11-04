@@ -41,6 +41,7 @@ import {
   aimPitch,
   aimYaw,
   clampGunPitch,
+  resolveAimPoint,
   rotateTowards,
   scatterAimPoint,
 } from './battle-aim.js';
@@ -509,7 +510,13 @@ export function createBattleView(
           -(aim.y / Math.max(1, bounds.height)) * 2 + 1
         );
         raycaster.setFromCamera(ndc, camera);
-        raycaster.ray.at(SHELL_RANGE, aimPoint);
+        aimPoint.copy(
+          resolveAimPoint(
+            raycaster.ray,
+            [...enemyRoots.values(), ground],
+            SHELL_RANGE
+          )
+        );
         const pivot = playerRig.turret.getWorldPosition(new Vector3());
         const muzzle = playerRig.muzzle.getWorldPosition(new Vector3());
         targetWorld = aimYaw(pivot, aimPoint);
