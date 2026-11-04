@@ -8,9 +8,10 @@ import {
   Vector3,
 } from 'three';
 import type { BufferGeometry, Object3D } from 'three';
+import { tankRigFromScene, type TankRig } from './tank-rig.js';
 
 /** Bump this when the GLB changes so cached copies are refetched. */
-export const tankAssetVersion = 'v6-pbr';
+export const tankAssetVersion = 'v7-rig';
 export const tankAssetUrl = `/models/tank.glb?v=${tankAssetVersion}`;
 const cacheName = `tankquest-models-${tankAssetVersion}`;
 
@@ -50,6 +51,33 @@ async function fetchTankAsset(): Promise<TankAsset> {
     const baked = bake(gltf.scene);
     normalise(baked.root);
     return baked;
+  } finally {
+    draco.dispose();
+  }
+}
+
+let pendingRig: Promise<TankRig> | null = null;
+
+export function loadTankRig(): Promise<TankRig> {
+  pendingRig ??= fetchTankRig().catch((error: unknown) => {
+    pendingRig = null;
+    throw error;
+  });
+  return pendingRig;
+}
+
+async function fetchTankRig(): Promise<TankRig> {
+  const [{ GLTFLoader }, { DRACOLoader }] = await Promise.all([
+    import('three/examples/jsm/loaders/GLTFLoader.js'),
+    import('three/examples/jsm/loaders/DRACOLoader.js'),
+  ]);
+  const draco = new DRACOLoader().setDecoderPath('/draco/');
+  const loader = new GLTFLoader().setDRACOLoader(draco);
+  const data = await readCached(tankAssetUrl);
+  try {
+    const gltf = await loader.parseAsync(data, '');
+    normalise(gltf.scene);
+    return tankRigFromScene(gltf.scene);
   } finally {
     draco.dispose();
   }
@@ -227,4 +255,38 @@ export function paintTank(asset: TankAsset, color: number): PaintedTank {
     turret,
     muzzle: gun.worldToLocal(new Vector3(bounds.max.x, centre.y, centre.z)),
   };
+}
+
+const cloneTextureSlots = [
+  'map',
+  'normalMap',
+  'roughnessMap',
+  'metalnessMap',
+  'aoMap',
+  'emissiveMap',
+] as const;
+
+export function paintTankRig(asset: TankRig, color: number): TankRig {
+  const root = asset.root.clone(true);
+  root.traverse((child) => {
+    if (!(child instanceof Mesh)) return;
+    const material = Array.isArray(child.material)
+      ? child.material[0]
+      : child.material;
+    if (!(material instanceof MeshStandardMaterial)) return;
+    const clone = material.clone();
+    clone.vertexColors = (child.geometry as BufferGeometry).hasAttribute(
+      'color'
+    );
+    for (const slot of cloneTextureSlots) {
+      const texture = clone[slot];
+      if (texture) {
+        clone[slot] = texture.clone();
+        clone[slot].needsUpdate = true;
+      }
+    }
+    if (/^main$/i.test(material.name ?? '')) clone.color.setHex(color);
+    child.material = clone;
+  });
+  return tankRigFromScene(root);
 }
