@@ -23,8 +23,8 @@ describe('3D battle aiming', () => {
     expect(aimPitch(from, { x: 10, y: -8, z: 0 })).toBeCloseTo(Math.PI / 4);
   });
 
-  it('limits gun elevation to fifteen degrees in either direction', () => {
-    expect(MAX_GUN_PITCH).toBeCloseTo(Math.PI / 12);
+  it('limits gun elevation to twenty-five degrees in either direction', () => {
+    expect(MAX_GUN_PITCH).toBeCloseTo(Math.PI / 7.2);
     expect(clampGunPitch(1)).toBeCloseTo(MAX_GUN_PITCH);
     expect(clampGunPitch(-1)).toBeCloseTo(-MAX_GUN_PITCH);
     expect(clampGunPitch(0.1)).toBeCloseTo(0.1);
