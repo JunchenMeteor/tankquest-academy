@@ -330,6 +330,11 @@ function addTurretGroups(
     }
   }
 
+  gunGroup.userData.muzzle = new Vector3(
+    radius * 0.92 + barrelLength + 0.27,
+    0.02,
+    0
+  );
   return { turret: turretGroup, gunGroup };
 }
 

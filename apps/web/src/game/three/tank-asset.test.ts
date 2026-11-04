@@ -39,23 +39,27 @@ describe('imported tank asset', () => {
     expect(asset.root.getObjectByName('hull')?.children).toHaveLength(1);
   });
 
-  it('keeps gun controls and reports normalised barrel dimensions', () => {
+  it('reports the muzzle in gun-local coordinates for an offset turret', () => {
     const scene = new Group();
     scene.add(
       part('Hull_477', 0, 6),
-      part('Turret_229', 0, 2),
+      part('Turret_229', 1, 2),
       part('Barrel_Cannon_13', 6, 10)
     );
     const asset = bake(scene);
     normalise(asset.root);
 
     const painted = paintTank(asset, 0xffffff);
-
-    expect(painted.turret.userData.gun).toBe(
-      painted.root.getObjectByName('gun-pivot')
+    const gun = painted.turret.userData.gun as Group;
+    const muzzle = gun.localToWorld(painted.muzzle!.clone());
+    const barrelTip = new Vector3(0, 0, 11).applyMatrix4(
+      painted.root.getObjectByName('model-normalised')!.matrixWorld
     );
-    expect(painted.barrelLength).toBeGreaterThan(0);
-    expect(Number.isFinite(painted.barrelHeight)).toBe(true);
+
+    expect(gun).toBe(painted.root.getObjectByName('gun-pivot'));
+    expect(gun.userData.pitchAxis).toBe('x');
+    expect(asset.turret.position.z).toBeCloseTo(1);
+    expect(muzzle.distanceTo(barrelTip)).toBeCloseTo(0);
   });
 
   it('normalises a +Z barrel to the +X battle forward axis', () => {
@@ -64,9 +68,13 @@ describe('imported tank asset', () => {
 
     normalise(root);
     root.updateMatrixWorld(true);
-    const forward = new Vector3(0, 0, 1).transformDirection(root.matrixWorld);
+    const forward = new Vector3(0, 0, 1).transformDirection(
+      root.getObjectByName('model-normalised')!.matrixWorld
+    );
 
     expect(forward.x).toBeCloseTo(1);
     expect(forward.z).toBeCloseTo(0);
+    expect(root.rotation.y).toBe(0);
+    expect(root.position.toArray()).toEqual([0, 0, 0]);
   });
 });

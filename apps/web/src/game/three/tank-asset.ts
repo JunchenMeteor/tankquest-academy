@@ -24,8 +24,7 @@ export interface TankAsset {
 export interface PaintedTank {
   root: Group;
   turret: Object3D;
-  barrelLength?: number;
-  barrelHeight?: number;
+  muzzle?: Vector3;
 }
 
 let pending: Promise<TankAsset> | null = null;
@@ -147,6 +146,7 @@ export function bake(scene: Object3D): TankAsset {
     }
     const gun = new Group();
     gun.name = 'gun-pivot';
+    gun.userData.pitchAxis = 'x';
     gun.position.y = gunHeight;
     gun.add(...gunMeshes);
     turret.userData.gun = gun;
@@ -163,15 +163,19 @@ export function normalise(root: Object3D, length = 6): void {
   const box = new Box3().setFromObject(root);
   const size = box.getSize(new Vector3());
   const horizontal = Math.max(size.x, size.z) || 1;
-  root.scale.multiplyScalar(length / horizontal);
-  root.rotation.y = Math.PI / 2;
+  const normalised = new Group();
+  normalised.name = 'model-normalised';
+  normalised.add(...root.children);
+  root.add(normalised);
+  normalised.scale.multiplyScalar(length / horizontal);
+  normalised.rotation.y = Math.PI / 2;
   root.updateMatrixWorld(true);
 
   const scaled = new Box3().setFromObject(root);
   const centre = scaled.getCenter(new Vector3());
-  root.position.x -= centre.x;
-  root.position.z -= centre.z;
-  root.position.y -= scaled.min.y;
+  normalised.position.x -= centre.x;
+  normalised.position.z -= centre.z;
+  normalised.position.y -= scaled.min.y;
   root.updateMatrixWorld(true);
 }
 
@@ -214,14 +218,13 @@ export function paintTank(asset: TankAsset, color: number): PaintedTank {
   const gun = root.getObjectByName('gun-pivot');
   if (gun) turret.userData.gun = gun;
   const barrel = root.getObjectByName('Barrel_Cannon_13');
-  if (!barrel) return { root, turret };
+  if (!barrel || !gun) return { root, turret };
   root.updateMatrixWorld(true);
   const bounds = new Box3().setFromObject(barrel);
   const centre = bounds.getCenter(new Vector3());
   return {
     root,
     turret,
-    barrelLength: bounds.max.x,
-    barrelHeight: centre.y,
+    muzzle: gun.worldToLocal(new Vector3(bounds.max.x, centre.y, centre.z)),
   };
 }
