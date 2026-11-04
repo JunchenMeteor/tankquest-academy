@@ -1,0 +1,73 @@
+import { Mesh, MeshStandardMaterial } from 'three';
+import type { Group, Object3D, Texture } from 'three';
+
+export interface TankRig {
+  root: Group;
+  turret: Object3D;
+  gun: Object3D;
+  muzzle: Object3D;
+  wheels: Object3D[];
+  wheelAxis: 'x' | 'z';
+  wheelRadius: number;
+  trackTextures: Texture[];
+}
+
+const textureSlots = [
+  'map',
+  'normalMap',
+  'roughnessMap',
+  'metalnessMap',
+  'aoMap',
+  'emissiveMap',
+] as const;
+
+export function texturesForTracks(root: Object3D): Texture[] {
+  const textures = new Set<Texture>();
+  root.traverse((node) => {
+    if (!(node instanceof Mesh) || !node.name.startsWith('Tracks_')) return;
+    const materials = Array.isArray(node.material)
+      ? node.material
+      : [node.material];
+    for (const material of materials) {
+      if (!(material instanceof MeshStandardMaterial)) continue;
+      for (const slot of textureSlots) {
+        const texture = material[slot];
+        if (texture) textures.add(texture);
+      }
+    }
+  });
+  return [...textures];
+}
+
+export function tankRigFromScene(root: Group): TankRig {
+  const turret = root.getObjectByName('TurretPivot');
+  const gun = root.getObjectByName('GunPivot');
+  const muzzle = root.getObjectByName('Muzzle');
+  if (!turret || !gun || !muzzle) {
+    throw new Error('Tank rig requires explicit turret, gun, and muzzle nodes');
+  }
+  gun.userData.pitchAxis = 'x';
+  const wheels: Object3D[] = [];
+  root.traverse((node) => {
+    if (/^Wheel_[LR]_\d\d$/.test(node.name)) wheels.push(node);
+  });
+  return {
+    root,
+    turret,
+    gun,
+    muzzle,
+    wheels,
+    wheelAxis: 'x',
+    wheelRadius: 0.38,
+    trackTextures: texturesForTracks(root),
+  };
+}
+
+export function advanceRunningGear(rig: TankRig, travelled: number): void {
+  for (const wheel of rig.wheels) {
+    wheel.rotation[rig.wheelAxis] -= travelled / rig.wheelRadius;
+  }
+  for (const texture of rig.trackTextures) {
+    texture.offset.y -= travelled * 0.25;
+  }
+}

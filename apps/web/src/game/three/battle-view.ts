@@ -45,7 +45,8 @@ import {
   scatterAimPoint,
 } from './battle-aim.js';
 import { buildTankModel } from './tank-model.js';
-import { loadTankAsset, paintTank } from './tank-asset.js';
+import { loadTankRig, paintTankRig } from './tank-asset.js';
+import { advanceRunningGear, type TankRig } from './tank-rig.js';
 import {
   advanceEnemy,
   enemyGoal,
@@ -77,7 +78,6 @@ import {
   spawnShell,
   tickCooldown,
 } from './battle-combat.js';
-import { Object3D } from 'three';
 import type { GameInputController } from '../input/GameInputController.js';
 import type { RuntimeState } from '../runtime/types.js';
 import type { RuntimeLevelConfig } from '../runtime/types.js';
@@ -218,15 +218,9 @@ export function createBattleView(
   scene.add(skirt);
   scene.add(buildFence(layout));
 
-  let gunRig = new Object3D();
-  let playerRig: { root: Group; turret: Object3D } = buildTankModel(
-    layout.player,
-    true
-  );
+  let playerRig: TankRig = buildTankModel(layout.player, true);
   scene.add(playerRig.root);
-  gunRig =
-    (playerRig.turret.userData.gun as Object3D | undefined) ?? new Object3D();
-  const proceduralRigs = new Map<string, { root: Group; turret: Object3D }>();
+  const proceduralRigs = new Map<string, TankRig>();
   proceduralRigs.set('player', playerRig);
   let usingGlbTanks = false;
   const effects: Array<{
@@ -307,10 +301,6 @@ export function createBattleView(
   let rightHeld = false;
   const raycaster = new Raycaster();
   const aimPoint = new Vector3();
-  const activeMuzzle = (
-    (gunRig.userData.muzzle as Vector3 | undefined) ??
-    new Vector3(layout.player.barrelLength, 0, 0)
-  ).clone();
   let camYaw = layout.player.heading;
   let camPitch = 0.15;
   let gunPitch = camPitch;
@@ -416,27 +406,20 @@ export function createBattleView(
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('model') === 'procedural';
   if (!wantsProcedural && quality === 'high') {
-    void loadTankAsset()
+    void loadTankRig()
       .then((asset) => {
-        const painted = paintTank(asset, layout.player.color);
-        if (painted.muzzle) activeMuzzle.copy(painted.muzzle);
+        const painted = paintTankRig(asset, layout.player.color);
         painted.root.position.copy(playerRig.root.position);
         painted.root.rotation.y = playerRig.root.rotation.y;
         scene.remove(playerRig.root);
         scene.add(painted.root);
         playerRig = painted;
-        gunRig =
-          (painted.turret.userData.gun as Object3D | undefined) ?? gunRig;
         usingGlbTanks = true;
 
         for (const enemy of layout.enemies) {
           const root = enemyRoots.get(enemy.id);
           if (!root) continue;
-          const model = paintTank(asset, enemy.color);
-          proceduralRigs.set(`enemy:${enemy.id}`, {
-            root: root.children[0] as Group,
-            turret: new Group(),
-          });
+          const model = paintTankRig(asset, enemy.color);
           root.clear();
           root.add(model.root);
           root.position.set(
@@ -474,13 +457,6 @@ export function createBattleView(
             procedural.root.rotation.y = current.rotation.y;
             scene.add(procedural.root);
             playerRig = procedural;
-            gunRig =
-              (procedural.turret.userData.gun as Object3D | undefined) ??
-              gunRig;
-            activeMuzzle.copy(
-              (gunRig.userData.muzzle as Vector3 | undefined) ??
-                new Vector3(layout.player.barrelLength, 0, 0)
-            );
             usingGlbTanks = false;
           }
         }
@@ -496,23 +472,20 @@ export function createBattleView(
         layout
       );
       if (next.heading !== state.heading || next.position !== state.position) {
+        const previousPosition = state.position;
         state.heading = next.heading;
         state.position = resolveObstacles(next.position, 1.9, layout.blocks);
         playerRig.root.position.set(
-          next.position.x,
-          next.position.y,
-          next.position.z
+          state.position.x,
+          state.position.y,
+          state.position.z
         );
         const travelled =
           Math.hypot(
-            next.position.x - state.position.x,
-            next.position.z - state.position.z
-          ) || 0;
-        const wheels = playerRig.root.userData.wheels as
-          Array<{ rotation: { z: number } }> | undefined;
-        for (const wheel of wheels ?? []) {
-          wheel.rotation.z -= travelled / 0.3;
-        }
+            state.position.x - previousPosition.x,
+            state.position.z - previousPosition.z
+          ) * Math.sign(command.forward);
+        advanceRunningGear(playerRig, travelled);
         playerRig.root.rotation.y = next.heading;
       }
       if (command.turret !== 0) {
@@ -538,13 +511,13 @@ export function createBattleView(
         raycaster.setFromCamera(ndc, camera);
         raycaster.ray.at(SHELL_RANGE, aimPoint);
         const pivot = playerRig.turret.getWorldPosition(new Vector3());
-        const muzzle = gunRig.localToWorld(activeMuzzle.clone());
+        const muzzle = playerRig.muzzle.getWorldPosition(new Vector3());
         targetWorld = aimYaw(pivot, aimPoint);
         gunPitch = clampGunPitch(aimPitch(muzzle, aimPoint));
-        if (gunRig.userData.pitchAxis === 'x') {
-          gunRig.rotation.x = gunPitch;
+        if (playerRig.gun.userData.pitchAxis === 'x') {
+          playerRig.gun.rotation.x = gunPitch;
         } else {
-          gunRig.rotation.z = -gunPitch;
+          playerRig.gun.rotation.z = -gunPitch;
         }
       }
 
@@ -661,13 +634,12 @@ export function createBattleView(
       playerRig.root.position.copy(
         new Vector3(state.position.x, state.position.y, state.position.z)
       );
-
       const beforeAmmo = combat.ammo;
       combat = advanceReload(combat, delta);
       combat = tickCooldown(combat, delta);
       if (combat.ammo !== beforeAmmo) onAmmo?.(combat.ammo, MAX_AMMO);
       if (canFire(combat) && input.consumeFireRequest()) {
-        const muzzle = gunRig.localToWorld(activeMuzzle.clone());
+        const muzzle = playerRig.muzzle.getWorldPosition(new Vector3());
         const turretWorld = state.heading + state.turret;
         const horizontal = Math.cos(gunPitch);
         const baseAim = {
