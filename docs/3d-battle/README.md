@@ -19,8 +19,10 @@ scene is untouched, so removing the query string returns to the 2D view.
 - Camera toggle (`V` or the button under the view): chase camera behind the hull,
   or a first-person camera on the turret roof following the view.
 - Aiming follows the pointer in third person and the view direction in first
-  person. Holding the right mouse button locks the turret so the camera can look
-  around; releasing eases the view back behind the hull.
+  person. The turret and gun aim at the nearest live tank or ground point hit by
+  the reticle ray, using maximum shell range only when nothing is hit. Holding
+  the right mouse button locks the turret so the camera can look around;
+  releasing eases the view back behind the hull.
 - Turret traverse speed comes from mobility (`turretTraverseSpeed`), so scouts
   swing faster than heavies.
 - Every shot scatters: the shell lands anywhere inside a circle whose radius is
