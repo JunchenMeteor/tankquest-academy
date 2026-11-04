@@ -11,7 +11,7 @@ import type { BufferGeometry, Object3D } from 'three';
 import { tankRigFromScene, type TankRig } from './tank-rig.js';
 
 /** Bump this when the GLB changes so cached copies are refetched. */
-export const tankAssetVersion = 'v7-rig';
+export const tankAssetVersion = 'v8-wheel';
 export const tankAssetUrl = `/models/tank.glb?v=${tankAssetVersion}`;
 const cacheName = `tankquest-models-${tankAssetVersion}`;
 
