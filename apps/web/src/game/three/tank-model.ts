@@ -4,11 +4,13 @@ import {
   Group,
   Mesh,
   MeshStandardMaterial,
+  Object3D,
   Vector2,
   Vector3,
 } from 'three';
 
 import type { TankPlacement } from './battle-scene-model.js';
+import type { TankRig } from './tank-rig.js';
 import { createTankTextures, type TankTextures } from './tank-textures.js';
 
 let sharedTextures: TankTextures | null = null;
@@ -210,7 +212,7 @@ function addTrackBand(
 function addTurretGroups(
   placement: TankPlacement,
   materials: TankMaterials
-): { turret: Group; gunGroup: Group } {
+): { turret: Group; gunGroup: Group; muzzle: Object3D } {
   const turretGroup = new Group();
   const radius = placement.turretRadius;
 
@@ -330,19 +332,18 @@ function addTurretGroups(
     }
   }
 
-  gunGroup.userData.muzzle = new Vector3(
-    radius * 0.92 + barrelLength + 0.27,
-    0.02,
-    0
-  );
-  return { turret: turretGroup, gunGroup };
+  const muzzle = new Object3D();
+  muzzle.name = 'Muzzle';
+  muzzle.position.set(radius * 0.92 + barrelLength + 0.27, 0.02, 0);
+  gunGroup.add(muzzle);
+  return { turret: turretGroup, gunGroup, muzzle };
 }
 
 /** Builds a detailed tank: sloped hull, running gear and a cast turret. */
 export function buildTankModel(
   placement: TankPlacement,
   isPlayer: boolean
-): { root: Group; turret: Group } {
+): TankRig {
   const group = new Group();
   const materials = materialsFor(placement.color);
   const [hullWidth, hullHeight, hullDepth] = placement.hull;
@@ -491,7 +492,7 @@ export function buildTankModel(
   group.userData.wheelRadius = 0.3;
   addTrackBand(group, materials, hullDepth, trackOffset);
 
-  const { turret, gunGroup } = addTurretGroups(placement, materials);
+  const { turret, gunGroup, muzzle } = addTurretGroups(placement, materials);
   turret.userData.gun = gunGroup;
   turret.position.y = floor + hullHeight * 0.92 + 0.24;
   group.add(turret);
@@ -503,7 +504,16 @@ export function buildTankModel(
   );
   group.rotation.y = placement.heading;
   group.userData.isPlayer = isPlayer;
-  return { root: group, turret };
+  return {
+    root: group,
+    turret,
+    gun: gunGroup,
+    muzzle,
+    wheels,
+    wheelAxis: 'z',
+    wheelRadius: 0.3,
+    trackTextures: [],
+  };
 }
 
 export const tankModelForward = new Vector3(1, 0, 0);
