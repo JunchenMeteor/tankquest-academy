@@ -2,6 +2,9 @@
  * Aiming and dispersion maths for the 3D battle view.
  * Pure so the steering and accuracy rules can be tested without a renderer.
  */
+import { Raycaster } from 'three';
+import type { Object3D, Ray, Vector3 } from 'three';
+
 import { normaliseAngle } from './battle-input.js';
 
 /** Heading that points from `from` to `to`, matching the world convention. */
@@ -18,6 +21,16 @@ export function aimPitch(
   to: { x: number; y: number; z: number }
 ): number {
   return Math.atan2(-(to.y - from.y), Math.hypot(to.x - from.x, to.z - from.z));
+}
+
+export function resolveAimPoint(
+  ray: Ray,
+  targets: Object3D[],
+  maxRange: number
+): Vector3 {
+  const raycaster = new Raycaster(ray.origin, ray.direction, 0, maxRange);
+  const [hit] = raycaster.intersectObjects(targets, true);
+  return hit?.point ?? ray.at(maxRange, ray.origin.clone());
 }
 
 export const MAX_GUN_PITCH = Math.PI / 7.2;
