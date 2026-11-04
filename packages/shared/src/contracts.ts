@@ -103,6 +103,8 @@ export interface EnemyTankConfigDto {
     allyAlertRadius: number;
     searchLeashRange: number;
   };
+  elevation?: number;
+  passive?: boolean;
 }
 
 export interface EliminateObjectiveDto {

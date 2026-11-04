@@ -307,3 +307,53 @@ describe('levelRuntimeConfig', () => {
     expect(config.obstacles).toHaveLength(1);
   });
 });
+
+describe('passive range targets', () => {
+  it('preserves passive and elevation fields from validated content', () => {
+    const rangeLevel: LevelDto = {
+      ...level,
+      config: {
+        enemyTanks: [
+          {
+            id: 'target_high',
+            role: 'heavy',
+            x: 720,
+            y: 270,
+            elevation: 5,
+            passive: true,
+            stats: {
+              firepower: 4,
+              mobility: 2,
+              armor: 5,
+              stealth: 1,
+              vision: 2,
+              accuracy: 4,
+              turretTraverse: 2,
+            },
+            ai: {
+              detectionRange: 280,
+              attackRange: 250,
+              fireCooldownMs: 1450,
+              speedMultiplier: 0.32,
+            },
+          },
+        ],
+        map: {
+          style: 'range',
+          playerSpawn: { x: 120, y: 270 },
+          obstacles: [],
+        },
+        objectiveSet: {
+          completion: 'all',
+          objectives: [
+            { id: 'clear_targets', type: 'eliminate', targetCount: 1 },
+          ],
+        },
+      },
+    };
+
+    const config = levelRuntimeConfig(rangeLevel);
+    expect(config.enemies[0]?.passive).toBe(true);
+    expect(config.enemies[0]?.elevation).toBe(5);
+  });
+});
