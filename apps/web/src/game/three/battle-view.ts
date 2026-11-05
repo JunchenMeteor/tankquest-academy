@@ -60,6 +60,7 @@ import {
   openingDelayMs,
 } from './battle-enemy-ai.js';
 import { advanceReload } from './battle-combat.js';
+import { createMeshHitTest } from './battle-mesh-collision.js';
 import { FixedStepDriver } from './battle-fixed-step.js';
 import { applyAnswerCombo, emptyCombo } from './battle-combo.js';
 import { planWaves } from './battle-waves.js';
@@ -271,6 +272,7 @@ export function createBattleView(
   /* Difficulty follows the group size: more tanks, sharper shooting. */
   const difficulty = Math.min(1, Math.max(0, (config.enemies.length - 1) / 3));
   const enemyRoots = new Map<string, Group>();
+  const meshHitTest = createMeshHitTest(enemyRoots);
   const spawnEnemy = (enemy: (typeof layout.enemies)[number]) => {
     const rig = buildTankModel(enemy, false);
     enemyRoots.set(enemy.id, rig.root);
@@ -781,7 +783,8 @@ export function createBattleView(
             combat,
             delta,
             alive,
-            config.player.projectileSpeed * 0.1
+            config.player.projectileSpeed * 0.1,
+            meshHitTest
           );
           combat = result.state;
           for (const id of result.destroyed) {
