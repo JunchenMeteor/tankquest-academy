@@ -108,6 +108,8 @@ function toRuntimeEnemy(enemy: EnemyTankConfigDto) {
     armorProfile: combat.armorProfile,
     mass: combat.mass,
     speed: Math.round(combat.speed * enemy.ai.speedMultiplier),
+    reverseSpeed: Math.round(combat.reverseSpeed * enemy.ai.speedMultiplier),
+    turnSpeed: combat.turnSpeed,
     detectionRange: enemy.ai.detectionRange,
     attackRange: enemy.ai.attackRange,
     projectileDamage: Math.round(combat.projectileDamage * 0.55),
@@ -118,5 +120,7 @@ function toRuntimeEnemy(enemy: EnemyTankConfigDto) {
     nearMissRadius: enemy.ai.nearMissRadius,
     allyAlertRadius: enemy.ai.allyAlertRadius,
     searchLeashRange: enemy.ai.searchLeashRange,
+    elevation: enemy.elevation,
+    passive: enemy.passive,
   };
 }

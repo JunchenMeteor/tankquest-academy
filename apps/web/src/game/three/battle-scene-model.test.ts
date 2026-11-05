@@ -63,11 +63,19 @@ describe('3D battle scene model', () => {
     /* The ground adds a margin so the spawn and chase camera stay inside it. */
     expect(layout.ground.width).toBeCloseTo(960 / FIELD_SCALE + 24);
     expect(layout.ground.depth).toBeCloseTo(540 / FIELD_SCALE + 24);
-    expect(layout.player.position.x).toBeCloseTo(120 / FIELD_SCALE);
-    expect(layout.player.position.z).toBeCloseTo(270 / FIELD_SCALE);
+    expect(layout.player.position.x).toBeCloseTo((120 - 480) / FIELD_SCALE);
+    expect(layout.player.position.z).toBeCloseTo(0);
     expect(layout.enemies).toHaveLength(1);
+    expect(layout.enemies[0]?.position.x).toBeCloseTo(
+      (720 - 480) / FIELD_SCALE
+    );
+    expect(layout.enemies[0]?.position.z).toBeCloseTo(
+      (200 - 270) / FIELD_SCALE
+    );
     expect(layout.enemies[0]?.color ?? 0).toBeGreaterThan(0);
     expect(layout.blocks).toHaveLength(1);
+    expect(layout.blocks[0]?.position.x).toBe(0);
+    expect(layout.blocks[0]?.position.z).toBe(0);
     expect(layout.blocks[0]?.size[0] ?? 0).toBeCloseTo(80 / FIELD_SCALE);
   });
 

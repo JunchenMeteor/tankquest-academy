@@ -11,7 +11,7 @@ import type { BufferGeometry, Object3D } from 'three';
 import { tankRigFromScene, type TankRig } from './tank-rig.js';
 
 /** Bump this when the GLB changes so cached copies are refetched. */
-export const tankAssetVersion = 'v8-wheel';
+export const tankAssetVersion = 'v9-authored';
 export const tankAssetUrl = `/models/tank.glb?v=${tankAssetVersion}`;
 const cacheName = `tankquest-models-${tankAssetVersion}`;
 
@@ -266,7 +266,11 @@ const cloneTextureSlots = [
   'emissiveMap',
 ] as const;
 
-export function paintTankRig(asset: TankRig, color: number): TankRig {
+export function paintTankRig(
+  asset: TankRig,
+  color: number,
+  secondaryColor = color
+): TankRig {
   const root = asset.root.clone(true);
   root.traverse((child) => {
     if (!(child instanceof Mesh)) return;
@@ -285,7 +289,15 @@ export function paintTankRig(asset: TankRig, color: number): TankRig {
         clone[slot].needsUpdate = true;
       }
     }
-    if (/^main$/i.test(material.name ?? '')) clone.color.setHex(color);
+    if (
+      /^(Hull_477|Turret_229|Applique_176|Cannon_13|Material)$/i.test(
+        material.name
+      )
+    ) {
+      clone.color.setHex(color);
+    } else if (/^(SideSkirts_477|Gear_980|Gear_24)$/i.test(material.name)) {
+      clone.color.setHex(secondaryColor);
+    }
     child.material = clone;
   });
   return tankRigFromScene(root);

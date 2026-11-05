@@ -2,13 +2,34 @@
  * Pure geometry for the 3D battle view.
  * Keeps the Three.js layer thin and lets the mapping be unit tested without WebGL.
  */
-import type { RuntimeLevelConfig } from '../runtime/types.js';
+import type {
+  PlayerCombatRuntimeConfig,
+  RuntimeLevelConfig,
+} from '../runtime/types.js';
 
 export interface Vec3 {
   x: number;
   y: number;
   z: number;
 }
+
+export type TankCombatConfig = Omit<
+  Pick<
+    PlayerCombatRuntimeConfig,
+    | 'maxHealth'
+    | 'armorReduction'
+    | 'armorProfile'
+    | 'speed'
+    | 'reverseSpeed'
+    | 'turnSpeed'
+    | 'projectileDamage'
+    | 'projectilePenetration'
+    | 'projectileSpeed'
+    | 'fireCooldownMs'
+  >,
+  'reverseSpeed' | 'turnSpeed'
+> &
+  Partial<Pick<PlayerCombatRuntimeConfig, 'reverseSpeed' | 'turnSpeed'>>;
 
 export interface TankPlacement {
   id: string;
@@ -20,6 +41,9 @@ export interface TankPlacement {
   turretRadius: number;
   barrelLength: number;
   color: number;
+  secondaryColor?: number;
+  combat?: TankCombatConfig;
+  passive?: boolean;
 }
 
 export interface BlockPlacement {
@@ -56,6 +80,27 @@ const ROLE_SHAPES = {
   },
 } as const;
 
+const ENEMY_COLORS = {
+  'training-base': {
+    scout: 0x8f5745,
+    medium: 0x9a6148,
+    heavy: 0x7d6349,
+    secondary: 0x3d2d27,
+  },
+  'forest-camp': {
+    scout: 0x526b3f,
+    medium: 0x6c7843,
+    heavy: 0x46533b,
+    secondary: 0x293621,
+  },
+  'snow-field': {
+    scout: 0x718a9c,
+    medium: 0x8aa1af,
+    heavy: 0x596b7a,
+    secondary: 0x35434f,
+  },
+} as const;
+
 const PLAYER_HULL: [number, number, number] = [3.6, 1.05, 2.1];
 
 /**
@@ -72,8 +117,10 @@ export function toWorld(x: number, y: number, height = 0): Vec3 {
 export function buildSceneLayout(config: RuntimeLevelConfig): SceneLayout {
   const elevation = (x: number, z: number) =>
     Math.sin(x * 0.25) * 0.12 + Math.cos(z * 0.21) * 0.1;
+  const fieldToWorld = (x: number, y: number, height = 0) =>
+    toWorld(x - config.width / 2, y - config.height / 2, height);
 
-  const spawn = toWorld(
+  const spawn = fieldToWorld(
     config.playerSpawn.x,
     config.playerSpawn.y,
     elevation(
@@ -85,8 +132,8 @@ export function buildSceneLayout(config: RuntimeLevelConfig): SceneLayout {
   const nearest = config.enemies[0];
   const heading = nearest
     ? Math.atan2(
-        -(toWorld(nearest.x, nearest.y).z - spawn.z),
-        toWorld(nearest.x, nearest.y).x - spawn.x
+        -(fieldToWorld(nearest.x, nearest.y).z - spawn.z),
+        fieldToWorld(nearest.x, nearest.y).x - spawn.x
       )
     : -Math.PI / 2;
 
@@ -99,15 +146,18 @@ export function buildSceneLayout(config: RuntimeLevelConfig): SceneLayout {
     hull: PLAYER_HULL,
     turretRadius: 1,
     barrelLength: 2.6,
-    color: 0x6d8798,
+    color: config.player.appearance?.primaryColor ?? 0x6d8798,
+    secondaryColor: config.player.appearance?.secondaryColor ?? 0xe8c65a,
+    combat: { ...config.player },
   };
 
   const enemies = config.enemies.map((enemy) => {
     const shape = ROLE_SHAPES[enemy.role];
-    const position = toWorld(
+    const palette = ENEMY_COLORS[config.theme];
+    const position = fieldToWorld(
       enemy.x,
       enemy.y,
-      elevation(enemy.x / 40, enemy.y / 40)
+      enemy.elevation ?? elevation(enemy.x / 40, enemy.y / 40)
     );
     return {
       id: enemy.id,
@@ -118,12 +168,15 @@ export function buildSceneLayout(config: RuntimeLevelConfig): SceneLayout {
       hull: [...shape.hull] as [number, number, number],
       turretRadius: shape.turretRadius,
       barrelLength: shape.barrelLength,
-      color: enemy.elite ? 0xf2c14e : shape.color,
+      color: enemy.elite ? 0xf2c14e : palette[enemy.role],
+      secondaryColor: palette.secondary,
+      combat: { ...enemy },
+      passive: enemy.passive,
     };
   });
 
   const blocks = config.obstacles.map((obstacle) => ({
-    position: toWorld(obstacle.x, obstacle.y, 0.55),
+    position: fieldToWorld(obstacle.x, obstacle.y, 0.55),
     size: [
       Math.max(1, obstacle.width / FIELD_SCALE),
       1.1,
@@ -246,10 +299,15 @@ export function stepTank(
    */
   const steerSign = input.forward < 0 ? -1 : 1;
   const speedFactor = Math.abs(input.forward);
-  const turnRate = 2.2 + speedFactor * 0.8;
+  const mobility = layout.player.combat;
+  const turnRate = (mobility?.turnSpeed ?? 2.8) * (0.7 + speedFactor * 0.3);
   const heading =
     player.heading + input.turn * steerSign * turnRate * deltaSeconds;
-  const speed = 6 * deltaSeconds * input.forward;
+  const unitsPerSecond =
+    input.forward < 0
+      ? (mobility?.reverseSpeed ?? 120) * (6 / 170)
+      : (mobility?.speed ?? 170) * (6 / 170);
+  const speed = unitsPerSecond * deltaSeconds * input.forward;
   const bounds = layout.playfield ?? layout.ground;
   const halfWidth = bounds.width / 2 - 2.2;
   const halfDepth = bounds.depth / 2 - 2.2;

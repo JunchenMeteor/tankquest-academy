@@ -94,17 +94,42 @@ describe('3D battle combat', () => {
     );
   });
 
-  it('destroys the enemy the shell reaches and decrements the count', () => {
+  it('applies damage until the enemy is destroyed and decrements the count', () => {
     const enemies = [enemy('a', 10, 0), enemy('b', 30, 0)];
-    let state = spawnShell(createCombatState(2), { x: 0, z: 0 }, 0);
+    let state = createCombatState(2, 1, 150, enemies);
     let destroyed: string[] = [];
-    for (let step = 0; step < 20; step += 1) {
-      const result = advanceShells(state, 0.1, enemies, 42);
-      state = result.state;
-      destroyed = [...destroyed, ...result.destroyed];
+    for (let shot = 0; shot < 3; shot += 1) {
+      state = spawnShell(state, { x: 0, z: 0 }, 0);
+      for (let step = 0; step < 20; step += 1) {
+        const result = advanceShells(state, 0.1, enemies, 42);
+        state = result.state;
+        destroyed = [...destroyed, ...result.destroyed];
+      }
     }
     expect(destroyed).toEqual(['a']);
+    expect(state.enemyHealth.a).toBe(0);
     expect(state.enemiesRemaining).toBe(1);
+  });
+
+  it('blocks a shell that cannot penetrate and preserves enemy health', () => {
+    const enemies = [enemy('a', 10, 0)];
+    let state = createCombatState(1, 1, 150, enemies);
+    state = spawnShell(state, { x: 0, z: 0 }, 0, 0, 1.2, 34, 0);
+    const result = advanceShells(state, 0.5, enemies, 42);
+
+    expect(result.destroyed).toEqual([]);
+    expect(result.state.enemyHealth.a).toBe(100);
+  });
+
+  it('sweeps a fast shell through a target instead of tunnelling', () => {
+    const enemies = [enemy('a', 10, 0)];
+    let state = createCombatState(1, 1, 150, enemies);
+    state = spawnShell(state, { x: 0, z: 0 }, 0);
+
+    const result = advanceShells(state, 0.5, enemies, 420);
+
+    expect(result.state.enemyHealth.a).toBe(66);
+    expect(result.destroyed).toEqual([]);
   });
 
   it('drops shells that fly past their range', () => {
@@ -140,6 +165,31 @@ describe('enemy fire', () => {
       ENEMY_FIRE_INTERVAL_MS / 1000
     );
     expect(later.launches).toHaveLength(1);
+  });
+
+  it('uses the firing tank projectile speed instead of the player speed', () => {
+    const scout = enemy('a', 5, 0);
+    scout.combat = {
+      maxHealth: 100,
+      armorReduction: 0,
+      armorProfile: { front: 54, side: 40, rear: 30 },
+      speed: 79,
+      projectileDamage: 15,
+      projectilePenetration: 40,
+      projectileSpeed: 200,
+      fireCooldownMs: 1900,
+    };
+    const fire = advanceEnemyFire(
+      createCombatState(1),
+      [scout],
+      { x: 0, z: 0 },
+      0.1
+    );
+    const state = spawnEnemyShell(fire.state, fire.launches[0]!);
+    const advanced = advanceEnemyShells(state, 0.5, { x: 100, z: 0 });
+
+    expect(fire.launches[0]?.projectileSpeed).toBe(200);
+    expect(advanced.state.enemyShells[0]?.x).toBeCloseTo(-5);
   });
 
   it('damages the player when an incoming shell reaches them', () => {
