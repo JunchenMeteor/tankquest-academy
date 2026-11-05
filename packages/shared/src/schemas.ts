@@ -151,6 +151,8 @@ export const enemyTankConfigSchema = z.object({
     allyAlertRadius: z.number().min(50).max(600).default(240),
     searchLeashRange: z.number().min(100).max(900).default(560),
   }),
+  elevation: z.number().min(0).max(20).optional(),
+  passive: z.boolean().default(false),
 });
 
 export const levelEnemyConfigSchema = z.object({

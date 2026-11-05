@@ -38,6 +38,10 @@ import {
 } from './battle-scene-model.js';
 import { driveCommand, normaliseAngle } from './battle-input.js';
 import {
+  resolveScenePalette,
+  type ScenePalette,
+} from '../presentation/map-visual-definition.js';
+import {
   aimPitch,
   aimYaw,
   clampGunPitch,
@@ -56,6 +60,7 @@ import {
   openingDelayMs,
 } from './battle-enemy-ai.js';
 import { advanceReload } from './battle-combat.js';
+import { FixedStepDriver } from './battle-fixed-step.js';
 import { applyAnswerCombo, emptyCombo } from './battle-combo.js';
 import { planWaves } from './battle-waves.js';
 import {
@@ -91,7 +96,7 @@ export interface Battle3DHandle {
   dispose(): void;
 }
 
-function buildGround(layout: SceneLayout): Group {
+function buildGround(layout: SceneLayout, palette: ScenePalette): Group {
   const ground = new Group();
   /* The ground matches the playable bounds, so the edge you see is the edge you hit. */
   const visualWidth = layout.ground.width;
@@ -107,13 +112,18 @@ function buildGround(layout: SceneLayout): Group {
 
   const floor = new Mesh(
     geometry,
-    new MeshStandardMaterial({ color: 0x6f7550, roughness: 0.95 })
+    new MeshStandardMaterial({ color: palette.floor.base, roughness: 0.95 })
   );
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
   ground.add(floor);
 
-  const grid = new GridHelper(visualWidth, 90, 0x8d9a63, 0x7b8757);
+  const grid = new GridHelper(
+    visualWidth,
+    90,
+    palette.floor.accent,
+    palette.floor.grid
+  );
   grid.material.opacity = 0.22;
   grid.material.transparent = true;
   grid.position.y = 0.04;
@@ -122,24 +132,39 @@ function buildGround(layout: SceneLayout): Group {
   for (const block of layout.blocks) {
     const mesh = new Mesh(
       new BoxGeometry(block.size[0], block.size[1], block.size[2]),
-      new MeshStandardMaterial({ color: 0x8b8570, roughness: 0.85 })
+      new MeshStandardMaterial({ color: palette.obstacle.top, roughness: 0.85 })
     );
     mesh.position.set(block.position.x, block.position.y, block.position.z);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     ground.add(mesh);
   }
+  for (const enemy of layout.enemies) {
+    const elevation = enemy.position.y;
+    if (!enemy.passive || elevation <= 0.3) continue;
+    const platform = new Mesh(
+      new BoxGeometry(4.2, elevation, 6.4),
+      new MeshStandardMaterial({
+        color: palette.obstacle.side,
+        roughness: 0.9,
+      })
+    );
+    platform.position.set(enemy.position.x, elevation / 2, enemy.position.z);
+    platform.castShadow = true;
+    platform.receiveShadow = true;
+    ground.add(platform);
+  }
   return ground;
 }
 
 /** A low fence around the walkable field, so the ground edge never shows. */
-function buildFence(layout: SceneLayout): Group {
+function buildFence(layout: SceneLayout, palette: ScenePalette): Group {
   const group = new Group();
   const bounds = layout.ground;
   const halfWidth = bounds.width / 2 - 1;
   const halfDepth = bounds.depth / 2 - 1;
   const material = new MeshStandardMaterial({
-    color: 0x2a352c,
+    color: palette.boundary.side,
     roughness: 0.9,
     metalness: 0.1,
   });
@@ -175,9 +200,10 @@ export function createBattleView(
   onCombo?: (streak: number, bonusAmmo: number) => void
 ): Battle3DHandle {
   const layout = buildSceneLayout(config);
+  const palette = resolveScenePalette(config.theme, config.visualResources);
   const scene = new Scene();
-  scene.background = new Color(0x9fb0b8);
-  scene.fog = new Fog(0x8d9a7c, 60, 190);
+  scene.background = new Color(palette.floor.grid);
+  scene.fog = new Fog(palette.floor.base, 60, 190);
 
   let quality: QualityTier = initialQuality;
   const renderer = new WebGLRenderer({
@@ -206,18 +232,22 @@ export function createBattleView(
   scene.add(new HemisphereLight(0xcfe0ff, 0x5a4c36, 1.6));
   scene.add(new AmbientLight(0xffffff, 0.45));
 
-  const ground = buildGround(layout);
+  const ground = buildGround(layout, palette);
   scene.add(ground);
   /* A distant skirt keeps the horizon filled; the fence marks the real edge. */
   const skirt = new Mesh(
     new PlaneGeometry(600, 600),
-    new MeshStandardMaterial({ color: 0x6b7350, roughness: 1, metalness: 0 })
+    new MeshStandardMaterial({
+      color: palette.floor.base,
+      roughness: 1,
+      metalness: 0,
+    })
   );
   skirt.rotation.x = -Math.PI / 2;
   skirt.position.y = -0.02;
   skirt.receiveShadow = true;
   scene.add(skirt);
-  scene.add(buildFence(layout));
+  scene.add(buildFence(layout, palette));
 
   let playerRig: TankRig = buildTankModel(layout.player, true);
   scene.add(playerRig.root);
@@ -246,7 +276,9 @@ export function createBattleView(
     enemyRoots.set(enemy.id, rig.root);
     scene.add(rig.root);
   };
-  const waves = planWaves(layout.enemies.length, difficulty);
+  const waves = layout.enemies.every((enemy) => enemy.passive)
+    ? [layout.enemies.map((_, index) => index)]
+    : planWaves(layout.enemies.length, difficulty);
   const pendingWaves = waves.slice(1);
   for (const index of waves[0] ?? []) {
     const enemy = layout.enemies[index];
@@ -269,7 +301,8 @@ export function createBattleView(
   let combat = createCombatState(
     layout.enemies.length,
     1,
-    config.player.maxHealth
+    config.player.maxHealth,
+    layout.enemies
   );
   for (const [slot, enemy] of layout.enemies.entries()) {
     combat.enemyCooldowns[enemy.id] = openingDelayMs(slot, difficulty);
@@ -409,7 +442,11 @@ export function createBattleView(
   if (!wantsProcedural && quality === 'high') {
     void loadTankRig()
       .then((asset) => {
-        const painted = paintTankRig(asset, layout.player.color);
+        const painted = paintTankRig(
+          asset,
+          layout.player.color,
+          layout.player.secondaryColor
+        );
         painted.root.position.copy(playerRig.root.position);
         painted.root.rotation.y = playerRig.root.rotation.y;
         scene.remove(playerRig.root);
@@ -420,7 +457,7 @@ export function createBattleView(
         for (const enemy of layout.enemies) {
           const root = enemyRoots.get(enemy.id);
           if (!root) continue;
-          const model = paintTankRig(asset, enemy.color);
+          const model = paintTankRig(asset, enemy.color, enemy.secondaryColor);
           root.clear();
           root.add(model.root);
           root.position.set(
@@ -439,6 +476,7 @@ export function createBattleView(
   let frame = 0;
   let previous = performance.now();
   const sampler = createFrameSampler(120);
+  const driver = new FixedStepDriver();
   const loop = (now: number) => {
     const delta = Math.min(0.1, (now - previous) / 1000);
     previous = now;
@@ -464,279 +502,320 @@ export function createBattleView(
       }
       sampler.reset();
     }
-    if (input) {
-      const command = driveCommand(input.snapshot());
-      const next = stepTank(
-        state,
-        { forward: command.forward, turn: command.turn },
-        delta,
-        layout
-      );
-      if (next.heading !== state.heading || next.position !== state.position) {
-        const previousPosition = state.position;
-        state.heading = next.heading;
-        state.position = resolveObstacles(next.position, 1.9, layout.blocks);
-        playerRig.root.position.set(
-          state.position.x,
-          state.position.y,
-          state.position.z
+    const update = (delta: number) => {
+      if (input) {
+        const command = driveCommand(input.snapshot());
+        const next = stepTank(
+          state,
+          { forward: command.forward, turn: command.turn },
+          delta,
+          layout
         );
-        const travelled =
-          Math.hypot(
-            state.position.x - previousPosition.x,
-            state.position.z - previousPosition.z
-          ) * Math.sign(command.forward);
-        advanceRunningGear(playerRig, travelled);
-        playerRig.root.rotation.y = next.heading;
-      }
-      if (command.turret !== 0) {
-        state.turret = normaliseAngle(
-          state.turret + command.turret * traverseSpeed * delta
-        );
-        playerRig.turret.rotation.y = state.turret;
-      }
-
-      /* Holding the right button freezes the turret while the camera turns. */
-      if (!rightHeld) {
-        const gap = normaliseAngle(state.heading - camYaw);
-        camYaw += gap * Math.min(1, delta * 1.2);
-      }
-
-      let targetWorld: number | null = rightHeld ? null : camYaw;
-      if (!rightHeld && aim.ready) {
-        const bounds = canvas.getBoundingClientRect();
-        const ndc = new Vector2(
-          (aim.x / Math.max(1, bounds.width)) * 2 - 1,
-          -(aim.y / Math.max(1, bounds.height)) * 2 + 1
-        );
-        raycaster.setFromCamera(ndc, camera);
-        aimPoint.copy(
-          resolveAimPoint(
-            raycaster.ray,
-            [...enemyRoots.values(), ground],
-            SHELL_RANGE
-          )
-        );
-        const pivot = playerRig.turret.getWorldPosition(new Vector3());
-        const muzzle = playerRig.muzzle.getWorldPosition(new Vector3());
-        targetWorld = aimYaw(pivot, aimPoint);
-        gunPitch = clampGunPitch(aimPitch(muzzle, aimPoint));
-        if (playerRig.gun.userData.pitchAxis === 'x') {
-          playerRig.gun.rotation.x = gunPitch;
-        } else {
-          playerRig.gun.rotation.z = -gunPitch;
+        if (
+          next.heading !== state.heading ||
+          next.position !== state.position
+        ) {
+          const previousPosition = state.position;
+          state.heading = next.heading;
+          state.position = resolveObstacles(next.position, 1.9, layout.blocks);
+          playerRig.root.position.set(
+            state.position.x,
+            state.position.y,
+            state.position.z
+          );
+          const travelled =
+            Math.hypot(
+              state.position.x - previousPosition.x,
+              state.position.z - previousPosition.z
+            ) * Math.sign(command.forward);
+          advanceRunningGear(playerRig, travelled);
+          playerRig.root.rotation.y = next.heading;
         }
-      }
+        if (command.turret !== 0) {
+          state.turret = normaliseAngle(
+            state.turret + command.turret * traverseSpeed * delta
+          );
+          playerRig.turret.rotation.y = state.turret;
+        }
 
-      if (aim.ready) {
-        const bounds = canvas.getBoundingClientRect();
-        onReticle?.(aim.x, aim.y, bounds.width, bounds.height);
-      }
+        /* Holding the right button freezes the turret while the camera turns. */
+        if (!rightHeld) {
+          const gap = normaliseAngle(state.heading - camYaw);
+          camYaw += gap * Math.min(1, delta * 1.2);
+        }
 
-      if (targetWorld !== null) {
-        onAimOffset?.(
-          normaliseAngle(targetWorld - (state.heading + state.turret))
-        );
-        const localTarget = normaliseAngle(targetWorld - state.heading);
-        state.turret = rotateTowards(
-          state.turret,
-          localTarget,
-          traverseSpeed * delta
-        );
-        playerRig.turret.rotation.y = state.turret;
-      }
-      /* Enemies close the distance until they are inside their firing standoff. */
-      const boundsRect = layout.playfield ?? layout.ground;
-      const limitX = boundsRect.width / 2 - 2.4;
-      const limitZ = boundsRect.depth / 2 - 2.4;
-      for (const [slot, enemy] of layout.enemies.entries()) {
-        const root = enemyRoots.get(enemy.id);
-        if (!root) continue;
-        const goal = enemyGoal(
-          enemy,
-          { x: state.position.x, z: state.position.z },
-          groupSpread(slot, layout.enemies.length, difficulty) *
+        let targetWorld: number | null =
+          rightHeld || command.turret !== 0 ? null : camYaw;
+        if (!rightHeld && command.turret === 0 && aim.ready) {
+          const bounds = canvas.getBoundingClientRect();
+          const ndc = new Vector2(
+            (aim.x / Math.max(1, bounds.width)) * 2 - 1,
+            -(aim.y / Math.max(1, bounds.height)) * 2 + 1
+          );
+          raycaster.setFromCamera(ndc, camera);
+          const muzzle = playerRig.muzzle.getWorldPosition(new Vector3());
+          aimPoint.copy(
+            resolveAimPoint(
+              raycaster.ray,
+              [...enemyRoots.values(), ground],
+              SHELL_RANGE + camera.position.distanceTo(muzzle)
+            )
+          );
+          const pivot = playerRig.turret.getWorldPosition(new Vector3());
+          targetWorld = aimYaw(pivot, aimPoint);
+          gunPitch = clampGunPitch(aimPitch(muzzle, aimPoint));
+          if (playerRig.gun.userData.pitchAxis === 'x') {
+            playerRig.gun.rotation.x = gunPitch;
+          } else {
+            playerRig.gun.rotation.z = -gunPitch;
+          }
+        }
+
+        if (aim.ready) {
+          const bounds = canvas.getBoundingClientRect();
+          onReticle?.(aim.x, aim.y, bounds.width, bounds.height);
+        }
+
+        if (targetWorld !== null) {
+          onAimOffset?.(
+            normaliseAngle(targetWorld - (state.heading + state.turret))
+          );
+          const localTarget = normaliseAngle(targetWorld - state.heading);
+          state.turret = rotateTowards(
+            state.turret,
+            localTarget,
+            traverseSpeed * delta
+          );
+          playerRig.turret.rotation.y = state.turret;
+        }
+        /* Enemies close the distance until they are inside their firing standoff. */
+        const boundsRect = layout.playfield ?? layout.ground;
+        const limitX = boundsRect.width / 2 - 2.4;
+        const limitZ = boundsRect.depth / 2 - 2.4;
+        for (const [slot, enemy] of layout.enemies.entries()) {
+          const root = enemyRoots.get(enemy.id);
+          if (!root || enemy.passive) continue;
+          const goal = enemyGoal(
+            enemy,
+            { x: state.position.x, z: state.position.z },
+            groupSpread(slot, layout.enemies.length, difficulty) *
+              layout.enemies.length,
             layout.enemies.length,
-          layout.enemies.length,
-          layout.blocks
-        );
-        const step = advanceEnemy(
-          enemy,
-          goal,
-          combat.playerDestroyed ? 0 : (enemySpeeds.get(enemy.id) ?? 0),
-          delta,
-          boundsRect
-        );
-        if (step.moved) {
-          enemy.position = resolveObstacles(step.position, 1.7, layout.blocks);
-          enemy.heading = step.heading;
-        }
-        root.position.set(enemy.position.x, enemy.position.y, enemy.position.z);
-        root.rotation.y = enemy.heading;
-      }
-
-      /* Hull-to-hull separation: enemies and the player never share a spot. */
-      const bodies = [
-        { id: 'player', position: state.position, radius: 2.6 },
-        ...layout.enemies.map((enemy) => ({
-          id: enemy.id,
-          position: enemy.position,
-          radius: 2.6,
-        })),
-      ];
-      for (let a = 0; a < bodies.length; a += 1) {
-        for (let b = a + 1; b < bodies.length; b += 1) {
-          const first = bodies[a]!;
-          const second = bodies[b]!;
-          const dx = second.position.x - first.position.x;
-          const dz = second.position.z - first.position.z;
-          const distance = Math.hypot(dx, dz);
-          const minimum = first.radius + second.radius;
-          if (distance <= 0.0001 || distance >= minimum) continue;
-          const push = (minimum - distance) / 2;
-          const nx = (dx / distance) * push;
-          const nz = (dz / distance) * push;
-          if (first.id !== 'player') {
-            first.position.x -= nx;
-            first.position.z -= nz;
-          }
-          if (second.id !== 'player') {
-            second.position.x += nx;
-            second.position.z += nz;
-          }
-          if (first.id === 'player') {
-            state.position.x -= nx;
-            state.position.z -= nz;
-          }
-          if (second.id === 'player') {
-            state.position.x += nx;
-            state.position.z += nz;
-          }
-        }
-      }
-      /* Separation can push hulls outward or into walls, so resolve both again. */
-      state.position = resolveObstacles(
-        {
-          x: Math.max(-limitX, Math.min(limitX, state.position.x)),
-          y: state.position.y,
-          z: Math.max(-limitZ, Math.min(limitZ, state.position.z)),
-        },
-        1.9,
-        layout.blocks
-      );
-      for (const enemy of layout.enemies) {
-        enemy.position = resolveObstacles(
-          {
-            x: Math.max(-limitX, Math.min(limitX, enemy.position.x)),
-            y: enemy.position.y,
-            z: Math.max(-limitZ, Math.min(limitZ, enemy.position.z)),
-          },
-          1.7,
-          layout.blocks
-        );
-        const root = enemyRoots.get(enemy.id);
-        if (!root) continue;
-        root.position.set(enemy.position.x, enemy.position.y, enemy.position.z);
-      }
-      playerRig.root.position.copy(
-        new Vector3(state.position.x, state.position.y, state.position.z)
-      );
-      const beforeAmmo = combat.ammo;
-      combat = advanceReload(combat, delta);
-      combat = tickCooldown(combat, delta);
-      if (combat.ammo !== beforeAmmo) onAmmo?.(combat.ammo, MAX_AMMO);
-      if (canFire(combat) && input.consumeFireRequest()) {
-        const muzzle = playerRig.muzzle.getWorldPosition(new Vector3());
-        const turretWorld = state.heading + state.turret;
-        const horizontal = Math.cos(gunPitch);
-        const baseAim = {
-          x: muzzle.x + Math.cos(turretWorld) * SHELL_RANGE * horizontal,
-          z: muzzle.z - Math.sin(turretWorld) * SHELL_RANGE * horizontal,
-        };
-        const scattered = scatterAimPoint(baseAim, Math.random, dispersion);
-        combat = spawnShell(
-          combat,
-          muzzle,
-          aimYaw(muzzle, scattered),
-          gunPitch,
-          muzzle.y
-        );
-        const flash = new Mesh(
-          new SphereGeometry(0.42, 8, 8),
-          new MeshBasicMaterial({
-            color: 0xffd27a,
-            transparent: true,
-            opacity: 0.95,
-          })
-        );
-        flash.position.copy(muzzle);
-        spawnEffect(flash, 0.14, 5);
-        publish();
-        onAmmo?.(combat.ammo, MAX_AMMO);
-      }
-
-      if (!combat.playerDestroyed) {
-        const aliveEnemies = layout.enemies.filter((enemy) =>
-          enemyRoots.has(enemy.id)
-        );
-        const fire = advanceEnemyFire(
-          combat,
-          aliveEnemies,
-          { x: state.position.x, z: state.position.z },
-          delta,
-          9,
-          enemyReloadMs(difficulty)
-        );
-        combat = fire.state;
-        for (const launch of fire.launches) {
-          combat = spawnEnemyShell(combat, launch);
-        }
-        if (combat.enemyShells.length > 0) {
-          const incoming = advanceEnemyShells(combat, delta, {
-            x: state.position.x,
-            z: state.position.z,
-          });
-          combat = incoming.state;
-          if (incoming.damage > 0) publish();
-        }
-      }
-
-      if (combat.shells.length > 0) {
-        const alive = layout.enemies.filter((enemy) =>
-          enemyRoots.has(enemy.id)
-        );
-        const result = advanceShells(combat, delta, alive);
-        combat = result.state;
-        for (const id of result.destroyed) {
-          const root = enemyRoots.get(id);
-          if (root) {
-            const impact = new Mesh(
-              new RingGeometry(0.6, 1.4, 24),
-              new MeshBasicMaterial({
-                color: 0xffa24a,
-                transparent: true,
-                opacity: 0.85,
-                side: DoubleSide,
-              })
+            layout.blocks
+          );
+          const step = advanceEnemy(
+            enemy,
+            goal,
+            combat.playerDestroyed ? 0 : (enemySpeeds.get(enemy.id) ?? 0),
+            delta,
+            boundsRect
+          );
+          if (step.moved) {
+            enemy.position = resolveObstacles(
+              step.position,
+              1.7,
+              layout.blocks
             );
-            impact.rotation.x = -Math.PI / 2;
-            impact.position.set(root.position.x, 0.35, root.position.z);
-            spawnEffect(impact, 0.55, 4);
-            scene.remove(root);
-            enemyRoots.delete(id);
+            enemy.heading = step.heading;
           }
-          destroyedCount += 1;
+          root.position.set(
+            enemy.position.x,
+            enemy.position.y,
+            enemy.position.z
+          );
+          root.rotation.y = enemy.heading;
         }
-        if (enemyRoots.size === 0 && pendingWaves.length > 0) {
-          for (const index of pendingWaves.shift() ?? []) {
-            const enemy = layout.enemies[index];
-            if (enemy) spawnEnemy(enemy);
+
+        /* Hull-to-hull separation: enemies and the player never share a spot. */
+        const bodies = [
+          { id: 'player', position: state.position, radius: 2.6 },
+          ...layout.enemies.map((enemy) => ({
+            id: enemy.id,
+            position: enemy.position,
+            radius: 2.6,
+          })),
+        ];
+        for (let a = 0; a < bodies.length; a += 1) {
+          for (let b = a + 1; b < bodies.length; b += 1) {
+            const first = bodies[a]!;
+            const second = bodies[b]!;
+            const dx = second.position.x - first.position.x;
+            const dz = second.position.z - first.position.z;
+            const distance = Math.hypot(dx, dz);
+            const minimum = first.radius + second.radius;
+            if (distance <= 0.0001 || distance >= minimum) continue;
+            const push = (minimum - distance) / 2;
+            const nx = (dx / distance) * push;
+            const nz = (dz / distance) * push;
+            if (first.id !== 'player') {
+              first.position.x -= nx;
+              first.position.z -= nz;
+            }
+            if (second.id !== 'player') {
+              second.position.x += nx;
+              second.position.z += nz;
+            }
+            if (first.id === 'player') {
+              state.position.x -= nx;
+              state.position.z -= nz;
+            }
+            if (second.id === 'player') {
+              state.position.x += nx;
+              state.position.z += nz;
+            }
           }
+        }
+        /* Separation can push hulls outward or into walls, so resolve both again. */
+        state.position = resolveObstacles(
+          {
+            x: Math.max(-limitX, Math.min(limitX, state.position.x)),
+            y: state.position.y,
+            z: Math.max(-limitZ, Math.min(limitZ, state.position.z)),
+          },
+          1.9,
+          layout.blocks
+        );
+        for (const enemy of layout.enemies) {
+          enemy.position = resolveObstacles(
+            {
+              x: Math.max(-limitX, Math.min(limitX, enemy.position.x)),
+              y: enemy.position.y,
+              z: Math.max(-limitZ, Math.min(limitZ, enemy.position.z)),
+            },
+            1.7,
+            layout.blocks
+          );
+          const root = enemyRoots.get(enemy.id);
+          if (!root) continue;
+          root.position.set(
+            enemy.position.x,
+            enemy.position.y,
+            enemy.position.z
+          );
+        }
+        playerRig.root.position.copy(
+          new Vector3(state.position.x, state.position.y, state.position.z)
+        );
+        const beforeAmmo = combat.ammo;
+        combat = advanceReload(combat, delta);
+        combat = tickCooldown(combat, delta);
+        if (combat.ammo !== beforeAmmo) onAmmo?.(combat.ammo, MAX_AMMO);
+        if (canFire(combat) && input.consumeFireRequest()) {
+          const muzzle = playerRig.muzzle.getWorldPosition(new Vector3());
+          const turretWorld = state.heading + state.turret;
+          const horizontal = Math.cos(gunPitch);
+          const baseAim = {
+            x: muzzle.x + Math.cos(turretWorld) * SHELL_RANGE * horizontal,
+            y: muzzle.y - Math.sin(gunPitch) * SHELL_RANGE,
+            z: muzzle.z - Math.sin(turretWorld) * SHELL_RANGE * horizontal,
+          };
+          const target = aim.ready ? aimPoint : baseAim;
+          const scattered = scatterAimPoint(target, Math.random, dispersion);
+          const shotPitch = clampGunPitch(
+            aimPitch(muzzle, {
+              x: scattered.x,
+              y: target.y,
+              z: scattered.z,
+            })
+          );
+          combat = spawnShell(
+            combat,
+            muzzle,
+            aimYaw(muzzle, scattered),
+            shotPitch,
+            muzzle.y,
+            config.player.projectileDamage,
+            config.player.projectilePenetration,
+            config.player.fireCooldownMs
+          );
+          const flash = new Mesh(
+            new SphereGeometry(0.42, 8, 8),
+            new MeshBasicMaterial({
+              color: 0xffd27a,
+              transparent: true,
+              opacity: 0.95,
+            })
+          );
+          flash.position.copy(muzzle);
+          spawnEffect(flash, 0.14, 5);
           publish();
+          onAmmo?.(combat.ammo, MAX_AMMO);
         }
-        if (result.destroyed.length > 0) publish();
+
+        if (!combat.playerDestroyed) {
+          const aliveEnemies = layout.enemies.filter((enemy) =>
+            enemyRoots.has(enemy.id)
+          );
+          const fire = advanceEnemyFire(
+            combat,
+            aliveEnemies,
+            { x: state.position.x, z: state.position.z },
+            delta,
+            9,
+            enemyReloadMs(difficulty)
+          );
+          combat = fire.state;
+          for (const launch of fire.launches) {
+            combat = spawnEnemyShell(combat, launch);
+          }
+          if (combat.enemyShells.length > 0) {
+            const incoming = advanceEnemyShells(
+              combat,
+              delta,
+              {
+                x: state.position.x,
+                z: state.position.z,
+              },
+              config.player.armorReduction
+            );
+            combat = incoming.state;
+            if (incoming.damage > 0) publish();
+          }
+        }
+
+        if (combat.shells.length > 0) {
+          const alive = layout.enemies.filter((enemy) =>
+            enemyRoots.has(enemy.id)
+          );
+          const result = advanceShells(
+            combat,
+            delta,
+            alive,
+            config.player.projectileSpeed * 0.1
+          );
+          combat = result.state;
+          for (const id of result.destroyed) {
+            const root = enemyRoots.get(id);
+            if (root) {
+              const impact = new Mesh(
+                new RingGeometry(0.6, 1.4, 24),
+                new MeshBasicMaterial({
+                  color: 0xffa24a,
+                  transparent: true,
+                  opacity: 0.85,
+                  side: DoubleSide,
+                })
+              );
+              impact.rotation.x = -Math.PI / 2;
+              impact.position.set(root.position.x, 0.35, root.position.z);
+              spawnEffect(impact, 0.55, 4);
+              scene.remove(root);
+              enemyRoots.delete(id);
+            }
+            destroyedCount += 1;
+          }
+          if (enemyRoots.size === 0 && pendingWaves.length > 0) {
+            for (const index of pendingWaves.shift() ?? []) {
+              const enemy = layout.enemies[index];
+              if (enemy) spawnEnemy(enemy);
+            }
+            publish();
+          }
+          if (result.destroyed.length > 0) publish();
+        }
       }
-    }
+    };
+    driver.advance(delta, update);
 
     for (let index = effects.length - 1; index >= 0; index -= 1) {
       const effect = effects[index]!;

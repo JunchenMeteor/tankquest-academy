@@ -46,6 +46,8 @@ export interface EnemyRuntimeConfig {
   armorProfile: ArmorProfile;
   mass: number;
   speed: number;
+  reverseSpeed?: number;
+  turnSpeed?: number;
   detectionRange: number;
   attackRange: number;
   projectileDamage: number;
@@ -56,6 +58,8 @@ export interface EnemyRuntimeConfig {
   nearMissRadius: number;
   allyAlertRadius: number;
   searchLeashRange: number;
+  elevation?: number;
+  passive?: boolean;
 }
 
 export interface ObstacleRuntimeConfig {

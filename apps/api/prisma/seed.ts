@@ -169,6 +169,20 @@ function enemyTank(
   };
 }
 
+function targetTank(
+  id: string,
+  role: keyof typeof enemyPresets,
+  x: number,
+  y: number,
+  elevation = 0
+) {
+  return {
+    ...enemyTank(id, role, x, y),
+    elevation,
+    passive: true,
+  };
+}
+
 function getQuestionId(questions: Map<string, string>, code: string) {
   const questionId = questions.get(code);
   if (!questionId) throw new Error(`Missing seeded question: ${code}`);
@@ -711,6 +725,33 @@ const levelSeeds = [
           type: 'elite-hunt',
           targetEnemyIds: ['ridge_elite_alpha', 'ridge_elite_bravo'],
         },
+      ],
+    },
+  },
+  {
+    code: 'target-range',
+    titleKey: 'level.targetRange.title',
+    subject: 'math',
+    questionCodes: officialQuestionCodes('math', 1),
+    difficulty: 1,
+    theme: 'training-base',
+    map: {
+      style: 'range',
+      playerSpawn: { x: 120, y: 270 },
+      obstacles: [],
+    },
+    enemyTanks: [
+      targetTank('target_near_low', 'scout', 340, 270, 0),
+      targetTank('target_near_high', 'scout', 340, 100, 2),
+      targetTank('target_mid_low', 'medium', 540, 340, 0),
+      targetTank('target_mid_high', 'medium', 540, 180, 3),
+      targetTank('target_far_low', 'heavy', 720, 460, 0),
+      targetTank('target_far_high', 'heavy', 720, 220, 5),
+    ],
+    objectiveSet: {
+      completion: 'all',
+      objectives: [
+        { id: 'clear_target_range', type: 'eliminate', targetCount: 6 },
       ],
     },
   },
