@@ -67,6 +67,11 @@ test('completes the authoritative learning and upgrade journey', async ({
     (level) => level.code === 'target-range'
   )?.config.enemyTanks as EnemyTankConfigDto[] | undefined;
   expect(targetEnemies).toHaveLength(6);
+  expect(targetEnemies?.[0]).toMatchObject({
+    id: 'target_near_low',
+    x: 340,
+    y: 160,
+  });
   expect(targetEnemies?.every((enemy) => enemy.passive)).toBe(true);
   expect(new Set(targetEnemies?.map((enemy) => enemy.elevation))).toEqual(
     new Set([0, 2, 3, 5])
