@@ -741,7 +741,7 @@ const levelSeeds = [
       obstacles: [],
     },
     enemyTanks: [
-      targetTank('target_near_low', 'scout', 340, 270, 0),
+      targetTank('target_near_low', 'scout', 340, 160, 0),
       targetTank('target_near_high', 'scout', 340, 100, 2),
       targetTank('target_mid_low', 'medium', 540, 340, 0),
       targetTank('target_mid_high', 'medium', 540, 180, 3),
