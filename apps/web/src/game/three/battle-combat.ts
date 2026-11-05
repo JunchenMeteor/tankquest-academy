@@ -246,10 +246,28 @@ export function spawnShell(
   };
 }
 
+export interface ShellImpact {
+  enemyId: string;
+  point: { x: number; y: number; z: number };
+}
+
 export interface AdvanceResult {
   state: CombatState;
   destroyed: string[];
+  impacts: ShellImpact[];
 }
+
+export interface ShellHit {
+  enemy: TankPlacement;
+  fraction: number;
+  point: { x: number; y: number; z: number };
+}
+
+export type ShellHitTest = (
+  from: { x: number; y: number; z: number },
+  to: { x: number; y: number; z: number },
+  enemies: TankPlacement[]
+) => ShellHit | null;
 
 function sweepFraction(
   from: { x: number; y: number; z: number },
@@ -275,8 +293,41 @@ function sweepFraction(
   const x = from.x + dx * fraction - centre.x;
   const y = from.y + dy * fraction - centre.y;
   const z = from.z + dz * fraction - centre.z;
-  return Math.hypot(x, y, z) <= radius ? fraction : null;
+  const distance = Math.hypot(x, y, z);
+  if (distance > radius) return null;
+  const entry =
+    fraction -
+    Math.sqrt(radius * radius - distance * distance) / Math.sqrt(lengthSquared);
+  return Math.max(0, entry);
 }
+
+const sphereHitTest: ShellHitTest = (from, to, enemies) => {
+  let nearest: ShellHit | null = null;
+  for (const enemy of enemies) {
+    const fraction = sweepFraction(
+      from,
+      to,
+      {
+        x: enemy.position.x,
+        y: enemy.position.y + 1.2,
+        z: enemy.position.z,
+      },
+      SHELL_RADIUS + ENEMY_HIT_RADIUS
+    );
+    if (fraction === null || (nearest && fraction >= nearest.fraction))
+      continue;
+    nearest = {
+      enemy,
+      fraction,
+      point: {
+        x: from.x + (to.x - from.x) * fraction,
+        y: from.y + (to.y - from.y) * fraction,
+        z: from.z + (to.z - from.z) * fraction,
+      },
+    };
+  }
+  return nearest;
+};
 
 /**
  * Sweeps shells between fixed-step positions, then applies penetration,
@@ -286,9 +337,11 @@ export function advanceShells(
   state: CombatState,
   deltaSeconds: number,
   enemies: TankPlacement[],
-  stepDistance = SHELL_SPEED
+  stepDistance = SHELL_SPEED,
+  hitTest: ShellHitTest = sphereHitTest
 ): AdvanceResult {
   const destroyed: string[] = [];
+  const impacts: ShellImpact[] = [];
   const alive = new Set(enemies.map((enemy) => enemy.id));
   const remaining: Shell[] = [];
   const enemyHealth = { ...state.enemyHealth };
@@ -302,23 +355,11 @@ export function advanceShells(
     const travelled = shell.distanceTravelled + step;
     const from = { x: shell.x, y: shell.y, z: shell.z };
     const to = { x: nextX, y: nextY, z: nextZ };
-
-    let hit: { enemy: TankPlacement; fraction: number } | null = null;
-    for (const enemy of enemies) {
-      if (!alive.has(enemy.id)) continue;
-      const fraction = sweepFraction(
-        from,
-        to,
-        {
-          x: enemy.position.x,
-          y: enemy.position.y + 1.2,
-          z: enemy.position.z,
-        },
-        SHELL_RADIUS + ENEMY_HIT_RADIUS
-      );
-      if (fraction === null || (hit && fraction >= hit.fraction)) continue;
-      hit = { enemy, fraction };
-    }
+    const hit = hitTest(
+      from,
+      to,
+      enemies.filter((enemy) => alive.has(enemy.id))
+    );
 
     if (hit) {
       const enemy = hit.enemy;
@@ -328,8 +369,8 @@ export function advanceShells(
         rear: 32,
       };
       const zone = classifyArmorZone(
-        from.x - enemy.position.x,
-        from.z - enemy.position.z,
+        hit.point.x - enemy.position.x,
+        hit.point.z - enemy.position.z,
         -enemy.heading
       );
       const baseArmor = armor[zone];
@@ -352,6 +393,7 @@ export function advanceShells(
         (enemyHealth[enemy.id] ?? enemy.combat?.maxHealth ?? 100) - damage
       );
       enemyHealth[enemy.id] = health;
+      impacts.push({ enemyId: enemy.id, point: hit.point });
       if (health === 0) {
         alive.delete(enemy.id);
         destroyed.push(enemy.id);
@@ -376,6 +418,7 @@ export function advanceShells(
       enemiesRemaining: Math.max(0, state.enemiesRemaining - destroyed.length),
     },
     destroyed,
+    impacts,
   };
 }
 
