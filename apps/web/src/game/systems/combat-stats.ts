@@ -44,8 +44,8 @@ export function deriveCombatStats(stats: TankStats): PlayerCombatRuntimeConfig {
     turretTraverseSpeed: 0.8 + turretTraverse * 0.42,
     /* Dispersion shrinks as accuracy rises; a heavier gun adds spread. */
     dispersionRadius: Math.max(
-      0.3,
-      1.9 - accuracy * 0.26 + (firepower - 3) * 0.08
+      0.05,
+      (1.9 - accuracy * 0.26 + (firepower - 3) * 0.08) * 0.15
     ),
   };
 }

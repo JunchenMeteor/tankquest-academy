@@ -70,6 +70,15 @@ describe('deriveCombatStats', () => {
     );
   });
 
+  it('keeps dispersion small while rewarding accuracy', () => {
+    const low = deriveCombatStats(withStat('accuracy', 1));
+    const high = deriveCombatStats(withStat('accuracy', 5));
+
+    expect(high.dispersionRadius).toBeLessThan(low.dispersionRadius);
+    expect(high.dispersionRadius).toBeGreaterThanOrEqual(0.05);
+    expect(low.dispersionRadius).toBeLessThanOrEqual(0.3);
+  });
+
   it('clamps unexpected API values to the supported one-to-five range', () => {
     expect(deriveCombatStats(withStat('firepower', 99))).toEqual(
       deriveCombatStats(withStat('firepower', 5))
