@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   MAX_GUN_PITCH,
+  aimAlignmentError,
   aimPitch,
   aimYaw,
   clampGunPitch,
@@ -21,6 +22,19 @@ describe('3D battle aiming', () => {
     expect(aimPitch(from, { x: 10, y: 2, z: 0 })).toBeCloseTo(0);
     expect(aimPitch(from, { x: 10, y: 12, z: 0 })).toBeCloseTo(-Math.PI / 4);
     expect(aimPitch(from, { x: 10, y: -8, z: 0 })).toBeCloseTo(Math.PI / 4);
+  });
+
+  it('measures the angle between the real gun axis and its target', () => {
+    const origin = { x: 0, y: 0, z: 0 };
+    expect(
+      aimAlignmentError(origin, { x: 1, y: 0, z: 0 }, { x: 10, y: 0, z: 0 })
+    ).toBeCloseTo(0);
+    expect(
+      aimAlignmentError(origin, { x: 1, y: 0, z: 0 }, { x: 0, y: 0, z: 10 })
+    ).toBeCloseTo(Math.PI / 2);
+    expect(
+      aimAlignmentError(origin, { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 })
+    ).toBe(Math.PI);
   });
 
   it('limits gun elevation to twenty-five degrees in either direction', () => {

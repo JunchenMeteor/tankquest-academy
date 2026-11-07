@@ -34,6 +34,26 @@ export function resolveAimPoint(
 }
 
 export const MAX_GUN_PITCH = Math.PI / 7.2;
+export const FIRE_AIM_TOLERANCE = Math.PI / 360;
+
+export function aimAlignmentError(
+  from: { x: number; y: number; z: number },
+  direction: { x: number; y: number; z: number },
+  to: { x: number; y: number; z: number }
+): number {
+  const target = {
+    x: to.x - from.x,
+    y: to.y - from.y,
+    z: to.z - from.z,
+  };
+  const directionLength = Math.hypot(direction.x, direction.y, direction.z);
+  const targetLength = Math.hypot(target.x, target.y, target.z);
+  if (directionLength === 0 || targetLength === 0) return Math.PI;
+  const dot =
+    (direction.x * target.x + direction.y * target.y + direction.z * target.z) /
+    (directionLength * targetLength);
+  return Math.acos(Math.max(-1, Math.min(1, dot)));
+}
 
 export function clampGunPitch(pitch: number): number {
   return Math.max(-MAX_GUN_PITCH, Math.min(MAX_GUN_PITCH, pitch));

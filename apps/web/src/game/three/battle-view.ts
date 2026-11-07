@@ -42,9 +42,11 @@ import {
   type ScenePalette,
 } from '../presentation/map-visual-definition.js';
 import {
+  aimAlignmentError,
   aimPitch,
   aimYaw,
   clampGunPitch,
+  FIRE_AIM_TOLERANCE,
   resolveAimPoint,
   rotateTowards,
   scatterAimPoint,
@@ -702,21 +704,23 @@ export function createBattleView(
         combat = advanceReload(combat, delta);
         combat = tickCooldown(combat, delta);
         if (combat.ammo !== beforeAmmo) onAmmo?.(combat.ammo, MAX_AMMO);
-        if (canFire(combat) && input.consumeFireRequest()) {
-          const muzzle = playerRig.muzzle.getWorldPosition(new Vector3());
-          const turretWorld = state.heading + state.turret;
-          const horizontal = Math.cos(gunPitch);
+        const muzzle = playerRig.muzzle.getWorldPosition(new Vector3());
+        const direction = playerRig.muzzle.getWorldDirection(new Vector3());
+        const guidedAim = !rightHeld && command.turret === 0 && aim.ready;
+        const aligned =
+          !guidedAim ||
+          aimAlignmentError(muzzle, direction, aimPoint) <= FIRE_AIM_TOLERANCE;
+        if (canFire(combat) && aligned && input.consumeFireRequest()) {
           const baseAim = {
-            x: muzzle.x + Math.cos(turretWorld) * SHELL_RANGE * horizontal,
-            y: muzzle.y - Math.sin(gunPitch) * SHELL_RANGE,
-            z: muzzle.z - Math.sin(turretWorld) * SHELL_RANGE * horizontal,
+            x: muzzle.x + direction.x * SHELL_RANGE,
+            y: muzzle.y + direction.y * SHELL_RANGE,
+            z: muzzle.z + direction.z * SHELL_RANGE,
           };
-          const target = aim.ready ? aimPoint : baseAim;
-          const scattered = scatterAimPoint(target, Math.random, dispersion);
+          const scattered = scatterAimPoint(baseAim, Math.random, dispersion);
           const shotPitch = clampGunPitch(
             aimPitch(muzzle, {
               x: scattered.x,
-              y: target.y,
+              y: baseAim.y,
               z: scattered.z,
             })
           );
