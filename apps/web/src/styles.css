@@ -1545,7 +1545,7 @@ body {
   display: none;
 }
 
-.battle-reticle-ring {
+.battle-reticle .battle-reticle-ring {
   position: absolute;
   left: 50%;
   top: 50%;
@@ -1558,7 +1558,7 @@ body {
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
 }
 
-.battle-reticle-dot {
+.battle-reticle .battle-reticle-dot {
   position: absolute;
   left: 50%;
   top: 50%;
