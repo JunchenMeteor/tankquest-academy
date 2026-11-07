@@ -139,7 +139,7 @@ export function Battle3DCanvas({
           Quality: {tier}
         </p>
         <p className="battle-pointer-hint">
-          Right-drag to look · A/D to steer · the reticle follows the mouse
+          Right-drag to look · A/D to steer · shots queue until aligned
         </p>
         {Math.abs(aimOffset) > 0.04 ? (
           <span
