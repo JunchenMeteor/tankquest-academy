@@ -51,8 +51,8 @@ export function Battle3DCanvas({
   });
   const initialTier = useRef(tier);
   const [ammo, setAmmo] = useState({ current: 1, max: 5 });
-  const [aimOffset, setAimOffset] = useState(0);
   const reticleRef = useRef<HTMLDivElement | null>(null);
+  const pointerReticleRef = useRef<HTMLDivElement | null>(null);
   const [combo, setCombo] = useState({ streak: 0, bonus: 0 });
 
   useEffect(() => {
@@ -69,14 +69,26 @@ export function Battle3DCanvas({
         if (typeof window !== 'undefined') storeTier(window.localStorage, next);
       },
       () => {},
-      (radians) => setAimOffset(radians),
+      () => {},
       (x, y, w, h) => {
-        /* Move the reticle imperatively: 60 updates a second would re-render. */
+        /* Move both reticles imperatively instead of re-rendering every frame. */
         const node = reticleRef.current;
         if (!node) return;
         const cx = Math.round((x - w / 2) * 100) / 100;
         const cy = Math.round((y - h / 2) * 100) / 100;
         node.style.transform = `translate(${cx}px, ${cy}px)`;
+      },
+      (x, y, w, h, aligned) => {
+        const node = pointerReticleRef.current;
+        if (!node) return;
+        const cx = Math.round((x - w / 2) * 100) / 100;
+        const cy = Math.round((y - h / 2) * 100) / 100;
+        node.hidden = false;
+        node.style.transform = `translate(${cx}px, ${cy}px)`;
+        node.dataset.aligned = String(aligned);
+        if (reticleRef.current) {
+          reticleRef.current.dataset.aligned = String(aligned);
+        }
       },
       (streak, bonus) => setCombo({ streak, bonus })
     );
@@ -135,24 +147,21 @@ export function Battle3DCanvas({
           <span className="battle-reticle-ring" />
           <span className="battle-reticle-dot" />
         </div>
+        <div
+          className="battle-pointer-reticle"
+          aria-hidden="true"
+          ref={pointerReticleRef}
+          hidden
+        >
+          <span className="battle-pointer-reticle-ring" />
+          <span className="battle-pointer-reticle-dot" />
+        </div>
         <p className="battle-quality" data-tier={tier}>
           Quality: {tier}
         </p>
         <p className="battle-pointer-hint">
           Right-drag to look · A/D to steer · shots queue until aligned
         </p>
-        {Math.abs(aimOffset) > 0.04 ? (
-          <span
-            className="battle-gun-marker"
-            aria-hidden="true"
-            style={{
-              ['--gun-offset' as string]: `${Math.max(
-                -260,
-                Math.min(260, aimOffset * 320)
-              )}px`,
-            }}
-          />
-        ) : null}
         {combo.streak >= 2 ? (
           <p className="battle-combo" data-bonus={combo.bonus > 0}>
             {combo.streak}× streak

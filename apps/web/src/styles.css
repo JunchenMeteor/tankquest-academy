@@ -1493,7 +1493,7 @@ body {
   }
 }
 
-/* Reticle for the 3D battle: the barrel follows this point. */
+/* The white/red sight follows the barrel; amber marks the pointer target. */
 .battle-reticle {
   position: absolute;
   left: 50%;
@@ -1581,7 +1581,48 @@ body {
   background: rgba(255, 255, 255, 0.55);
 }
 
-/* Locked pointer: the OS cursor disappears so only the reticle aims. */
+.battle-pointer-reticle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.battle-pointer-reticle-ring {
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid rgba(255, 196, 87, 0.95);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.battle-pointer-reticle-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 50%;
+  background: #ffc457;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+}
+
+.battle-reticle[data-aligned='true'] .battle-reticle-ring,
+.battle-pointer-reticle[data-aligned='true'] .battle-pointer-reticle-ring {
+  border-color: #7dff9b;
+}
+
+.battle-reticle[data-aligned='true'] .battle-reticle-dot,
+.battle-pointer-reticle[data-aligned='true'] .battle-pointer-reticle-dot {
+  background: #7dff9b;
+}
+
+/* The OS cursor disappears because the amber sight marks the pointer. */
 .battle-canvas--locked {
   cursor: none;
 }
@@ -1675,23 +1716,7 @@ body {
   }
 }
 
-/* Gun marker: shows where the barrel actually points while it traverses. */
-.battle-gun-marker {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 16px;
-  height: 16px;
-  margin: -8px 0 0 -8px;
-  transform: translateX(var(--gun-offset, 0px));
-  border: 2px solid rgba(255, 214, 122, 0.85);
-  border-radius: 50%;
-  z-index: 3;
-  pointer-events: none;
-  transition: transform 0.08s linear;
-}
-
-/* The reticle is translated to the pointer by the view, not centred. */
+/* Both sights are translated imperatively by the view, not centred. */
 .battle-reticle {
   left: 50%;
   top: 50%;

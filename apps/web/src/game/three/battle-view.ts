@@ -201,6 +201,13 @@ export function createBattleView(
   onPointerLock?: (locked: boolean) => void,
   onAimOffset?: (radians: number) => void,
   onReticle?: (x: number, y: number, width: number, height: number) => void,
+  onPointerReticle?: (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    aligned: boolean
+  ) => void,
   onCombo?: (streak: number, bonusAmmo: number) => void
 ): Battle3DHandle {
   const layout = buildSceneLayout(config);
@@ -343,7 +350,7 @@ export function createBattleView(
   let camYaw = layout.player.heading;
   let camPitch = 0.15;
   let gunPitch = camPitch;
-  /* Screen-space aim point (CSS pixels inside the canvas); the reticle follows it. */
+  /* Pointer target in CSS pixels inside the canvas; the gun sight is separate. */
   const aim = { x: 0, y: 0, ready: false };
   const state = {
     mode: 'third' as CameraMode,
@@ -383,19 +390,14 @@ export function createBattleView(
   };
 
   const canvas = renderer.domElement;
-  /*
-   * Mouse look uses pointer lock, like a browser FPS: the cursor hides, so it
-   * can never wander off the window while it steers the camera.
-   */
   const look = (movementX: number, movementY: number) => {
     camYaw -= movementX * 0.0016;
     camPitch = Math.max(-0.5, Math.min(0.8, camPitch - movementY * 0.0011));
   };
 
   /*
-   * The pointer is the reticle: no pointer lock, no virtual cursor. The OS
-   * cursor is hidden by CSS and the reticle is drawn exactly where it is, so
-   * the crosshair can never drift away from the mouse.
+   * No pointer lock or virtual cursor: the pointer target follows the mouse,
+   * while the second sight follows the real barrel until both are aligned.
    */
   canvas.classList.add('battle-canvas--locked');
   const updateAim = (clientX: number, clientY: number) => {
@@ -549,9 +551,10 @@ export function createBattleView(
           camYaw += gap * Math.min(1, delta * 1.2);
         }
 
+        const guidedAim = !rightHeld && command.turret === 0 && aim.ready;
         let targetWorld: number | null =
           rightHeld || command.turret !== 0 ? null : camYaw;
-        if (!rightHeld && command.turret === 0 && aim.ready) {
+        if (guidedAim) {
           const bounds = canvas.getBoundingClientRect();
           const ndc = new Vector2(
             (aim.x / Math.max(1, bounds.width)) * 2 - 1,
@@ -587,12 +590,25 @@ export function createBattleView(
           camera
         );
         const reticleBounds = canvas.getBoundingClientRect();
+        const reticleAligned =
+          !guidedAim ||
+          aimAlignmentError(reticleMuzzle, reticleDirection, aimPoint) <=
+            FIRE_AIM_TOLERANCE;
         onReticle?.(
           ((sight.x + 1) / 2) * reticleBounds.width,
           ((1 - sight.y) / 2) * reticleBounds.height,
           reticleBounds.width,
           reticleBounds.height
         );
+        if (aim.ready) {
+          onPointerReticle?.(
+            aim.x,
+            aim.y,
+            reticleBounds.width,
+            reticleBounds.height,
+            reticleAligned
+          );
+        }
 
         if (targetWorld !== null) {
           onAimOffset?.(
@@ -720,7 +736,6 @@ export function createBattleView(
         if (combat.ammo !== beforeAmmo) onAmmo?.(combat.ammo, MAX_AMMO);
         const muzzle = playerRig.muzzle.getWorldPosition(new Vector3());
         const direction = playerRig.muzzle.getWorldDirection(new Vector3());
-        const guidedAim = !rightHeld && command.turret === 0 && aim.ready;
         const aligned =
           !guidedAim ||
           aimAlignmentError(muzzle, direction, aimPoint) <= FIRE_AIM_TOLERANCE;
