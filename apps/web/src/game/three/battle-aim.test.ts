@@ -1,3 +1,4 @@
+import { PerspectiveCamera, Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -7,11 +8,26 @@ import {
   aimYaw,
   clampGunPitch,
   dispersionOffset,
+  projectGunSight,
   rotateTowards,
   scatterAimPoint,
 } from './battle-aim.js';
 
 describe('3D battle aiming', () => {
+  it('projects the sight through the actual muzzle axis', () => {
+    const camera = new PerspectiveCamera(90, 1, 0.1, 100);
+    camera.updateMatrixWorld();
+    const muzzle = new Vector3(0, 0, -5);
+
+    const forward = projectGunSight(muzzle, new Vector3(0, 0, -1), 5, camera);
+    const sideways = projectGunSight(muzzle, new Vector3(1, 0, 0), 1, camera);
+
+    expect(forward.x).toBeCloseTo(0);
+    expect(forward.y).toBeCloseTo(0);
+    expect(sideways.x).toBeCloseTo(0.2);
+    expect(sideways.y).toBeCloseTo(0);
+  });
+
   it('points at a target with the same convention as the hull heading', () => {
     expect(aimYaw({ x: 0, z: 0 }, { x: 10, z: 0 })).toBeCloseTo(0);
     expect(aimYaw({ x: 0, z: 0 }, { x: 0, z: 10 })).toBeCloseTo(-Math.PI / 2);
