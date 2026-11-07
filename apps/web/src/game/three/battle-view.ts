@@ -47,6 +47,7 @@ import {
   aimYaw,
   clampGunPitch,
   FIRE_AIM_TOLERANCE,
+  projectGunSight,
   resolveAimPoint,
   rotateTowards,
   scatterAimPoint,
@@ -575,10 +576,23 @@ export function createBattleView(
           }
         }
 
-        if (aim.ready) {
-          const bounds = canvas.getBoundingClientRect();
-          onReticle?.(aim.x, aim.y, bounds.width, bounds.height);
-        }
+        const reticleMuzzle = playerRig.muzzle.getWorldPosition(new Vector3());
+        const reticleDirection = playerRig.muzzle.getWorldDirection(
+          new Vector3()
+        );
+        const sight = projectGunSight(
+          reticleMuzzle,
+          reticleDirection,
+          aim.ready ? reticleMuzzle.distanceTo(aimPoint) : SHELL_RANGE,
+          camera
+        );
+        const reticleBounds = canvas.getBoundingClientRect();
+        onReticle?.(
+          ((sight.x + 1) / 2) * reticleBounds.width,
+          ((1 - sight.y) / 2) * reticleBounds.height,
+          reticleBounds.width,
+          reticleBounds.height
+        );
 
         if (targetWorld !== null) {
           onAimOffset?.(

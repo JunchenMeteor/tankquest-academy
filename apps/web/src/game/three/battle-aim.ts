@@ -3,9 +3,21 @@
  * Pure so the steering and accuracy rules can be tested without a renderer.
  */
 import { Raycaster } from 'three';
-import type { Object3D, Ray, Vector3 } from 'three';
+import type { Camera, Object3D, Ray, Vector3 as Vector3Type } from 'three';
 
 import { normaliseAngle } from './battle-input.js';
+
+export function projectGunSight(
+  muzzle: Vector3Type,
+  direction: Vector3Type,
+  distance: number,
+  camera: Camera
+): Vector3Type {
+  return muzzle
+    .clone()
+    .addScaledVector(direction, distance)
+    .project(camera) as Vector3Type;
+}
 
 /** Heading that points from `from` to `to`, matching the world convention. */
 export function aimYaw(
@@ -27,7 +39,7 @@ export function resolveAimPoint(
   ray: Ray,
   targets: Object3D[],
   maxRange: number
-): Vector3 {
+): Vector3Type {
   const raycaster = new Raycaster(ray.origin, ray.direction, 0, maxRange);
   const [hit] = raycaster.intersectObjects(targets, true);
   return hit?.point ?? ray.at(maxRange, ray.origin.clone());
