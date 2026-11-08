@@ -331,13 +331,23 @@ export function ActiveTraining({
   const { t } = useI18n();
   const [dismissedSession, setDismissedSession] = useState<string | null>(null);
   useEffect(() => {
-    if (!learningComplete || runtime.objectiveComplete) return;
+    if (
+      !learningComplete ||
+      runtime.objectiveComplete ||
+      runtime.objectiveType !== 'eliminate'
+    )
+      return;
     const timeout = window.setTimeout(
       () => setDismissedSession(session.sessionId),
       4000
     );
     return () => window.clearTimeout(timeout);
-  }, [learningComplete, runtime.objectiveComplete, session.sessionId]);
+  }, [
+    learningComplete,
+    runtime.objectiveComplete,
+    runtime.objectiveType,
+    session.sessionId,
+  ]);
   /* The 3D renderer is the default; ?renderer=2d falls back to the Phaser scene. */
   const use3DBattle =
     typeof window === 'undefined' ||
@@ -487,7 +497,10 @@ export function ActiveTraining({
             </button>
           </div>
         </section>
-      ) : learningComplete && dismissedSession !== session.sessionId ? (
+      ) : learningComplete &&
+        (runtime.objectiveComplete ||
+          runtime.objectiveType !== 'eliminate' ||
+          dismissedSession !== session.sessionId) ? (
         <section className="battle-objective" aria-live="polite">
           <p className="eyebrow">{t('battle.supplies')}</p>
           <h2>
