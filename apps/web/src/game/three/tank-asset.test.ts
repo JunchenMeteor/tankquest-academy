@@ -79,8 +79,12 @@ describe('imported tank asset', () => {
     expect(root.position.toArray()).toEqual([0, 0, 0]);
   });
 
-  it('keeps rear equipment on the turret during traversal', () => {
+  it('preserves authored hull and turret regions during painting', () => {
     const root = new Group();
+    const hull = new Group();
+    hull.name = 'Hull';
+    const hullEquipment = part('Gear_Hull', 1, 1);
+    hull.add(hullEquipment);
     const turret = new Group();
     turret.name = 'TurretPivot';
     const gun = new Group();
@@ -89,23 +93,26 @@ describe('imported tank asset', () => {
     const muzzle = new Group();
     muzzle.name = 'Muzzle';
     gun.add(muzzle);
-    turret.add(gun, part('Turret_229', 0, 2));
-    const equipment = part('Gear_980', -3, 1);
-    root.add(turret, equipment);
+    const turretEquipment = part('Gear_Turret', -3, 1);
+    turret.add(gun, part('Turret_229', 0, 2), turretEquipment);
+    root.add(hull, turret);
     root.updateMatrixWorld(true);
-    const before = equipment.getWorldPosition(new Vector3());
+    const hullBefore = hullEquipment.getWorldPosition(new Vector3());
+    const turretBefore = turretEquipment.getWorldPosition(new Vector3());
 
     const painted = paintTankRig(tankRigFromScene(root), 0x6d8798, 0xe8c65a);
-    const attached = painted.root.getObjectByName('Gear_980')!;
-    expect(attached.parent?.name).toBe('TurretPivot');
-    expect(
-      attached.getWorldPosition(new Vector3()).distanceTo(before)
-    ).toBeCloseTo(0);
+    const paintedHull = painted.root.getObjectByName('Gear_Hull')!;
+    const paintedTurret = painted.root.getObjectByName('Gear_Turret')!;
+    expect(paintedHull.parent?.name).toBe('Hull');
+    expect(paintedTurret.parent?.name).toBe('TurretPivot');
 
     painted.turret.rotation.y = Math.PI / 2;
     painted.root.updateMatrixWorld(true);
-    const after = attached.getWorldPosition(new Vector3());
-    expect(after.x).toBeCloseTo(before.z);
-    expect(after.z).toBeCloseTo(-before.x);
+    expect(
+      paintedHull.getWorldPosition(new Vector3()).distanceTo(hullBefore)
+    ).toBeCloseTo(0);
+    const turretAfter = paintedTurret.getWorldPosition(new Vector3());
+    expect(turretAfter.x).toBeCloseTo(turretBefore.z);
+    expect(turretAfter.z).toBeCloseTo(-turretBefore.x);
   });
 });

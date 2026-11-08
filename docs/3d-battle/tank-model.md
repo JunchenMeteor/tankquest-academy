@@ -16,13 +16,23 @@ TankRig
 │   ├── Tracks_420
 │   ├── Wheel_L_00 … Wheel_L_06
 │   ├── Wheel_R_00 … Wheel_R_06
+│   ├── Applique_Hull
+│   ├── Gear_Hull
+│   ├── Glass_Hull
 │   └── 其他车体部件
 ├── TurretPivot
-│   ├── 炮塔部件
+│   ├── Turret_229
+│   ├── Applique_Turret
+│   ├── Gear_Turret
+│   ├── Glass_Turret
+│   ├── Gear_24
 │   └── GunPivot
 │       ├── Barrel_Cannon_13
+│       ├── Glass_Gun
 │       └── Muzzle
 ```
+
+同一材质可以同时覆盖车体、炮塔和炮管上的不同物理部件，不能按材质名把整块网格挂到单一关节。混合网格必须在 Blender 中按实际部件拆分为上述区域节点，保留原 UV 与贴图；运行时不得再整组重挂 `Applique`、`Gear` 或 `Glass`。
 
 - `TurretPivot` 的原点必须位于真实炮塔回转轴。
 - `GunPivot` 的原点必须位于真实炮管俯仰轴；GLB 炮管局部前向为 +Z，因此绕局部 X 轴俯仰。
