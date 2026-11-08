@@ -1,7 +1,8 @@
 import { BoxGeometry, Group, Mesh, MeshStandardMaterial, Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
 
-import { bake, normalise, paintTank } from './tank-asset.js';
+import { bake, normalise, paintTank, paintTankRig } from './tank-asset.js';
+import { tankRigFromScene } from './tank-rig.js';
 
 function part(name: string, z: number, length: number): Mesh {
   const mesh = new Mesh(
@@ -76,5 +77,35 @@ describe('imported tank asset', () => {
     expect(forward.z).toBeCloseTo(0);
     expect(root.rotation.y).toBe(0);
     expect(root.position.toArray()).toEqual([0, 0, 0]);
+  });
+
+  it('keeps rear equipment on the turret during traversal', () => {
+    const root = new Group();
+    const turret = new Group();
+    turret.name = 'TurretPivot';
+    const gun = new Group();
+    gun.name = 'GunPivot';
+    gun.add(part('Barrel_Cannon_13', 2, 4));
+    const muzzle = new Group();
+    muzzle.name = 'Muzzle';
+    gun.add(muzzle);
+    turret.add(gun, part('Turret_229', 0, 2));
+    const equipment = part('Gear_980', -3, 1);
+    root.add(turret, equipment);
+    root.updateMatrixWorld(true);
+    const before = equipment.getWorldPosition(new Vector3());
+
+    const painted = paintTankRig(tankRigFromScene(root), 0x6d8798, 0xe8c65a);
+    const attached = painted.root.getObjectByName('Gear_980')!;
+    expect(attached.parent?.name).toBe('TurretPivot');
+    expect(
+      attached.getWorldPosition(new Vector3()).distanceTo(before)
+    ).toBeCloseTo(0);
+
+    painted.turret.rotation.y = Math.PI / 2;
+    painted.root.updateMatrixWorld(true);
+    const after = attached.getWorldPosition(new Vector3());
+    expect(after.x).toBeCloseTo(before.z);
+    expect(after.z).toBeCloseTo(-before.x);
   });
 });

@@ -300,5 +300,9 @@ export function paintTankRig(
     }
     child.material = clone;
   });
+  root.updateMatrixWorld(true);
+  const rearEquipment = root.getObjectByName('Gear_980');
+  const turret = root.getObjectByName('TurretPivot');
+  if (rearEquipment && turret) turret.attach(rearEquipment);
   return tankRigFromScene(root);
 }
