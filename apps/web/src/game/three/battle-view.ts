@@ -390,6 +390,18 @@ export function createBattleView(
     position: { ...layout.player.position },
     turret: 0,
   };
+  const updateLabelVisibility = (
+    label: ReturnType<typeof createTankLabel>,
+    width: number,
+    height: number
+  ) => {
+    const projected = label.sprite
+      .getWorldPosition(new Vector3())
+      .project(camera);
+    const x = ((projected.x + 1) / 2) * width;
+    const y = ((1 - projected.y) / 2) * height;
+    label.sprite.visible = !aim.ready || Math.hypot(x - aim.x, y - aim.y) > 96;
+  };
 
   const resize = () => {
     const width = host.clientWidth || 960;
@@ -579,12 +591,6 @@ export function createBattleView(
           playerRig.turret.rotation.y = state.turret;
         }
 
-        /* Holding the right button freezes the turret while the camera turns. */
-        if (!rightHeld) {
-          const gap = normaliseAngle(state.heading - camYaw);
-          camYaw += gap * Math.min(1, delta * 1.2);
-        }
-
         const guidedAim = !rightHeld && command.turret === 0 && aim.ready;
         let targetWorld: number | null =
           rightHeld || command.turret !== 0 ? null : camYaw;
@@ -595,7 +601,6 @@ export function createBattleView(
             -(aim.y / Math.max(1, bounds.height)) * 2 + 1
           );
           raycaster.setFromCamera(ndc, camera);
-          const muzzle = playerRig.muzzle.getWorldPosition(new Vector3());
           aimPoint.copy(
             resolveAimPoint(
               raycaster.ray,
@@ -605,9 +610,10 @@ export function createBattleView(
           );
           const pivot = playerRig.turret.getWorldPosition(new Vector3());
           targetWorld = aimYaw(pivot, aimPoint);
+          const gunPivot = playerRig.gun.getWorldPosition(new Vector3());
           gunPitch = stepGunPitch(
             gunPitch,
-            aimPitch(muzzle, aimPoint),
+            aimPitch(gunPivot, aimPoint),
             elevationSpeed * delta
           );
           if (playerRig.gun.userData.pitchAxis === 'x') {
@@ -885,13 +891,23 @@ export function createBattleView(
           if (result.destroyed.length > 0) publish();
         }
         playerLabel.update(combat.playerHealth, combat.playerMaxHealth);
+        updateLabelVisibility(
+          playerLabel,
+          reticleBounds.width,
+          reticleBounds.height
+        );
         for (const enemy of layout.enemies) {
-          enemyLabels
-            .get(enemy.id)
-            ?.update(
-              combat.enemyHealth[enemy.id] ?? 0,
-              enemy.combat?.maxHealth ?? 100
-            );
+          const label = enemyLabels.get(enemy.id);
+          if (!label) continue;
+          label.update(
+            combat.enemyHealth[enemy.id] ?? 0,
+            enemy.combat?.maxHealth ?? 100
+          );
+          updateLabelVisibility(
+            label,
+            reticleBounds.width,
+            reticleBounds.height
+          );
         }
       }
     };

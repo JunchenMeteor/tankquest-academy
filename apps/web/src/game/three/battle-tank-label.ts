@@ -28,7 +28,7 @@ export function createTankLabel(
   sprite.name = 'TankLabel';
   sprite.raycast = () => {};
   sprite.position.set(0, 3.6, 0);
-  sprite.scale.set(4.5, 1.125, 1);
+  sprite.scale.set(3, 0.75, 1);
   sprite.center.set(0.5, 0);
   sprite.renderOrder = 10;
   let current = '';
