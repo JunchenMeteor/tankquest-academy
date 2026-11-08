@@ -115,4 +115,34 @@ describe('imported tank asset', () => {
     expect(turretAfter.x).toBeCloseTo(turretBefore.z);
     expect(turretAfter.z).toBeCloseTo(-turretBefore.x);
   });
+
+  it('paints armour side skirts with the primary colour and gear as accents', () => {
+    const root = new Group();
+    const hull = new Group();
+    hull.name = 'Hull';
+    const skirts = part('SideSkirts_477', 0, 4);
+    (skirts.material as MeshStandardMaterial).name = 'SideSkirts_477';
+    const equipment = part('Gear_Hull', 1, 1);
+    (equipment.material as MeshStandardMaterial).name = 'Gear_980';
+    hull.add(skirts, equipment);
+    const turret = new Group();
+    turret.name = 'TurretPivot';
+    const gun = new Group();
+    gun.name = 'GunPivot';
+    const muzzle = new Group();
+    muzzle.name = 'Muzzle';
+    gun.add(muzzle);
+    const antenna = part('Gear_24', 0, 1);
+    (antenna.material as MeshStandardMaterial).name = 'Gear_24';
+    turret.add(gun, antenna);
+    root.add(hull, turret);
+
+    const painted = paintTankRig(tankRigFromScene(root), 0x733f39, 0xd7aa57);
+    const materialOf = (name: string) =>
+      (painted.root.getObjectByName(name) as Mesh)
+        .material as MeshStandardMaterial;
+    expect(materialOf('SideSkirts_477').color.getHex()).toBe(0x733f39);
+    expect(materialOf('Gear_Hull').color.getHex()).toBe(0xd7aa57);
+    expect(materialOf('Gear_24').color.getHex()).toBe(0xd7aa57);
+  });
 });

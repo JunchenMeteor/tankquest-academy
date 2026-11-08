@@ -290,12 +290,12 @@ export function paintTankRig(
       }
     }
     if (
-      /^(Hull_477|Turret_229|Applique_176|Cannon_13|Material)$/i.test(
+      /^(Hull_477|Turret_229|Applique_176|Cannon_13|SideSkirts_477|Material)$/i.test(
         material.name
       )
     ) {
       clone.color.setHex(color);
-    } else if (/^(SideSkirts_477|Gear_980|Gear_24)$/i.test(material.name)) {
+    } else if (/^(Gear_980|Gear_24)$/i.test(material.name)) {
       clone.color.setHex(secondaryColor);
     }
     child.material = clone;
