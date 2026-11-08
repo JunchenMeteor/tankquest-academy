@@ -90,7 +90,8 @@ export function Battle3DCanvas({
           reticleRef.current.dataset.aligned = String(aligned);
         }
       },
-      (streak, bonus) => setCombo({ streak, bonus })
+      (streak, bonus) => setCombo({ streak, bonus }),
+      t(`content.${config.player.visualCode}`)
     );
     viewRef.current = view;
     return () => {
