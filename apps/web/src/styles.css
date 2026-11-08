@@ -1310,7 +1310,6 @@ body {
   backdrop-filter: blur(8px);
 }
 
-.battle-layout[data-layout='3d'] .battle-objective,
 .battle-layout[data-layout='3d'] .battle-alert {
   position: absolute;
   top: 50%;
@@ -1321,6 +1320,47 @@ body {
   background: rgba(16, 23, 28, 0.96);
   border-radius: 18px;
   padding: 20px;
+}
+
+.battle-layout[data-layout='3d'] .battle-objective {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  width: min(720px, calc(100vw - 32px));
+  align-items: center;
+  justify-content: center;
+  gap: 8px 14px;
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: rgba(16, 23, 28, 0.94);
+}
+
+.battle-layout[data-layout='3d'] .battle-objective h2 {
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+.battle-layout[data-layout='3d'] .battle-objective p {
+  margin: 0;
+  font-size: 12px;
+}
+
+.battle-layout[data-layout='3d'] .battle-objective .eyebrow {
+  font-size: 11px;
+}
+
+.battle-layout[data-layout='3d'] .battle-objective button {
+  padding: 6px 10px;
+}
+
+@media (max-width: 700px) {
+  .battle-layout[data-layout='3d'] .battle-objective > p:not(.eyebrow) {
+    display: none;
+  }
 }
 
 .battle-layout[data-layout='3d'] .controls {

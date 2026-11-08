@@ -71,6 +71,14 @@ export function clampGunPitch(pitch: number): number {
   return Math.max(-MAX_GUN_PITCH, Math.min(MAX_GUN_PITCH, pitch));
 }
 
+export function stepGunPitch(
+  current: number,
+  target: number,
+  maxStep: number
+): number {
+  return rotateTowards(current, clampGunPitch(target), maxStep);
+}
+
 /**
  * Turns `current` toward `target` by at most `maxStep` radians, taking the
  * shorter way round. Returns the normalised result.

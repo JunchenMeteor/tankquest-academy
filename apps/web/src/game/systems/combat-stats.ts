@@ -42,6 +42,8 @@ export function deriveCombatStats(stats: TankStats): PlayerCombatRuntimeConfig {
     visibilityMultiplier: 0.88 - (stealth - 3) * 0.06,
     /* Turret traverse comes straight from the tank's own handling stat. */
     turretTraverseSpeed: 0.8 + turretTraverse * 0.42,
+    /* Elevation follows gun handling, independently of horizontal traverse. */
+    gunElevationSpeed: 0.45 + accuracy * 0.18,
     /* Dispersion shrinks as accuracy rises; a heavier gun adds spread. */
     dispersionRadius: Math.max(
       0.05,

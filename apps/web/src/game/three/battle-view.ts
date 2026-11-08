@@ -8,6 +8,7 @@ import {
   MeshBasicMaterial,
   BoxGeometry,
   Color,
+  CylinderGeometry,
   DirectionalLight,
   DoubleSide,
   Fog,
@@ -51,8 +52,10 @@ import {
   resolveAimPoint,
   rotateTowards,
   scatterAimPoint,
+  stepGunPitch,
 } from './battle-aim.js';
 import { buildTankModel } from './tank-model.js';
+import { createTankLabel } from './battle-tank-label.js';
 import { loadTankRig, paintTankRig } from './tank-asset.js';
 import { advanceRunningGear, type TankRig } from './tank-rig.js';
 import {
@@ -208,7 +211,8 @@ export function createBattleView(
     height: number,
     aligned: boolean
   ) => void,
-  onCombo?: (streak: number, bonusAmmo: number) => void
+  onCombo?: (streak: number, bonusAmmo: number) => void,
+  playerName = 'Star Shield'
 ): Battle3DHandle {
   const layout = buildSceneLayout(config);
   const palette = resolveScenePalette(config.theme, config.visualResources);
@@ -261,10 +265,18 @@ export function createBattleView(
   scene.add(buildFence(layout, palette));
 
   let playerRig: TankRig = buildTankModel(layout.player, true);
+  const playerLabel = createTankLabel(
+    playerName,
+    config.player.maxHealth,
+    config.player.maxHealth,
+    'player'
+  );
+  playerRig.root.add(playerLabel.sprite);
   scene.add(playerRig.root);
   const proceduralRigs = new Map<string, TankRig>();
   proceduralRigs.set('player', playerRig);
   let usingGlbTanks = false;
+  let glbAsset: TankRig | null = null;
   const effects: Array<{
     mesh: Mesh;
     ttl: number;
@@ -282,9 +294,26 @@ export function createBattleView(
   /* Difficulty follows the group size: more tanks, sharper shooting. */
   const difficulty = Math.min(1, Math.max(0, (config.enemies.length - 1) / 3));
   const enemyRoots = new Map<string, Group>();
+  const enemyLabels = new Map<string, ReturnType<typeof createTankLabel>>();
+  const roleNames =
+    config.locale === 'zh-CN'
+      ? { scout: '侦察型', medium: '中型', heavy: '重型' }
+      : { scout: 'Scout', medium: 'Medium', heavy: 'Heavy' };
   const meshHitTest = createMeshHitTest(enemyRoots);
   const spawnEnemy = (enemy: (typeof layout.enemies)[number]) => {
-    const rig = buildTankModel(enemy, false);
+    const rig = glbAsset
+      ? paintTankRig(glbAsset, enemy.color, enemy.secondaryColor)
+      : buildTankModel(enemy, false);
+    const maximumHealth = enemy.combat?.maxHealth ?? 100;
+    const roleName = `${enemy.elite ? '★ ' : ''}${roleNames[enemy.role]}`;
+    const label = createTankLabel(
+      roleName,
+      maximumHealth,
+      maximumHealth,
+      'enemy'
+    );
+    rig.root.add(label.sprite);
+    enemyLabels.set(enemy.id, label);
     enemyRoots.set(enemy.id, rig.root);
     scene.add(rig.root);
   };
@@ -297,18 +326,20 @@ export function createBattleView(
     if (enemy) spawnEnemy(enemy);
   }
 
-  const shellGeometry = new SphereGeometry(0.16, 8, 8);
+  const shellGeometry = new CylinderGeometry(0.045, 0.075, 0.72, 8);
   const shellMaterial = new MeshStandardMaterial({
-    color: 0xffd27a,
-    emissive: 0x8a5a12,
-    roughness: 0.4,
+    color: 0xd8e1e8,
+    emissive: 0x3d2a10,
+    metalness: 0.75,
+    roughness: 0.25,
   });
   const shellMeshes = new Map<number, Mesh>();
   const enemyShellMeshes = new Map<number, Mesh>();
   const enemyShellMaterial = new MeshStandardMaterial({
-    color: 0xff7a5c,
-    emissive: 0x7a2412,
-    roughness: 0.45,
+    color: 0xff9a7a,
+    emissive: 0x5a140c,
+    metalness: 0.55,
+    roughness: 0.3,
   });
   let combat = createCombatState(
     layout.enemies.length,
@@ -343,6 +374,7 @@ export function createBattleView(
 
   const camera = new PerspectiveCamera(60, 1, 0.1, 300);
   const traverseSpeed = config.player.turretTraverseSpeed;
+  const elevationSpeed = config.player.gunElevationSpeed ?? 0.9;
   const dispersion = config.player.dispersionRadius;
   let rightHeld = false;
   const raycaster = new Raycaster();
@@ -449,6 +481,7 @@ export function createBattleView(
   if (!wantsProcedural && quality === 'high') {
     void loadTankRig()
       .then((asset) => {
+        glbAsset = asset;
         const painted = paintTankRig(
           asset,
           layout.player.color,
@@ -456,6 +489,7 @@ export function createBattleView(
         );
         painted.root.position.copy(playerRig.root.position);
         painted.root.rotation.y = playerRig.root.rotation.y;
+        painted.root.add(playerLabel.sprite);
         scene.remove(playerRig.root);
         scene.add(painted.root);
         playerRig = painted;
@@ -465,14 +499,13 @@ export function createBattleView(
           const root = enemyRoots.get(enemy.id);
           if (!root) continue;
           const model = paintTankRig(asset, enemy.color, enemy.secondaryColor);
-          root.clear();
-          root.add(model.root);
-          root.position.set(
-            enemy.position.x,
-            enemy.position.y,
-            enemy.position.z
-          );
-          root.rotation.y = enemy.heading;
+          model.root.position.copy(root.position);
+          model.root.rotation.copy(root.rotation);
+          const label = enemyLabels.get(enemy.id);
+          if (label) model.root.add(label.sprite);
+          scene.remove(root);
+          enemyRoots.set(enemy.id, model.root);
+          scene.add(model.root);
         }
       })
       .catch(() => {
@@ -501,6 +534,7 @@ export function createBattleView(
             scene.remove(current);
             procedural.root.position.copy(current.position);
             procedural.root.rotation.y = current.rotation.y;
+            procedural.root.add(playerLabel.sprite);
             scene.add(procedural.root);
             playerRig = procedural;
             usingGlbTanks = false;
@@ -566,48 +600,21 @@ export function createBattleView(
             resolveAimPoint(
               raycaster.ray,
               [...enemyRoots.values(), ground],
-              SHELL_RANGE + camera.position.distanceTo(muzzle)
+              SHELL_RANGE * 2
             )
           );
           const pivot = playerRig.turret.getWorldPosition(new Vector3());
           targetWorld = aimYaw(pivot, aimPoint);
-          gunPitch = clampGunPitch(aimPitch(muzzle, aimPoint));
+          gunPitch = stepGunPitch(
+            gunPitch,
+            aimPitch(muzzle, aimPoint),
+            elevationSpeed * delta
+          );
           if (playerRig.gun.userData.pitchAxis === 'x') {
             playerRig.gun.rotation.x = gunPitch;
           } else {
             playerRig.gun.rotation.z = -gunPitch;
           }
-        }
-
-        const reticleMuzzle = playerRig.muzzle.getWorldPosition(new Vector3());
-        const reticleDirection = playerRig.muzzle.getWorldDirection(
-          new Vector3()
-        );
-        const sight = projectGunSight(
-          reticleMuzzle,
-          reticleDirection,
-          aim.ready ? reticleMuzzle.distanceTo(aimPoint) : SHELL_RANGE,
-          camera
-        );
-        const reticleBounds = canvas.getBoundingClientRect();
-        const reticleAligned =
-          !guidedAim ||
-          aimAlignmentError(reticleMuzzle, reticleDirection, aimPoint) <=
-            FIRE_AIM_TOLERANCE;
-        onReticle?.(
-          ((sight.x + 1) / 2) * reticleBounds.width,
-          ((1 - sight.y) / 2) * reticleBounds.height,
-          reticleBounds.width,
-          reticleBounds.height
-        );
-        if (aim.ready) {
-          onPointerReticle?.(
-            aim.x,
-            aim.y,
-            reticleBounds.width,
-            reticleBounds.height,
-            reticleAligned
-          );
         }
 
         if (targetWorld !== null) {
@@ -730,12 +737,38 @@ export function createBattleView(
         playerRig.root.position.copy(
           new Vector3(state.position.x, state.position.y, state.position.z)
         );
+        const muzzle = playerRig.muzzle.getWorldPosition(new Vector3());
+        const direction = playerRig.muzzle.getWorldDirection(new Vector3());
+        const sight = projectGunSight(
+          muzzle,
+          direction,
+          aim.ready ? muzzle.distanceTo(aimPoint) : SHELL_RANGE,
+          camera
+        );
+        const reticleBounds = canvas.getBoundingClientRect();
+        const reticleAligned =
+          !guidedAim ||
+          aimAlignmentError(muzzle, direction, aimPoint) <= FIRE_AIM_TOLERANCE;
+        onReticle?.(
+          ((sight.x + 1) / 2) * reticleBounds.width,
+          ((1 - sight.y) / 2) * reticleBounds.height,
+          reticleBounds.width,
+          reticleBounds.height
+        );
+        if (aim.ready) {
+          onPointerReticle?.(
+            aim.x,
+            aim.y,
+            reticleBounds.width,
+            reticleBounds.height,
+            reticleAligned
+          );
+        }
+
         const beforeAmmo = combat.ammo;
         combat = advanceReload(combat, delta);
         combat = tickCooldown(combat, delta);
         if (combat.ammo !== beforeAmmo) onAmmo?.(combat.ammo, MAX_AMMO);
-        const muzzle = playerRig.muzzle.getWorldPosition(new Vector3());
-        const direction = playerRig.muzzle.getWorldDirection(new Vector3());
         const aligned =
           !guidedAim ||
           aimAlignmentError(muzzle, direction, aimPoint) <= FIRE_AIM_TOLERANCE;
@@ -838,6 +871,8 @@ export function createBattleView(
               scene.remove(root);
               enemyRoots.delete(id);
             }
+            enemyLabels.get(id)?.dispose();
+            enemyLabels.delete(id);
             destroyedCount += 1;
           }
           if (enemyRoots.size === 0 && pendingWaves.length > 0) {
@@ -848,6 +883,15 @@ export function createBattleView(
             publish();
           }
           if (result.destroyed.length > 0) publish();
+        }
+        playerLabel.update(combat.playerHealth, combat.playerMaxHealth);
+        for (const enemy of layout.enemies) {
+          enemyLabels
+            .get(enemy.id)
+            ?.update(
+              combat.enemyHealth[enemy.id] ?? 0,
+              enemy.combat?.maxHealth ?? 100
+            );
         }
       }
     };
@@ -877,6 +921,15 @@ export function createBattleView(
         scene.add(mesh);
       }
       mesh.position.set(shell.x, shell.y, shell.z);
+      const horizontal = Math.cos(shell.pitch);
+      mesh.quaternion.setFromUnitVectors(
+        new Vector3(0, 1, 0),
+        new Vector3(
+          Math.cos(shell.heading) * horizontal,
+          -Math.sin(shell.pitch),
+          -Math.sin(shell.heading) * horizontal
+        )
+      );
     }
     for (const [id, mesh] of shellMeshes) {
       if (!combat.shells.some((shell) => shell.id === id)) {
@@ -893,6 +946,10 @@ export function createBattleView(
         scene.add(mesh);
       }
       mesh.position.set(shell.x, 0.9, shell.z);
+      mesh.quaternion.setFromUnitVectors(
+        new Vector3(0, 1, 0),
+        new Vector3(Math.cos(shell.heading), 0, -Math.sin(shell.heading))
+      );
     }
     for (const [id, mesh] of enemyShellMeshes) {
       if (!combat.enemyShells.some((shell) => shell.id === id)) {
@@ -929,6 +986,8 @@ export function createBattleView(
       cancelAnimationFrame(frame);
       globalThis.removeEventListener('resize', resize);
       observer?.disconnect();
+      playerLabel.dispose();
+      for (const label of enemyLabels.values()) label.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     },
