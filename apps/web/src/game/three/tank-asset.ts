@@ -11,7 +11,7 @@ import type { BufferGeometry, Object3D } from 'three';
 import { tankRigFromScene, type TankRig } from './tank-rig.js';
 
 /** Bump this when the GLB changes so cached copies are refetched. */
-export const tankAssetVersion = 'v9-authored';
+export const tankAssetVersion = 'v10-region-rigging';
 export const tankAssetUrl = `/models/tank.glb?v=${tankAssetVersion}`;
 const cacheName = `tankquest-models-${tankAssetVersion}`;
 
@@ -300,9 +300,5 @@ export function paintTankRig(
     }
     child.material = clone;
   });
-  root.updateMatrixWorld(true);
-  const rearEquipment = root.getObjectByName('Gear_980');
-  const turret = root.getObjectByName('TurretPivot');
-  if (rearEquipment && turret) turret.attach(rearEquipment);
   return tankRigFromScene(root);
 }
