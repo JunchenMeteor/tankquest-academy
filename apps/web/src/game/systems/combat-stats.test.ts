@@ -79,6 +79,19 @@ describe('deriveCombatStats', () => {
     expect(low.dispersionRadius).toBeLessThanOrEqual(0.3);
   });
 
+  it('keeps gun elevation independent from horizontal turret traverse', () => {
+    const slowGun = deriveCombatStats(withStat('accuracy', 1));
+    const fastGun = deriveCombatStats(withStat('accuracy', 5));
+    expect(fastGun.gunElevationSpeed).toBeGreaterThan(
+      slowGun.gunElevationSpeed ?? 0
+    );
+    expect(fastGun.turretTraverseSpeed).toBe(slowGun.turretTraverseSpeed);
+
+    const slowTurret = deriveCombatStats(withStat('turretTraverse', 1));
+    const fastTurret = deriveCombatStats(withStat('turretTraverse', 5));
+    expect(fastTurret.gunElevationSpeed).toBe(slowTurret.gunElevationSpeed);
+  });
+
   it('clamps unexpected API values to the supported one-to-five range', () => {
     expect(deriveCombatStats(withStat('firepower', 99))).toEqual(
       deriveCombatStats(withStat('firepower', 5))

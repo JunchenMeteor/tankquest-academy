@@ -26,6 +26,8 @@ export interface PlayerCombatRuntimeConfig {
   visibilityMultiplier: number;
   /** Turret traverse in radians per second. */
   turretTraverseSpeed: number;
+  /** Independent gun elevation speed in radians per second. */
+  gunElevationSpeed?: number;
   /** Radius of the shell impact circle in world units. */
   dispersionRadius: number;
 }

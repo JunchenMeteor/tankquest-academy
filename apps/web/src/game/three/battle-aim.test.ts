@@ -11,6 +11,7 @@ import {
   projectGunSight,
   rotateTowards,
   scatterAimPoint,
+  stepGunPitch,
 } from './battle-aim.js';
 
 describe('3D battle aiming', () => {
@@ -73,6 +74,28 @@ describe('3D battle aiming', () => {
     const result = rotateTowards(3, -3, 0.1);
     expect(result).toBeCloseTo(3.1, 5);
     expect(rotateTowards(3, -3, 0.5)).toBeCloseTo(-3, 5);
+  });
+
+  it('approaches and holds the pitch limit without chatter', () => {
+    let pitch = 0;
+    for (let frame = 0; frame < 100; frame += 1) {
+      pitch = stepGunPitch(pitch, Math.PI, 0.02);
+      expect(pitch).toBeLessThanOrEqual(MAX_GUN_PITCH);
+    }
+    expect(pitch).toBeCloseTo(MAX_GUN_PITCH);
+    expect(stepGunPitch(pitch, Math.PI, 0.02)).toBe(MAX_GUN_PITCH);
+
+    for (let frame = 0; frame < 100; frame += 1) {
+      pitch = stepGunPitch(pitch, -Math.PI, 0.02);
+      expect(pitch).toBeGreaterThanOrEqual(-MAX_GUN_PITCH);
+    }
+    expect(pitch).toBeCloseTo(-MAX_GUN_PITCH);
+    expect(stepGunPitch(pitch, -Math.PI, 0.02)).toBe(-MAX_GUN_PITCH);
+  });
+
+  it('uses the tank traverse step for elevation instead of snapping', () => {
+    expect(stepGunPitch(0, Math.PI, 0.01)).toBeCloseTo(0.01);
+    expect(stepGunPitch(0, Math.PI, 0.04)).toBeCloseTo(0.04);
   });
 
   it('scatters inside the dispersion circle and never outside it', () => {
