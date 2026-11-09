@@ -29,6 +29,9 @@ use the Phaser scene instead, then pick a mission and start training.
   At zero the existing defeat card takes over with restart and return.
 - Hull health, directional armour, penetration, damage, projectile speed,
   reload time, and mobility come from the selected tank and enemy presets.
+- Hull-to-hull impacts reuse the 2D ram rules: relative speed and mass determine
+  two-way damage, armour mitigates it, and each tank pair has a 650 ms cooldown.
+  Ram kills count toward mission objectives and trigger subsequent waves.
 - The seeded `target-range` mission places six passive targets at different
   distances and elevations for reproducible aiming and damage checks.
 

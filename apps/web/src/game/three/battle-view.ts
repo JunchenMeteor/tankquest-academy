@@ -67,6 +67,7 @@ import {
 } from './battle-enemy-ai.js';
 import { advanceReload } from './battle-combat.js';
 import { createMeshHitTest } from './battle-mesh-collision.js';
+import { applyRamImpacts, calculateRamImpacts } from './battle-ram.js';
 import { FixedStepDriver } from './battle-fixed-step.js';
 import { applyAnswerCombo, emptyCombo } from './battle-combo.js';
 import { planWaves } from './battle-waves.js';
@@ -91,6 +92,7 @@ import {
   spawnShell,
   tickCooldown,
 } from './battle-combat.js';
+import { logCombatEvent } from '../systems/combat-log.js';
 import type { GameInputController } from '../input/GameInputController.js';
 import type { RuntimeState } from '../runtime/types.js';
 import type { RuntimeLevelConfig } from '../runtime/types.js';
@@ -353,6 +355,41 @@ export function createBattleView(
   const totalEnemies = layout.enemies.length;
   let destroyedCount = 0;
   let combo = emptyCombo();
+  const ramCooldowns = new Map<string, number>();
+  let ramTimeMs = 0;
+
+  const destroyEnemies = (ids: string[], source: 'ram' | 'shell') => {
+    for (const id of ids) {
+      const root = enemyRoots.get(id);
+      if (root) {
+        const impact = new Mesh(
+          new RingGeometry(0.6, 1.4, 24),
+          new MeshBasicMaterial({
+            color: 0xffa24a,
+            transparent: true,
+            opacity: 0.85,
+            side: DoubleSide,
+          })
+        );
+        impact.rotation.x = -Math.PI / 2;
+        impact.position.set(root.position.x, 0.35, root.position.z);
+        spawnEffect(impact, 0.55, 4);
+        scene.remove(root);
+        enemyRoots.delete(id);
+      }
+      enemyLabels.get(id)?.dispose();
+      enemyLabels.delete(id);
+      destroyedCount += 1;
+      logCombatEvent('enemy_destroyed', { enemyId: id, source });
+    }
+    if (enemyRoots.size === 0 && pendingWaves.length > 0) {
+      for (const index of pendingWaves.shift() ?? []) {
+        const enemy = layout.enemies[index];
+        if (enemy) spawnEnemy(enemy);
+      }
+      publish();
+    }
+  };
 
   const publish = () => {
     onState?.({
@@ -557,6 +594,14 @@ export function createBattleView(
     }
     const update = (delta: number) => {
       if (input) {
+        const previousPositions = new Map<string, { x: number; z: number }>([
+          ['player', { x: state.position.x, z: state.position.z }],
+          ...layout.enemies.map(
+            (enemy) =>
+              [enemy.id, { x: enemy.position.x, z: enemy.position.z }] as const
+          ),
+        ]);
+        ramTimeMs += delta * 1000;
         const command = driveCommand(input.snapshot());
         const next = stepTank(
           state,
@@ -682,6 +727,58 @@ export function createBattleView(
             radius: 2.6,
           })),
         ];
+        const ramImpacts = calculateRamImpacts(
+          bodies.map((body) => {
+            const placement =
+              body.id === 'player'
+                ? layout.player
+                : layout.enemies.find((enemy) => enemy.id === body.id)!;
+            return {
+              id: body.id,
+              mass: placement.combat?.mass ?? 100,
+              armorReduction: placement.combat?.armorReduction ?? 0,
+              radius: body.radius,
+              previous: previousPositions.get(body.id) ?? {
+                x: body.position.x,
+                z: body.position.z,
+              },
+              current: { x: body.position.x, z: body.position.z },
+            };
+          }),
+          delta,
+          ramCooldowns,
+          ramTimeMs
+        );
+        const ramResult = applyRamImpacts(combat, ramImpacts);
+        combat = ramResult.state;
+        for (const impact of ramImpacts) {
+          ramCooldowns.set(impact.pairKey, ramTimeMs);
+          logCombatEvent('ram_impact', {
+            enemyId: impact.secondId,
+            damageToEnemy: impact.damageToSecond,
+            damageToPlayer: impact.damageToFirst,
+            relativeSpeed: Math.round(impact.relativeSpeed),
+          });
+          const root = enemyRoots.get(impact.secondId);
+          if (root) {
+            const flash = new Mesh(
+              new RingGeometry(0.3, 0.65, 20),
+              new MeshBasicMaterial({
+                color: 0xffc36a,
+                transparent: true,
+                opacity: 0.9,
+                side: DoubleSide,
+              })
+            );
+            flash.rotation.x = -Math.PI / 2;
+            flash.position.copy(root.position);
+            flash.position.y += 0.35;
+            spawnEffect(flash, 0.28, 2.5);
+          }
+        }
+        destroyEnemies(ramResult.destroyed, 'ram');
+        if (ramImpacts.length > 0) publish();
+
         for (let a = 0; a < bodies.length; a += 1) {
           for (let b = a + 1; b < bodies.length; b += 1) {
             const first = bodies[a]!;
@@ -859,35 +956,7 @@ export function createBattleView(
             meshHitTest
           );
           combat = result.state;
-          for (const id of result.destroyed) {
-            const root = enemyRoots.get(id);
-            if (root) {
-              const impact = new Mesh(
-                new RingGeometry(0.6, 1.4, 24),
-                new MeshBasicMaterial({
-                  color: 0xffa24a,
-                  transparent: true,
-                  opacity: 0.85,
-                  side: DoubleSide,
-                })
-              );
-              impact.rotation.x = -Math.PI / 2;
-              impact.position.set(root.position.x, 0.35, root.position.z);
-              spawnEffect(impact, 0.55, 4);
-              scene.remove(root);
-              enemyRoots.delete(id);
-            }
-            enemyLabels.get(id)?.dispose();
-            enemyLabels.delete(id);
-            destroyedCount += 1;
-          }
-          if (enemyRoots.size === 0 && pendingWaves.length > 0) {
-            for (const index of pendingWaves.shift() ?? []) {
-              const enemy = layout.enemies[index];
-              if (enemy) spawnEnemy(enemy);
-            }
-            publish();
-          }
+          destroyEnemies(result.destroyed, 'shell');
           if (result.destroyed.length > 0) publish();
         }
         playerLabel.update(combat.playerHealth, combat.playerMaxHealth);
