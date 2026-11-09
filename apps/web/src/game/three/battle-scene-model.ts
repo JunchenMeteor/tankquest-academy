@@ -29,7 +29,9 @@ export type TankCombatConfig = Omit<
   >,
   'reverseSpeed' | 'turnSpeed'
 > &
-  Partial<Pick<PlayerCombatRuntimeConfig, 'reverseSpeed' | 'turnSpeed'>>;
+  Partial<
+    Pick<PlayerCombatRuntimeConfig, 'reverseSpeed' | 'turnSpeed' | 'mass'>
+  >;
 
 export interface TankPlacement {
   id: string;
