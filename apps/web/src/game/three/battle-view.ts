@@ -174,9 +174,10 @@ function buildGround(layout: SceneLayout, palette: ScenePalette): Group {
 /** A low fence around the walkable field, so the ground edge never shows. */
 function buildFence(layout: SceneLayout, palette: ScenePalette): Group {
   const group = new Group();
-  const bounds = layout.ground;
-  const halfWidth = bounds.width / 2 - 1;
-  const halfDepth = bounds.depth / 2 - 1;
+  group.name = 'BattleBoundary';
+  const bounds = layout.playfield ?? layout.ground;
+  const halfWidth = bounds.width / 2;
+  const halfDepth = bounds.depth / 2;
   const material = new MeshStandardMaterial({
     color: palette.boundary.side,
     roughness: 0.9,

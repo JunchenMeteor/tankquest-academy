@@ -187,6 +187,12 @@ export function bake(scene: Object3D): TankAsset {
 
 /** Scales to the battle footprint, faces the barrel forward and rests on the ground. */
 export function normalise(root: Object3D, length = 6): void {
+  root.traverse((node) => {
+    if (!/^Wheel_[LR]_00$/.test(node.name)) return;
+    node.position.y += 22;
+    node.position.z += 18;
+    node.scale.multiplyScalar(1.12);
+  });
   root.updateMatrixWorld(true);
   const box = new Box3().setFromObject(root);
   const size = box.getSize(new Vector3());

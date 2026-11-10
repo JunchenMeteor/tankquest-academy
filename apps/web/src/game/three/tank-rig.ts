@@ -7,6 +7,8 @@ export interface TankRig {
   gun: Object3D;
   muzzle: Object3D;
   wheels: Object3D[];
+  idlers: Object3D[];
+  sprockets: Object3D[];
   wheelAxis: 'x' | 'z';
   wheelRadius: number;
   trackTextures: Texture[];
@@ -48,8 +50,12 @@ export function tankRigFromScene(root: Group): TankRig {
   }
   gun.userData.pitchAxis = 'x';
   const wheels: Object3D[] = [];
+  const idlers: Object3D[] = [];
+  const sprockets: Object3D[] = [];
   root.traverse((node) => {
-    if (/^Wheel_[LR]_\d\d$/.test(node.name)) wheels.push(node);
+    if (/^Wheel_[LR]_00$/.test(node.name)) idlers.push(node);
+    else if (/^Wheel_[LR]_06$/.test(node.name)) sprockets.push(node);
+    else if (/^Wheel_[LR]_\d\d$/.test(node.name)) wheels.push(node);
   });
   return {
     root,
@@ -57,6 +63,8 @@ export function tankRigFromScene(root: Group): TankRig {
     gun,
     muzzle,
     wheels,
+    idlers,
+    sprockets,
     wheelAxis: 'x',
     wheelRadius: 0.38,
     trackTextures: texturesForTracks(root),
@@ -66,6 +74,12 @@ export function tankRigFromScene(root: Group): TankRig {
 export function advanceRunningGear(rig: TankRig, travelled: number): void {
   for (const wheel of rig.wheels) {
     wheel.rotation[rig.wheelAxis] -= travelled / rig.wheelRadius;
+  }
+  for (const idler of rig.idlers) {
+    idler.rotation[rig.wheelAxis] -= travelled / (rig.wheelRadius * 1.12);
+  }
+  for (const sprocket of rig.sprockets) {
+    sprocket.rotation[rig.wheelAxis] -= travelled / (rig.wheelRadius * 0.92);
   }
   for (const texture of rig.trackTextures) {
     texture.offset.y -= travelled * 0.25;

@@ -79,6 +79,22 @@ describe('imported tank asset', () => {
     expect(root.position.toArray()).toEqual([0, 0, 0]);
   });
 
+  it('raises and sizes the front idler before normalisation', () => {
+    const root = new Group();
+    const idler = new Group();
+    idler.name = 'Wheel_L_00';
+    idler.position.set(0, 60, 240);
+    root.add(idler);
+
+    normalise(root);
+
+    expect(idler.position.y).toBe(82);
+    expect(idler.position.z).toBe(258);
+    expect(idler.scale.x).toBeCloseTo(1.12);
+    expect(idler.scale.y).toBeCloseTo(1.12);
+    expect(idler.scale.z).toBeCloseTo(1.12);
+  });
+
   it('preserves authored hull and turret regions during painting', () => {
     const root = new Group();
     const hull = new Group();

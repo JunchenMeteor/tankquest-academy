@@ -126,7 +126,7 @@ function addRoadWheels(
   hullDepth: number,
   trackOffset: number,
   wheelRadius: number
-): Group[] {
+): { wheels: Group[]; idlers: Mesh[]; sprockets: Mesh[] } {
   const wheelGeometry = new CylinderGeometry(
     wheelRadius,
     wheelRadius,
@@ -143,6 +143,8 @@ function addRoadWheels(
   const positions = [-2, -1, 0, 1, 2].map((index) => index * (hullDepth / 5.4));
 
   const wheels: Group[] = [];
+  const idlers: Mesh[] = [];
+  const sprockets: Mesh[] = [];
   for (const z of [-trackOffset, trackOffset]) {
     for (const x of positions) {
       const holder = new Group();
@@ -169,10 +171,14 @@ function addRoadWheels(
     sprocket.position.set(hullDepth / 2 - 0.2, wheelRadius + 0.02, z);
     sprocket.castShadow = true;
     group.add(sprocket);
+    sprockets.push(sprocket);
 
     const idler = sprocket.clone();
     idler.position.x = -hullDepth / 2 + 0.2;
+    idler.position.y += 0.08;
+    idler.scale.multiplyScalar(1.12);
     group.add(idler);
+    idlers.push(idler);
 
     for (const x of [-hullDepth / 3.2, 0, hullDepth / 3.2]) {
       const roller = new Mesh(
@@ -184,7 +190,7 @@ function addRoadWheels(
       group.add(roller);
     }
   }
-  return wheels;
+  return { wheels, idlers, sprockets };
 }
 
 function addTrackBand(
@@ -487,7 +493,13 @@ export function buildTankModel(
     group.add(spare);
   }
 
-  const wheels = addRoadWheels(group, materials, hullDepth, trackOffset, 0.3);
+  const { wheels, idlers, sprockets } = addRoadWheels(
+    group,
+    materials,
+    hullDepth,
+    trackOffset,
+    0.3
+  );
   group.userData.wheels = wheels;
   group.userData.wheelRadius = 0.3;
   addTrackBand(group, materials, hullDepth, trackOffset);
@@ -510,6 +522,8 @@ export function buildTankModel(
     gun: gunGroup,
     muzzle,
     wheels,
+    idlers,
+    sprockets,
     wheelAxis: 'z',
     wheelRadius: 0.3,
     trackTextures: [],
