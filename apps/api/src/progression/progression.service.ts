@@ -7,20 +7,11 @@ import {
 import type {
   OwnedTankDto,
   TankSkinDto,
-  UpgradeableStat,
   UpgradeTankRequest,
   UpgradeTankResponse,
 } from '@tankquest/shared';
 
 import { ProgressionRepository } from './progression.repository.js';
-
-const upgradeMaterials: Record<UpgradeableStat, string> = {
-  firepower: 'cannon',
-  mobility: 'track',
-  armor: 'armor_plate',
-  stealth: 'camouflage',
-  vision: 'optics',
-};
 
 @Injectable()
 export class ProgressionService {
@@ -57,8 +48,7 @@ export class ProgressionService {
     const result = await this.repository.upgradeTank(
       childId,
       tankId,
-      request.stat,
-      { itemKey: upgradeMaterials[request.stat], amount: 2 }
+      request.stat
     );
 
     if (result.status === 'unavailable') {

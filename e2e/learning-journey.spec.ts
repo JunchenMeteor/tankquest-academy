@@ -201,7 +201,7 @@ test('completes the authoritative learning and upgrade journey', async ({
   await expect(
     page.getByRole('heading', { name: 'Mission complete' })
   ).toBeVisible();
-  await expect(page.getByText('3 cannon parts earned')).toBeVisible();
+  await expect(page.getByText('3 upgrade parts earned')).toBeVisible();
   await expect(
     page.getByRole('heading', { name: 'Learning performance' })
   ).toBeVisible();
@@ -218,13 +218,13 @@ test('completes the authoritative learning and upgrade journey', async ({
     page.getByRole('button', { name: 'Return to mission selection' })
   ).toBeVisible();
   await page
-    .getByRole('button', { name: 'Spend 2 parts: upgrade firepower' })
+    .getByRole('button', { name: 'Spend 2 parts: upgrade Firepower' })
     .click();
   await expect(
-    page.getByText(/Upgrade complete: Firepower [4-5]\/5/)
+    page.getByText(/Upgrade complete: Firepower (?:[4-9]|10)\/10/)
   ).toBeVisible();
   await expect(
-    page.getByText(/cannon parts remain/, { exact: false })
+    page.getByText(/upgrade parts remain/, { exact: false })
   ).toBeVisible();
   await expect(page.locator('.upgrade-deltas')).toContainText('→');
   await expect(page.locator('.upgrade-deltas')).toContainText('Shell');
@@ -243,12 +243,12 @@ test('completes the authoritative learning and upgrade journey', async ({
   await expect(page.locator('main[data-phase="active"]')).toBeVisible();
   await expect(page.locator('.game-canvas canvas')).toBeVisible();
   await expect(page.locator('.briefing-stats > div').first()).toContainText(
-    /Firepower\s*[4-5]/
+    /Firepower\s*(?:[4-9]|10)/
   );
   await page.reload();
   await page.getByRole('button', { name: 'Start training' }).click();
   await expect(page.locator('.briefing-stats > div').first()).toContainText(
-    /Firepower\s*[4-5]/
+    /Firepower\s*(?:[4-9]|10)/
   );
   await page.goto('/parent');
   await expect(

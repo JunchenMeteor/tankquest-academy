@@ -1,11 +1,16 @@
 import {
   tankStatMax,
+  tankUpgradeCost,
+  upgradeableStats,
   type FinishSessionResponse,
-  type TankDto,
+  type OwnedTankDto,
+  type UpgradeableStat,
   type UpgradeTankResponse,
 } from '@tankquest/shared';
+import { useState } from 'react';
 
 import { combatProfileForStats } from './game/presentation/combat-profile.js';
+import { upgradeEffects } from './game/presentation/upgrade-effects.js';
 import type { RuntimeState } from './game/runtime/types.js';
 import { useI18n } from './i18n/I18nProvider.js';
 
@@ -15,12 +20,12 @@ interface MissionResultProps {
   online: boolean;
   runtime: RuntimeState;
   settlement: FinishSessionResponse;
-  tank: TankDto;
+  tank: OwnedTankDto;
   upgrade: UpgradeTankResponse | null;
   onContinue: () => void;
   onNextPractice: () => void;
   onReplay: () => void;
-  onUpgrade: () => void;
+  onUpgrade: (stat: UpgradeableStat) => void;
 }
 
 export function MissionResult({
@@ -37,7 +42,8 @@ export function MissionResult({
   onUpgrade,
 }: MissionResultProps) {
   const { t } = useI18n();
-  const firepowerMaxed = tank.stats.firepower >= tankStatMax;
+  const [selectedStat, setSelectedStat] =
+    useState<UpgradeableStat>('firepower');
   const parts =
     settlement.rewards.find((reward) => reward.type === 'part')?.amount ?? 0;
   const accuracy =
@@ -49,13 +55,25 @@ export function MissionResult({
             100
         );
   const enemiesDefeated = Math.max(0, enemyTotal - runtime.enemiesRemaining);
-  const beforeUpgrade = combatProfileForStats(tank.stats);
-  const afterUpgrade = upgrade
-    ? combatProfileForStats({
+  const currentLevel = tank.upgradeLevels[selectedStat];
+  const cost = tankUpgradeCost(currentLevel);
+  const selectedMaxed = cost === null;
+  const previewStat = upgrade?.stat ?? selectedStat;
+  const beforeStats = upgrade
+    ? {
         ...tank.stats,
-        [upgrade.stat]: upgrade.effectiveValue,
-      })
-    : null;
+        [upgrade.stat]: Math.max(1, upgrade.effectiveValue - 1),
+      }
+    : tank.stats;
+  const afterStats = {
+    ...tank.stats,
+    [previewStat]:
+      upgrade?.effectiveValue ??
+      Math.min(tankStatMax, tank.stats[previewStat] + 1),
+  };
+  const beforeUpgrade = combatProfileForStats(beforeStats);
+  const afterUpgrade = combatProfileForStats(afterStats);
+  const effects = upgradeEffects(beforeUpgrade, afterUpgrade, previewStat);
 
   return (
     <section className="status-card result-card">
@@ -137,55 +155,70 @@ export function MissionResult({
           </ul>
         </section>
       </div>
-      <button
-        disabled={busy || !online || Boolean(upgrade) || firepowerMaxed}
-        onClick={onUpgrade}
-      >
-        {firepowerMaxed
-          ? t('result.max', { max: tankStatMax })
-          : t('result.upgrade')}
-      </button>
-      {firepowerMaxed && !upgrade && (
-        <p className="upgrade-max" role="status">
-          {t('result.saved')}
-        </p>
-      )}
-      {upgrade && (
-        <div className="upgrade-confirmation" role="status">
-          <strong>
-            {t('result.upgraded', {
-              value: upgrade.effectiveValue,
-              max: tankStatMax,
-            })}
-          </strong>
-          <span>{t('result.parts', { count: upgrade.remainingParts })}</span>
-          {afterUpgrade && (
-            <dl className="upgrade-deltas">
-              <UpgradeDelta
-                label={t('stat.shell')}
-                before={beforeUpgrade.damage}
-                after={afterUpgrade.damage}
-              />
-              <UpgradeDelta
-                label={t('stat.penetration')}
-                before={beforeUpgrade.penetration}
-                after={afterUpgrade.penetration}
-              />
-              <UpgradeDelta
-                label={t('stat.projectileSpeed')}
-                before={beforeUpgrade.projectileSpeed}
-                after={afterUpgrade.projectileSpeed}
-              />
-              <UpgradeDelta
-                label={t('stat.reload')}
-                before={`${beforeUpgrade.reloadSeconds}s`}
-                after={`${afterUpgrade.reloadSeconds}s`}
-              />
-            </dl>
-          )}
-          <p>{t('result.effect')}</p>
-        </div>
-      )}
+      <section className={upgrade ? 'upgrade-confirmation' : 'upgrade-panel'}>
+        <label className="upgrade-stat-picker">
+          <span>{t('result.chooseStat')}</span>
+          <select
+            aria-label={t('result.chooseStat')}
+            disabled={busy || Boolean(upgrade)}
+            onChange={(event) =>
+              setSelectedStat(event.target.value as UpgradeableStat)
+            }
+            value={selectedStat}
+          >
+            {upgradeableStats.map((stat) => (
+              <option key={stat} value={stat}>
+                {t(`stat.${stat}`)} · {tank.stats[stat]}/{tankStatMax} · Lv
+                {tank.upgradeLevels[stat]}
+              </option>
+            ))}
+          </select>
+        </label>
+        {upgrade && (
+          <>
+            <strong>
+              {t('result.upgraded', {
+                stat: t(`stat.${upgrade.stat}`),
+                value: upgrade.effectiveValue,
+                max: tankStatMax,
+              })}
+            </strong>
+            <span>{t('result.parts', { count: upgrade.remainingParts })}</span>
+          </>
+        )}
+        <dl className="upgrade-deltas">
+          {effects.map((effect) => (
+            <UpgradeDelta
+              key={effect.labelKey}
+              label={t(effect.labelKey)}
+              before={effect.before}
+              after={effect.after}
+            />
+          ))}
+        </dl>
+        {!upgrade && (
+          <button
+            disabled={busy || !online || selectedMaxed}
+            onClick={() => onUpgrade(selectedStat)}
+          >
+            {selectedMaxed
+              ? t('result.max', {
+                  max: tankStatMax,
+                  stat: t(`stat.${selectedStat}`),
+                })
+              : t('result.upgrade', {
+                  cost,
+                  stat: t(`stat.${selectedStat}`),
+                })}
+          </button>
+        )}
+        {selectedMaxed && !upgrade && (
+          <p className="upgrade-max" role="status">
+            {t('result.saved')}
+          </p>
+        )}
+        {upgrade && <p>{t('result.effect')}</p>}
+      </section>
       {settlement.nextPractice && (
         <div className="next-practice" role="status">
           <strong>{t('result.nextPractice')}</strong>
@@ -218,8 +251,8 @@ function UpgradeDelta({
   before,
   label,
 }: {
-  after: number | string;
-  before: number | string;
+  after: number;
+  before: number;
   label: string;
 }) {
   return (

@@ -5,6 +5,7 @@ import type {
   StartSessionResponse,
   SubmitAnswerResponse,
   TankSkinDto,
+  UpgradeableStat,
   UpgradeTankResponse,
 } from '@tankquest/shared';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -336,7 +337,7 @@ export function App() {
     }
   };
 
-  const upgradeFirepower = async () => {
+  const upgradeStat = async (stat: UpgradeableStat) => {
     if (!online) {
       setError(t('offline.actionBlocked'));
       return;
@@ -348,7 +349,7 @@ export function App() {
       const upgraded = await api.upgradeTank(
         clientConfig.demoChildId,
         selectedTank.id,
-        'firepower'
+        stat
       );
       setUpgrade(upgraded);
       setTanks((current) =>
@@ -356,7 +357,14 @@ export function App() {
           tank.id === upgraded.tankId
             ? {
                 ...tank,
-                stats: { ...tank.stats, firepower: upgraded.effectiveValue },
+                stats: {
+                  ...tank.stats,
+                  [upgraded.stat]: upgraded.effectiveValue,
+                },
+                upgradeLevels: {
+                  ...tank.upgradeLevels,
+                  [upgraded.stat]: upgraded.level,
+                },
               }
             : tank
         )
@@ -450,19 +458,19 @@ export function App() {
         />
       )}
 
-      {phase === 'finished' && settlement && selectedTank && (
+      {phase === 'finished' && settlement && selectedOwnedTank && (
         <MissionResult
           busy={busy}
           enemyTotal={runtimeConfig?.enemies.length ?? 0}
           online={online}
           runtime={runtime}
           settlement={settlement}
-          tank={selectedTank}
+          tank={selectedOwnedTank}
           upgrade={upgrade}
           onContinue={continueWithUpgrade}
           onNextPractice={selectNextPractice}
           onReplay={() => void startTraining()}
-          onUpgrade={() => void upgradeFirepower()}
+          onUpgrade={(stat) => void upgradeStat(stat)}
         />
       )}
 

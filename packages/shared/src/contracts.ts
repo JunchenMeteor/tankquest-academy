@@ -4,6 +4,7 @@ import type {
   GameMode,
   Subject,
   TankStats,
+  TankUpgradeLevels,
   TrainingMapStyle,
   UpgradeableStat,
 } from './domain.js';
@@ -61,6 +62,7 @@ export interface TankSkinDto extends TankSkinAppearanceDto {
 
 export interface OwnedTankDto extends TankDto {
   level: number;
+  upgradeLevels: TankUpgradeLevels;
 }
 
 export interface QuestionChoiceDto {
