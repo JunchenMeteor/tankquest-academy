@@ -133,7 +133,9 @@ test('completes the authoritative learning and upgrade journey', async ({
     await firstSessionResponse
   ).json()) as ApiResponse<StartSessionResponse>;
   expect(firstSession.data?.sessionId).toBeTruthy();
-  await expect(page.locator('.briefing-level')).toHaveText('Addition range');
+  await expect(page.locator('.briefing-level')).toHaveText(
+    'Multiplication range'
+  );
   await expect(page.locator('.briefing-stats > div').first()).toContainText(
     /Firepower\s*[3-5]/
   );
@@ -167,7 +169,7 @@ test('completes the authoritative learning and upgrade journey', async ({
     data: expect.arrayContaining([
       expect.objectContaining({
         subject: 'math',
-        skillKey: 'addition-within-20',
+        skillKey: 'multiplication-facts',
         correctCount: expect.any(Number),
         accuracy: expect.any(Number),
       }),
@@ -264,7 +266,7 @@ test('completes the authoritative learning and upgrade journey', async ({
   await expect(page.getByText('Practice content')).toBeVisible();
   await expect(page.getByText('Progress evidence')).toBeVisible();
   await expect(
-    page.getByRole('heading', { name: 'Addition within 20', exact: true })
+    page.getByRole('heading', { name: 'Multiplication facts', exact: true })
   ).toBeVisible();
   await expect(
     page.getByText('Spend the next practice session on', { exact: false })
