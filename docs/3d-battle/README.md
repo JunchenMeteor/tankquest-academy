@@ -57,7 +57,8 @@ use the Phaser scene instead, then pick a mission and start training.
 | `apps/web/src/game/three/battle-scene-model.ts` | Field-to-world mapping, placements, camera poses, clamped movement |
 | `apps/web/src/game/three/battle-combat.ts`      | Magazine, shell flight, hit resolution, enemy fire, hull damage    |
 | `apps/web/src/game/three/battle-input.ts`       | Input snapshot and keyboard mapping                                |
-| `apps/web/src/game/three/battle-view.ts`        | Three.js scene, meshes, render loop                                |
+| `apps/web/src/game/three/battle-view.ts`        | Three.js scene, tank meshes, render loop                           |
+| `apps/web/src/game/three/battle-effects.ts`     | Timed effects, shell meshes, effect resource cleanup               |
 | `apps/web/src/game/three/Battle3DCanvas.tsx`    | React host, camera toggle, ammo badge                              |
 
 The pure modules carry the tests; the renderer is exercised through screenshots

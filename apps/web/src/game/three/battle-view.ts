@@ -8,7 +8,6 @@ import {
   MeshBasicMaterial,
   BoxGeometry,
   Color,
-  CylinderGeometry,
   DirectionalLight,
   DoubleSide,
   Fog,
@@ -66,6 +65,7 @@ import {
   openingDelayMs,
 } from './battle-enemy-ai.js';
 import { aimEnemyWeapon, type EnemyAimState } from './battle-enemy-aim.js';
+import { BattleEffects } from './battle-effects.js';
 import { advanceReload } from './battle-combat.js';
 import { createMeshHitTest } from './battle-mesh-collision.js';
 import { applyRamImpacts, calculateRamImpacts } from './battle-ram.js';
@@ -280,16 +280,7 @@ export function createBattleView(
   proceduralRigs.set('player', playerRig);
   let usingGlbTanks = false;
   let glbAsset: TankRig | null = null;
-  const effects: Array<{
-    mesh: Mesh;
-    ttl: number;
-    life: number;
-    growth: number;
-  }> = [];
-  const spawnEffect = (mesh: Mesh, life: number, growth: number) => {
-    scene.add(mesh);
-    effects.push({ mesh, ttl: life, life, growth });
-  };
+  const effects = new BattleEffects(scene);
   const enemySpeeds = new Map<string, number>();
   for (const enemy of config.enemies) {
     enemySpeeds.set(enemy.id, enemy.speed * 0.06);
@@ -333,21 +324,6 @@ export function createBattleView(
     if (enemy) spawnEnemy(enemy);
   }
 
-  const shellGeometry = new CylinderGeometry(0.045, 0.075, 0.72, 8);
-  const shellMaterial = new MeshStandardMaterial({
-    color: 0xd8e1e8,
-    emissive: 0x3d2a10,
-    metalness: 0.75,
-    roughness: 0.25,
-  });
-  const shellMeshes = new Map<number, Mesh>();
-  const enemyShellMeshes = new Map<number, Mesh>();
-  const enemyShellMaterial = new MeshStandardMaterial({
-    color: 0xff9a7a,
-    emissive: 0x5a140c,
-    metalness: 0.55,
-    roughness: 0.3,
-  });
   let combat = createCombatState(
     layout.enemies.length,
     1,
@@ -378,7 +354,7 @@ export function createBattleView(
         );
         impact.rotation.x = -Math.PI / 2;
         impact.position.set(root.position.x, 0.35, root.position.z);
-        spawnEffect(impact, 0.55, 4);
+        effects.spawn(impact, 0.55, 4);
         scene.remove(root);
         enemyRoots.delete(id);
       }
@@ -804,7 +780,7 @@ export function createBattleView(
             flash.rotation.x = -Math.PI / 2;
             flash.position.copy(root.position);
             flash.position.y += 0.35;
-            spawnEffect(flash, 0.28, 2.5);
+            effects.spawn(flash, 0.28, 2.5);
           }
         }
         destroyEnemies(ramResult.destroyed, 'ram');
@@ -939,7 +915,7 @@ export function createBattleView(
             })
           );
           flash.position.copy(muzzle);
-          spawnEffect(flash, 0.14, 5);
+          effects.spawn(flash, 0.14, 5);
           publish();
           onAmmo?.(combat.ammo, MAX_AMMO);
         }
@@ -1038,71 +1014,7 @@ export function createBattleView(
     };
     driver.advance(delta, update);
 
-    for (let index = effects.length - 1; index >= 0; index -= 1) {
-      const effect = effects[index]!;
-      effect.ttl -= delta;
-      const material = effect.mesh.material as MeshBasicMaterial;
-      if (effect.ttl <= 0) {
-        scene.remove(effect.mesh);
-        effect.mesh.geometry.dispose();
-        material.dispose();
-        effects.splice(index, 1);
-        continue;
-      }
-      const scale = 1 + (1 - effect.ttl / effect.life) * effect.growth;
-      effect.mesh.scale.setScalar(scale);
-      material.opacity = Math.max(0, effect.ttl / effect.life) * 0.9;
-    }
-
-    for (const shell of combat.shells) {
-      let mesh = shellMeshes.get(shell.id);
-      if (!mesh) {
-        mesh = new Mesh(shellGeometry, shellMaterial);
-        shellMeshes.set(shell.id, mesh);
-        scene.add(mesh);
-      }
-      mesh.position.set(shell.x, shell.y, shell.z);
-      const horizontal = Math.cos(shell.pitch);
-      mesh.quaternion.setFromUnitVectors(
-        new Vector3(0, 1, 0),
-        new Vector3(
-          Math.cos(shell.heading) * horizontal,
-          -Math.sin(shell.pitch),
-          -Math.sin(shell.heading) * horizontal
-        )
-      );
-    }
-    for (const [id, mesh] of shellMeshes) {
-      if (!combat.shells.some((shell) => shell.id === id)) {
-        scene.remove(mesh);
-        shellMeshes.delete(id);
-      }
-    }
-
-    for (const shell of combat.enemyShells) {
-      let mesh = enemyShellMeshes.get(shell.id);
-      if (!mesh) {
-        mesh = new Mesh(shellGeometry, enemyShellMaterial);
-        enemyShellMeshes.set(shell.id, mesh);
-        scene.add(mesh);
-      }
-      mesh.position.set(shell.x, shell.y, shell.z);
-      const horizontal = Math.cos(shell.pitch);
-      mesh.quaternion.setFromUnitVectors(
-        new Vector3(0, 1, 0),
-        new Vector3(
-          Math.cos(shell.heading) * horizontal,
-          -Math.sin(shell.pitch),
-          -Math.sin(shell.heading) * horizontal
-        )
-      );
-    }
-    for (const [id, mesh] of enemyShellMeshes) {
-      if (!combat.enemyShells.some((shell) => shell.id === id)) {
-        scene.remove(mesh);
-        enemyShellMeshes.delete(id);
-      }
-    }
+    effects.update(delta, combat);
     applyCamera();
     renderer.render(scene, camera);
     frame = requestAnimationFrame(loop);
@@ -1134,6 +1046,7 @@ export function createBattleView(
       observer?.disconnect();
       playerLabel.dispose();
       for (const label of enemyLabels.values()) label.dispose();
+      effects.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     },
