@@ -27,23 +27,51 @@ export interface TankStats {
   armor: number;
   stealth: number;
   vision: number;
-  /** Gun accuracy on the same 1-5 scale; higher means a tighter shell spread. */
+  /** Base ratings are 1-5; purchased upgrades can raise effective ratings to 10. */
   accuracy: number;
-  /** Turret traverse on the same 1-5 scale; higher means the gun swings faster. */
+  /** Higher effective traverse makes the gun swing faster. */
   turretTraverse: number;
 }
 
-export const tankStatMax = 5;
+export const tankBaseStatMax = 5;
+export const tankStatMax = 10;
+export const tankUpgradeMaxLevel = 5;
+export const tankUpgradeCosts = [2, 4, 6, 8, 10] as const;
 
-/** Stats that parts can upgrade. Accuracy and traverse stay fixed per tank. */
 export const upgradeableStats = [
   'firepower',
   'mobility',
   'armor',
   'stealth',
   'vision',
+  'accuracy',
+  'turretTraverse',
 ] as const;
 export type UpgradeableStat = (typeof upgradeableStats)[number];
+export type TankUpgradeLevels = Record<UpgradeableStat, number>;
+
+export function emptyTankUpgradeLevels(): TankUpgradeLevels {
+  return {
+    firepower: 0,
+    mobility: 0,
+    armor: 0,
+    stealth: 0,
+    vision: 0,
+    accuracy: 0,
+    turretTraverse: 0,
+  };
+}
+
+export function tankUpgradeCost(currentLevel: number): number | null {
+  if (
+    !Number.isInteger(currentLevel) ||
+    currentLevel < 0 ||
+    currentLevel >= tankUpgradeMaxLevel
+  ) {
+    return null;
+  }
+  return tankUpgradeCosts[currentLevel] ?? null;
+}
 
 export const enemyTankRoles = ['scout', 'medium', 'heavy'] as const;
 export type EnemyTankRole = (typeof enemyTankRoles)[number];

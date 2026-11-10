@@ -1,15 +1,19 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   tankStatMax,
+  tankUpgradeCost,
+  tankUpgradeMaxLevel,
   type OwnedTankDto,
   type TankSkinDto,
 } from '@tankquest/shared';
 
 import { PrismaService } from '../prisma.service.js';
-import { applyTankUpgrades } from '../game-sessions/tank-upgrades.js';
+import {
+  applyTankUpgrades,
+  readTankUpgradeLevels,
+} from '../game-sessions/tank-upgrades.js';
 import type {
   EquipSkinResult,
-  UpgradeMaterial,
   UpgradeResult,
   UpgradeStat,
 } from './progression.models.js';
@@ -45,6 +49,7 @@ export class PrismaProgressionRepository extends ProgressionRepository {
           nameKey: ownedTank.tank.nameKey,
           role: ownedTank.tank.role,
           level: ownedTank.level,
+          upgradeLevels: readTankUpgradeLevels(ownedTank.upgrades),
           stats: applyTankUpgrades(stats, ownedTank.upgrades),
           ...(skin ? { skin: this.toSkinAppearance(skin) } : {}),
         },
@@ -106,8 +111,7 @@ export class PrismaProgressionRepository extends ProgressionRepository {
   async upgradeTank(
     childId: string,
     tankId: string,
-    stat: UpgradeStat,
-    material: UpgradeMaterial
+    stat: UpgradeStat
   ): Promise<UpgradeResult> {
     return this.prisma.$transaction(async (transaction) => {
       const ownedTank = await transaction.childTank.findUnique({
@@ -126,7 +130,8 @@ export class PrismaProgressionRepository extends ProgressionRepository {
         return { status: 'unavailable' };
       }
       const currentLevel = ownedTank.upgrades[0]?.level ?? 0;
-      if (baseValue + currentLevel >= tankStatMax) {
+      const cost = tankUpgradeCost(currentLevel);
+      if (currentLevel >= tankUpgradeMaxLevel || cost === null) {
         return { status: 'max_level' };
       }
 
@@ -134,10 +139,10 @@ export class PrismaProgressionRepository extends ProgressionRepository {
         where: {
           childId,
           itemType: 'part',
-          itemKey: material.itemKey,
-          amount: { gte: material.amount },
+          itemKey: 'cannon',
+          amount: { gte: cost },
         },
-        data: { amount: { decrement: material.amount } },
+        data: { amount: { decrement: cost } },
       });
       if (spent.count === 0) {
         return { status: 'insufficient_parts' };
@@ -157,7 +162,7 @@ export class PrismaProgressionRepository extends ProgressionRepository {
             childId_itemType_itemKey: {
               childId,
               itemType: 'part',
-              itemKey: material.itemKey,
+              itemKey: 'cannon',
             },
           },
           select: { amount: true },

@@ -2,7 +2,6 @@ import type { OwnedTankDto, TankSkinDto } from '@tankquest/shared';
 
 import type {
   EquipSkinResult,
-  UpgradeMaterial,
   UpgradeResult,
   UpgradeStat,
 } from './progression.models.js';
@@ -21,7 +20,6 @@ export abstract class ProgressionRepository {
   abstract upgradeTank(
     childId: string,
     tankId: string,
-    stat: UpgradeStat,
-    material: UpgradeMaterial
+    stat: UpgradeStat
   ): Promise<UpgradeResult>;
 }

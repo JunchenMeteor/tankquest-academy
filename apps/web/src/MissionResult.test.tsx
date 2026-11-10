@@ -1,3 +1,4 @@
+import { emptyTankUpgradeLevels } from '@tankquest/shared';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -43,6 +44,8 @@ describe('MissionResult', () => {
           code: 'star-shield',
           nameKey: 'tank.starShield.name',
           role: 'medium',
+          level: 1,
+          upgradeLevels: emptyTankUpgradeLevels(),
           stats: {
             firepower: 3,
             mobility: 3,
@@ -66,7 +69,9 @@ describe('MissionResult', () => {
     expect(html).toContain('Select recommended mission');
     expect(html).toContain('Learning performance');
     expect(html).toContain('3 enemies defeated · 8 shots');
-    expect(html).toContain('3 cannon parts · awarded for this 3-star mission');
+    expect(html).toContain('3 upgrade parts · awarded for this 3-star mission');
+    expect(html).toContain('Accuracy');
+    expect(html).toContain('Turret traverse');
   });
 
   it('shows exact before and after combat outcomes for an upgrade', () => {
@@ -102,6 +107,8 @@ describe('MissionResult', () => {
           code: 'star-shield',
           nameKey: 'tank.starShield.name',
           role: 'medium',
+          level: 1,
+          upgradeLevels: emptyTankUpgradeLevels(),
           stats: {
             firepower: 3,
             mobility: 3,
@@ -129,6 +136,6 @@ describe('MissionResult', () => {
     expect(html).toContain('34 → 41');
     expect(html).toContain('82 → 94');
     expect(html).toContain('460 → 500');
-    expect(html).toContain('0.35s → 0.32s');
+    expect(html).toContain('0.35 → 0.32');
   });
 });
