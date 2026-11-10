@@ -119,6 +119,12 @@ describe('3D battle combat', () => {
 
     expect(result.destroyed).toEqual([]);
     expect(result.state.enemyHealth.a).toBe(100);
+    expect(result.impacts[0]).toMatchObject({
+      enemyId: 'a',
+      damage: 0,
+      zone: 'rear',
+      outcome: 'blocked',
+    });
   });
 
   it('sweeps a fast shell through a target instead of tunnelling', () => {
@@ -130,6 +136,13 @@ describe('3D battle combat', () => {
 
     expect(result.state.enemyHealth.a).toBe(66);
     expect(result.destroyed).toEqual([]);
+    expect(result.impacts[0]).toMatchObject({
+      enemyId: 'a',
+      damage: 34,
+      zone: 'rear',
+      outcome: 'penetrated',
+    });
+    expect(result.impacts[0]?.impactAngleDegrees).toBeTypeOf('number');
   });
 
   it('drops shells that fly past their range', () => {
