@@ -131,7 +131,7 @@ POST /api/game-sessions/:sessionId/finish
   "nextPractice": {
     "levelId": "level_002",
     "subject": "math",
-    "skillKey": "addition-within-20",
+    "skillKey": "multiplication-facts",
     "difficulty": 2,
     "intent": "challenge",
     "decision": "adopted",
