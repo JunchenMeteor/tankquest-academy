@@ -6,6 +6,7 @@ import type {
   PlayerCombatRuntimeConfig,
   RuntimeLevelConfig,
 } from '../runtime/types.js';
+import { buildExtraCover } from './battle-cover.js';
 
 export interface Vec3 {
   x: number;
@@ -117,7 +118,7 @@ const PLAYER_HULL: [number, number, number] = [3.6, 1.05, 2.1];
  * Field pixels per world unit. Smaller values stretch the battlefield, so the
  * field spans more tank lengths without shrinking the tanks themselves.
  */
-export const FIELD_SCALE = 14;
+export const FIELD_SCALE = 10;
 
 /** Converts field coordinates (top-down, y down) into world coordinates (y up). */
 export function toWorld(x: number, y: number, height = 0): Vec3 {
@@ -133,8 +134,8 @@ export function buildSceneLayout(config: RuntimeLevelConfig): SceneLayout {
     config.playerSpawn.x,
     config.playerSpawn.y,
     elevation(
-      config.playerSpawn.x / FIELD_SCALE,
-      config.playerSpawn.y / FIELD_SCALE
+      (config.playerSpawn.x - config.width / 2) / FIELD_SCALE,
+      (config.playerSpawn.y - config.height / 2) / FIELD_SCALE
     )
   );
 
@@ -166,7 +167,11 @@ export function buildSceneLayout(config: RuntimeLevelConfig): SceneLayout {
     const position = fieldToWorld(
       enemy.x,
       enemy.y,
-      enemy.elevation ?? elevation(enemy.x / 40, enemy.y / 40)
+      enemy.elevation ??
+        elevation(
+          (enemy.x - config.width / 2) / FIELD_SCALE,
+          (enemy.y - config.height / 2) / FIELD_SCALE
+        )
     );
     return {
       id: enemy.id,
@@ -184,14 +189,24 @@ export function buildSceneLayout(config: RuntimeLevelConfig): SceneLayout {
     };
   });
 
-  const blocks = config.obstacles.map((obstacle) => ({
-    position: fieldToWorld(obstacle.x, obstacle.y, 0.55),
-    size: [
-      Math.max(1, obstacle.width / FIELD_SCALE),
-      1.1,
-      Math.max(1, obstacle.height / FIELD_SCALE),
-    ] as [number, number, number],
-  }));
+  const blocks = [
+    ...config.obstacles.map((obstacle) => ({
+      position: fieldToWorld(
+        obstacle.x,
+        obstacle.y,
+        elevation(
+          (obstacle.x - config.width / 2) / FIELD_SCALE,
+          (obstacle.y - config.height / 2) / FIELD_SCALE
+        ) + 0.9
+      ),
+      size: [
+        Math.max(1, obstacle.width / FIELD_SCALE),
+        1.8,
+        Math.max(1, obstacle.height / FIELD_SCALE),
+      ] as [number, number, number],
+    })),
+    ...buildExtraCover(config, FIELD_SCALE, groundHeight),
+  ];
 
   return {
     /* Pad the field so the spawn and the chase camera stay inside the ground. */
@@ -231,7 +246,7 @@ export function cameraPose(
   const horizontal = Math.cos(pitch);
   if (mode === 'first') {
     /* Eye height sits just above the turret roof, like a commander's sight. */
-    const eye = 1.95;
+    const eye = player.position.y + 1.95;
     return {
       position: { x: player.position.x, y: eye, z: player.position.z },
       target: {
@@ -244,7 +259,8 @@ export function cameraPose(
   const distance = 13;
   /* Positive pitch looks up, so it lowers the chase camera's elevation. */
   const elevation = Math.max(0.08, Math.min(0.85, 0.45 - pitch));
-  const height = Math.max(1.9, 1.4 + Math.tan(elevation) * distance);
+  const height =
+    player.position.y + Math.max(1.9, 1.4 + Math.tan(elevation) * distance);
   return {
     position: {
       x: player.position.x - Math.cos(heading) * distance * horizontal,
@@ -253,14 +269,18 @@ export function cameraPose(
     },
     target: {
       x: player.position.x + Math.cos(heading) * 6,
-      y: 1.4 + Math.sin(pitch) * 12,
+      y: player.position.y + 1.4 + Math.sin(pitch) * 12,
       z: player.position.z - Math.sin(heading) * 6,
     },
   };
 }
 
 export function groundHeight(x: number, z: number): number {
-  return Math.sin(x * 0.25) * 0.12 + Math.cos(z * 0.21) * 0.1;
+  return (
+    Math.sin(x * 0.14) * 0.65 +
+    Math.cos(z * 0.17) * 0.45 +
+    Math.sin((x + z) * 0.09) * 0.25
+  );
 }
 
 function cameraBlockHit(
@@ -355,20 +375,18 @@ export function stepEnemyToward(
   const step = Math.min(speed * deltaSeconds, distance - standoff);
   const halfWidth = bounds.width / 2;
   const halfDepth = bounds.depth / 2;
+  const x = Math.max(
+    -halfWidth,
+    Math.min(halfWidth, enemy.position.x + Math.cos(heading) * step)
+  );
+  const z = Math.max(
+    -halfDepth,
+    Math.min(halfDepth, enemy.position.z - Math.sin(heading) * step)
+  );
   return {
     heading,
     moved: true,
-    position: {
-      x: Math.max(
-        -halfWidth,
-        Math.min(halfWidth, enemy.position.x + Math.cos(heading) * step)
-      ),
-      y: enemy.position.y,
-      z: Math.max(
-        -halfDepth,
-        Math.min(halfDepth, enemy.position.z - Math.sin(heading) * step)
-      ),
-    },
+    position: { x, y: groundHeight(x, z), z },
   };
 }
 
@@ -419,21 +437,19 @@ export function stepTank(
   const bounds = layout.playfield ?? layout.ground;
   const halfWidth = bounds.width / 2 - 2.2;
   const halfDepth = bounds.depth / 2 - 2.2;
+  const x = Math.max(
+    -halfWidth,
+    Math.min(halfWidth, player.position.x + Math.cos(heading) * distance)
+  );
+  const z = Math.max(
+    -halfDepth,
+    Math.min(halfDepth, player.position.z - Math.sin(heading) * distance)
+  );
   return {
     heading,
     trackSpeed,
     turnRate,
-    position: {
-      x: Math.max(
-        -halfWidth,
-        Math.min(halfWidth, player.position.x + Math.cos(heading) * distance)
-      ),
-      y: player.position.y,
-      z: Math.max(
-        -halfDepth,
-        Math.min(halfDepth, player.position.z - Math.sin(heading) * distance)
-      ),
-    },
+    position: { x, y: groundHeight(x, z), z },
   };
 }
 
@@ -446,7 +462,8 @@ export function stepTank(
 export function resolveObstacles(
   position: Vec3,
   radius: number,
-  blocks: readonly BlockPlacement[]
+  blocks: readonly BlockPlacement[],
+  heightAt?: (x: number, z: number) => number
 ): Vec3 {
   let x = position.x;
   let z = position.z;
@@ -464,7 +481,8 @@ export function resolveObstacles(
       z += dz >= 0 ? overlapZ : -overlapZ;
     }
   }
-  return x === position.x && z === position.z
+  const y = heightAt?.(x, z) ?? position.y;
+  return x === position.x && y === position.y && z === position.z
     ? position
-    : { x, y: position.y, z };
+    : { x, y, z };
 }

@@ -5,8 +5,15 @@ use the Phaser scene instead, then pick a mission and start training.
 
 ## What it does
 
-- Full-screen battlefield: ground with height variation, obstacles casting
-  shadows, a PBR tank model on high quality, and procedural rigs on lower tiers.
+- Full-screen battlefield: an expanded field with meaningful height variation,
+  deterministic extra cover, obstacles casting shadows, a PBR tank model on high
+  quality, and procedural rigs on lower tiers. Tanks and cameras follow the
+  terrain instead of hovering at their spawn height.
+- Walls, raised platforms, the boundary, and the terrain itself stop both player
+  and enemy shells at the nearest contact. Cover never applies hull or ammo-rack
+  damage; a clear line to the tank is still required for a damaging hit.
+- Front idlers use 0.82 scale on both the authored and procedural rigs so they
+  remain inside the track silhouette instead of protruding through it.
 - Information lives on the sides: mission and live counters on the left,
   the graded question on the right.
 - Camera toggle (the button under the view): a chase camera that follows tank
@@ -74,6 +81,7 @@ use the Phaser scene instead, then pick a mission and start training.
 | File                                             | Role                                                               |
 | ------------------------------------------------ | ------------------------------------------------------------------ |
 | `apps/web/src/game/three/battle-scene-model.ts`  | Field-to-world mapping, placements, camera poses, clamped movement |
+| `apps/web/src/game/three/battle-cover.ts`        | Deterministic cover placement that avoids spawns and objectives    |
 | `apps/web/src/game/three/battle-combat.ts`       | Magazine, shell flight, hit resolution, enemy fire, hull damage    |
 | `apps/web/src/game/three/battle-input.ts`        | Input snapshot and keyboard mapping                                |
 | `apps/web/src/game/three/battle-view.ts`         | Three.js scene, tank meshes, render loop                           |

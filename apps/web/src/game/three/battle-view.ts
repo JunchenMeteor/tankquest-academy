@@ -11,7 +11,6 @@ import {
   DirectionalLight,
   DoubleSide,
   Fog,
-  GridHelper,
   Group,
   HemisphereLight,
   Mesh,
@@ -132,17 +131,6 @@ function buildGround(layout: SceneLayout, palette: ScenePalette): Group {
   floor.receiveShadow = true;
   ground.add(floor);
 
-  const grid = new GridHelper(
-    visualWidth,
-    90,
-    palette.floor.accent,
-    palette.floor.grid
-  );
-  grid.material.opacity = 0.22;
-  grid.material.transparent = true;
-  grid.position.y = 0.04;
-  ground.add(grid);
-
   for (const block of layout.blocks) {
     const mesh = new Mesh(
       new BoxGeometry(block.size[0], block.size[1], block.size[2]),
@@ -156,14 +144,20 @@ function buildGround(layout: SceneLayout, palette: ScenePalette): Group {
   for (const enemy of layout.enemies) {
     const elevation = enemy.position.y;
     if (!enemy.passive || elevation <= 0.3) continue;
+    const base = groundHeight(enemy.position.x, enemy.position.z) - 0.1;
+    const height = Math.max(0.2, elevation - base);
     const platform = new Mesh(
-      new BoxGeometry(4.2, elevation, 6.4),
+      new BoxGeometry(4.2, height, 6.4),
       new MeshStandardMaterial({
         color: palette.obstacle.side,
         roughness: 0.9,
       })
     );
-    platform.position.set(enemy.position.x, elevation / 2, enemy.position.z);
+    platform.position.set(
+      enemy.position.x,
+      base + height / 2,
+      enemy.position.z
+    );
     platform.castShadow = true;
     platform.receiveShadow = true;
     ground.add(platform);
@@ -270,7 +264,8 @@ export function createBattleView(
   skirt.position.y = -0.02;
   skirt.receiveShadow = true;
   scene.add(skirt);
-  scene.add(buildFence(layout, palette));
+  const boundary = buildFence(layout, palette);
+  scene.add(boundary);
 
   let playerRig: TankRig = buildTankModel(layout.player, true);
   const playerLabel = createTankLabel(
@@ -303,7 +298,7 @@ export function createBattleView(
     config.locale === 'zh-CN'
       ? { scout: '侦察型', medium: '中型', heavy: '重型' }
       : { scout: 'Scout', medium: 'Medium', heavy: 'Heavy' };
-  const meshHitTest = createMeshHitTest(enemyRoots);
+  const meshHitTest = createMeshHitTest(enemyRoots, [ground, boundary]);
   const spawnEnemy = (enemy: (typeof layout.enemies)[number]) => {
     const rig = glbAsset
       ? paintTankRig(glbAsset, enemy.color, enemy.secondaryColor)
@@ -522,14 +517,18 @@ export function createBattleView(
     ...layout.blocks,
     ...layout.enemies
       .filter((enemy) => enemy.passive && enemy.position.y > 0.3)
-      .map((enemy) => ({
-        position: {
-          x: enemy.position.x,
-          y: enemy.position.y / 2,
-          z: enemy.position.z,
-        },
-        size: [4.2, enemy.position.y, 6.4] as [number, number, number],
-      })),
+      .map((enemy) => {
+        const base = groundHeight(enemy.position.x, enemy.position.z) - 0.1;
+        const height = Math.max(0.2, enemy.position.y - base);
+        return {
+          position: {
+            x: enemy.position.x,
+            y: base + height / 2,
+            z: enemy.position.z,
+          },
+          size: [4.2, height, 6.4] as [number, number, number],
+        };
+      }),
   ];
   const applyCamera = () => {
     const idealPose = cameraPose(
@@ -652,7 +651,12 @@ export function createBattleView(
         ) {
           const previousPosition = state.position;
           state.heading = next.heading;
-          state.position = resolveObstacles(next.position, 1.9, layout.blocks);
+          state.position = resolveObstacles(
+            next.position,
+            1.9,
+            layout.blocks,
+            groundHeight
+          );
           playerRig.root.position.set(
             state.position.x,
             state.position.y,
@@ -750,7 +754,8 @@ export function createBattleView(
             enemy.position = resolveObstacles(
               step.position,
               1.7,
-              layout.blocks
+              layout.blocks,
+              groundHeight
             );
             enemy.heading = step.heading;
           }
@@ -895,7 +900,8 @@ export function createBattleView(
             z: Math.max(-limitZ, Math.min(limitZ, state.position.z)),
           },
           1.9,
-          layout.blocks
+          layout.blocks,
+          groundHeight
         );
         for (const enemy of layout.enemies) {
           enemy.position = resolveObstacles(
@@ -905,7 +911,8 @@ export function createBattleView(
               z: Math.max(-limitZ, Math.min(limitZ, enemy.position.z)),
             },
             1.7,
-            layout.blocks
+            layout.blocks,
+            enemy.passive ? undefined : groundHeight
           );
           const root = enemyRoots.get(enemy.id);
           if (!root) continue;
@@ -1042,7 +1049,8 @@ export function createBattleView(
               config.player.armorReduction,
               config.player.armorProfile,
               state.heading,
-              Math.random
+              Math.random,
+              meshHitTest
             );
             combat = incoming.state;
             for (const impact of incoming.impacts) {

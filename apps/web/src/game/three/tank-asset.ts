@@ -191,7 +191,7 @@ export function normalise(root: Object3D, length = 6): void {
     if (!/^Wheel_[LR]_00$/.test(node.name)) return;
     node.position.y += 22;
     node.position.z += 18;
-    node.scale.multiplyScalar(1.12);
+    node.scale.multiplyScalar(0.82);
   });
   root.updateMatrixWorld(true);
   const box = new Box3().setFromObject(root);
