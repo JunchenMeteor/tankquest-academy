@@ -36,8 +36,9 @@ use the Phaser scene instead, then pick a mission and start training.
 - Hull health, directional armour, penetration, damage, projectile speed,
   reload time, and mobility come from the selected tank and enemy presets.
 - Incoming shells carry the firing tank's penetration and launch from its actual
-  elevated, pitched muzzle. The player uses directional armour and heading, so
-  heavy front armour can block scout fire instead of only applying a flat reduction.
+  elevated, pitched muzzle. Both shell directions resolve the first contact point
+  and use the same absolute impact-angle, effective-armour, ricochet, blocked,
+  penetration, and damage rules; armour is not just a flat reduction.
 - Enemy turrets and guns track the player independently of their hulls, with
   per-tank traverse and elevation speeds; enemies fire only when aligned.
 - Scouts use alternating side/rear lanes and switch flanks when their firing

@@ -180,9 +180,12 @@ export function advanceEnemyShells(
   armorReduction = 0,
   armorProfile?: ArmorProfile,
   playerHeading = 0
-): { state: CombatState; damage: number } {
-  if (state.enemyShells.length === 0) return { state, damage: 0 };
+): { state: CombatState; damage: number; impacts: ShellImpact[] } {
+  if (state.enemyShells.length === 0) {
+    return { state, damage: 0, impacts: [] };
+  }
   const remaining: EnemyShell[] = [];
+  const impacts: ShellImpact[] = [];
   let damage = 0;
 
   for (const shell of state.enemyShells) {
@@ -193,25 +196,50 @@ export function advanceEnemyShells(
     const nextZ = shell.z - Math.sin(shell.heading) * step * horizontal;
     const travelled = shell.distanceTravelled + step;
     if (Math.hypot(nextX - player.x, nextZ - player.z) <= PLAYER_HIT_RADIUS) {
+      const from = { x: shell.x, y: shell.y, z: shell.z };
+      const to = { x: nextX, y: nextY, z: nextZ };
+      const fraction = sweepFraction(
+        from,
+        to,
+        { x: player.x, y: nextY, z: player.z },
+        PLAYER_HIT_RADIUS
+      );
+      const point = {
+        x: shell.x + (nextX - shell.x) * (fraction ?? 0),
+        y: nextY,
+        z: shell.z + (nextZ - shell.z) * (fraction ?? 0),
+      };
       const zone = classifyArmorZone(
-        nextX - player.x,
-        nextZ - player.z,
+        point.x - player.x,
+        point.z - player.z,
         -playerHeading
       );
-      const baseArmor = armorProfile?.[zone] ?? 0;
-      const impactDamage =
+      const impact =
         armorProfile && shell.penetration !== undefined
-          ? shell.penetration < baseArmor
-            ? 0
-            : Math.max(
-                1,
-                Math.round(
-                  shell.damage *
-                    Math.min(1, 0.65 + (shell.penetration - baseArmor) / 100)
-                )
-              )
-          : shell.damage;
-      damage += calculateArmoredDamage(impactDamage, armorReduction);
+          ? calculateProjectileImpact({
+              armor: armorProfile,
+              baseDamage: shell.damage,
+              impactOffsetX: point.x - player.x,
+              impactOffsetY: point.z - player.z,
+              penetration: shell.penetration,
+              projectileVelocityX: Math.cos(shell.heading) * horizontal,
+              projectileVelocityY: -Math.sin(shell.heading) * horizontal,
+              targetRotation: -playerHeading,
+            })
+          : null;
+      const impactDamage = calculateArmoredDamage(
+        impact?.damage ?? shell.damage,
+        armorReduction
+      );
+      damage += impactDamage;
+      impacts.push({
+        enemyId: 'player',
+        point,
+        damage: impactDamage,
+        zone,
+        impactAngleDegrees: impact?.impactAngleDegrees ?? 0,
+        outcome: impact?.outcome ?? 'penetrated',
+      });
       continue;
     }
     if (travelled > SHELL_RANGE) continue;
@@ -233,6 +261,7 @@ export function advanceEnemyShells(
       playerDestroyed: health === 0,
     },
     damage,
+    impacts,
   };
 }
 
@@ -424,19 +453,8 @@ export function advanceShells(
         projectileVelocityY: -Math.sin(shell.heading) * horizontal,
         targetRotation: -enemy.heading,
       });
-      const baseArmor = armor[zone];
-      const impactDamage =
-        shell.penetration < baseArmor
-          ? 0
-          : Math.max(
-              1,
-              Math.round(
-                shell.damage *
-                  Math.min(1, 0.65 + (shell.penetration - baseArmor) / 100)
-              )
-            );
       const damage = calculateArmoredDamage(
-        impactDamage,
+        impact.damage,
         enemy.combat?.armorReduction ?? 0
       );
       const health = Math.max(
@@ -450,12 +468,7 @@ export function advanceShells(
         damage,
         zone,
         impactAngleDegrees: impact.impactAngleDegrees,
-        outcome:
-          damage > 0
-            ? 'penetrated'
-            : impact.impactAngleDegrees >= 70
-              ? 'ricochet'
-              : 'blocked',
+        outcome: impact.outcome,
       });
       if (health === 0) {
         alive.delete(enemy.id);

@@ -1044,6 +1044,15 @@ export function createBattleView(
               state.heading
             );
             combat = incoming.state;
+            for (const impact of incoming.impacts) {
+              hitFeedback.spawn(impact, config.locale);
+              logCombatEvent('enemy_projectile_hit_player', {
+                damage: impact.damage,
+                zone: impact.zone,
+                outcome: impact.outcome,
+                impactAngleDegrees: impact.impactAngleDegrees,
+              });
+            }
             if (incoming.damage > 0) publish();
           }
         }
