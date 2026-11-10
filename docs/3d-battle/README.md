@@ -40,7 +40,8 @@ use the Phaser scene instead, then pick a mission and start training.
   per-tank traverse and elevation speeds; enemies fire only when aligned.
 - Scouts use alternating side/rear lanes and switch flanks when their firing
   line is blocked, mediums preserve formation spacing, and heavies close the
-  distance while facing the player to engage with frontal armour.
+  distance while facing the player to engage with frontal armour. Tactical
+  movement detours through clear padded corners instead of stopping at walls.
 - Backend-seeded `flank-drill` and `heavy-line` missions provide focused mixed-
   role tactical practice alongside the existing campaign and wave objectives.
 - Hull-to-hull impacts reuse the 2D ram rules: relative speed and mass determine
