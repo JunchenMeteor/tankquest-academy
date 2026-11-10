@@ -130,10 +130,7 @@ function calculateImpactAngle(
   const sourceY = -velocityY / speed;
   const cosine = Math.min(
     1,
-    Math.max(
-      0,
-      sourceX * Math.cos(normalAngle) + sourceY * Math.sin(normalAngle)
-    )
+    Math.abs(sourceX * Math.cos(normalAngle) + sourceY * Math.sin(normalAngle))
   );
   return Math.round((Math.acos(cosine) * 1800) / Math.PI) / 10;
 }
