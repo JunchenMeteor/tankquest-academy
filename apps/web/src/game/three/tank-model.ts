@@ -176,7 +176,7 @@ function addRoadWheels(
     const idler = sprocket.clone();
     idler.position.x = -hullDepth / 2 + 0.2;
     idler.position.y += 0.08;
-    idler.scale.multiplyScalar(1.12);
+    idler.scale.multiplyScalar(0.82);
     group.add(idler);
     idlers.push(idler);
 

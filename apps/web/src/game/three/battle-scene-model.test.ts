@@ -75,10 +75,12 @@ describe('3D battle scene model', () => {
       (200 - 270) / FIELD_SCALE
     );
     expect(layout.enemies[0]?.color ?? 0).toBeGreaterThan(0);
-    expect(layout.blocks).toHaveLength(1);
+    expect(layout.blocks.length).toBeGreaterThan(1);
     expect(layout.blocks[0]?.position.x).toBe(0);
     expect(layout.blocks[0]?.position.z).toBe(0);
     expect(layout.blocks[0]?.size[0] ?? 0).toBeCloseTo(80 / FIELD_SCALE);
+    expect(layout.blocks[0]?.size[1]).toBe(1.8);
+    expect(layout.blocks[0]?.position.y).toBeCloseTo(groundHeight(0, 0) + 0.9);
   });
 
   it('keeps the first-person camera on the turret and looking forward', () => {
@@ -311,6 +313,86 @@ describe('tracked steering', () => {
     expect(Math.abs(far.position.z)).toBeLessThanOrEqual(
       layout.playfield.depth / 2
     );
+  });
+});
+
+describe('terrain and generated cover', () => {
+  it('expands the battlefield and keeps generated cover away from spawns', () => {
+    const layout = buildSceneLayout(config as RuntimeLevelConfig);
+    expect(layout.playfield.width).toBeCloseTo(96);
+    expect(layout.playfield.depth).toBeCloseTo(54);
+    expect(layout.blocks.length).toBeGreaterThan(3);
+    for (const block of layout.blocks.slice(1)) {
+      expect(
+        Math.hypot(
+          block.position.x - layout.player.position.x,
+          block.position.z - layout.player.position.z
+        )
+      ).toBeGreaterThan(2.5);
+      expect(
+        Math.hypot(
+          block.position.x - layout.enemies[0]!.position.x,
+          block.position.z - layout.enemies[0]!.position.z
+        )
+      ).toBeGreaterThan(2.5);
+    }
+  });
+
+  it('makes the height variation visible instead of nearly flat', () => {
+    expect(Math.abs(groundHeight(4, 7) - groundHeight(-3, -2))).toBeGreaterThan(
+      0.5
+    );
+  });
+
+  it('applies terrain height to tanks and both camera modes', () => {
+    const layout = buildSceneLayout(config as RuntimeLevelConfig);
+    const player = stepTank(
+      { position: { x: 2, y: 0, z: 3 }, heading: 0 },
+      { forward: 0, turn: 0 },
+      0.1,
+      layout
+    );
+    expect(player.position.y).toBeCloseTo(groundHeight(2, 3));
+
+    const enemy = stepEnemyToward(
+      { position: { x: 2, y: 0, z: 3 } },
+      { x: 8, z: 8 },
+      1,
+      0.1,
+      0,
+      layout.playfield
+    );
+    expect(enemy.position.y).toBeCloseTo(
+      groundHeight(enemy.position.x, enemy.position.z)
+    );
+
+    const first = cameraPose('first', {
+      position: { x: 0, y: 2, z: 0 },
+      heading: 0,
+    });
+    expect(first.position.y).toBe(3.95);
+    const third = cameraPose('third', {
+      position: { x: 0, y: 2, z: 0 },
+      heading: 0,
+    });
+    expect(third.position.y).toBeGreaterThan(7);
+    expect(third.target.y).toBeGreaterThan(3);
+  });
+
+  it('recomputes ground height after obstacle separation', () => {
+    const blocks = [
+      {
+        position: { x: 0, y: 0.9, z: 0 },
+        size: [4, 1.8, 4] as [number, number, number],
+      },
+    ];
+    const resolved = resolveObstacles(
+      { x: 0.2, y: 0, z: 0.1 },
+      1.9,
+      blocks,
+      groundHeight
+    );
+    expect(resolved.y).toBeCloseTo(groundHeight(resolved.x, resolved.z));
   });
 });
 
