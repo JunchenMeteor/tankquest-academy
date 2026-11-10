@@ -4,15 +4,20 @@ import type { EnemyRuntimeConfig } from '../runtime/types.js';
 import { deriveCombatStats } from '../systems/combat-stats.js';
 
 export interface CombatProfile {
+  acceleration: number;
   damage: number;
   detectionRange: number;
+  dispersionRadius: number;
   frontArmor: number;
+  gunElevationDegrees: number;
   health: number;
   mass: number;
   penetration: number;
   projectileSpeed: number;
   reloadSeconds: number;
   topSpeed: number;
+  turnSpeed: number;
+  turretTraverseDegrees: number;
   visibilityPercent: number;
 }
 
@@ -30,15 +35,20 @@ export interface EnemyThreatProfile {
 export function combatProfileForStats(stats: TankStats): CombatProfile {
   const combat = deriveCombatStats(stats);
   return {
+    acceleration: combat.acceleration,
     damage: combat.projectileDamage,
     detectionRange: combat.detectionRange,
+    dispersionRadius: Number(combat.dispersionRadius.toFixed(3)),
     frontArmor: combat.armorProfile.front,
+    gunElevationDegrees: radiansToDegrees(combat.gunElevationSpeed ?? 0),
     health: combat.maxHealth,
     mass: combat.mass,
     penetration: combat.projectilePenetration,
     projectileSpeed: combat.projectileSpeed,
     reloadSeconds: millisecondsToSeconds(combat.fireCooldownMs),
     topSpeed: combat.speed,
+    turnSpeed: Number(combat.turnSpeed.toFixed(2)),
+    turretTraverseDegrees: radiansToDegrees(combat.turretTraverseSpeed),
     visibilityPercent: Math.round(combat.visibilityMultiplier * 100),
   };
 }
@@ -71,4 +81,8 @@ export function enemyThreatProfiles(enemies: EnemyRuntimeConfig[]) {
 
 function millisecondsToSeconds(value: number) {
   return Number((value / 1000).toFixed(2));
+}
+
+function radiansToDegrees(value: number) {
+  return Number(((value * 180) / Math.PI).toFixed(1));
 }

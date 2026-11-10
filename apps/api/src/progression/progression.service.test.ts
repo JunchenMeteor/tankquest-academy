@@ -1,10 +1,14 @@
 import { ConflictException, ForbiddenException } from '@nestjs/common';
-import type { OwnedTankDto, TankSkinDto } from '@tankquest/shared';
+import {
+  emptyTankUpgradeLevels,
+  upgradeableStats,
+  type OwnedTankDto,
+  type TankSkinDto,
+} from '@tankquest/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type {
   EquipSkinResult,
-  UpgradeMaterial,
   UpgradeResult,
   UpgradeStat,
 } from './progression.models.js';
@@ -23,7 +27,7 @@ class MemoryProgressionRepository extends ProgressionRepository {
       remainingParts: 1,
     },
   };
-  material: UpgradeMaterial | null = null;
+  requestedStat: UpgradeStat | null = null;
   skins: TankSkinDto[] = [];
   equipResult: EquipSkinResult = { status: 'unavailable' };
 
@@ -42,10 +46,9 @@ class MemoryProgressionRepository extends ProgressionRepository {
   async upgradeTank(
     _childId: string,
     _tankId: string,
-    _stat: UpgradeStat,
-    material: UpgradeMaterial
+    stat: UpgradeStat
   ): Promise<UpgradeResult> {
-    this.material = material;
+    this.requestedStat = stat;
     return this.result;
   }
 }
@@ -59,11 +62,13 @@ describe('ProgressionService', () => {
     service = new ProgressionService(repository);
   });
 
-  it('spends the mapped part material for an upgrade', async () => {
-    await expect(
-      service.upgradeTank('child_1', 'tank_1', { stat: 'firepower' })
-    ).resolves.toMatchObject({ level: 1, remainingParts: 1 });
-    expect(repository.material).toEqual({ itemKey: 'cannon', amount: 2 });
+  it('delegates every upgradeable stat to the authoritative repository', async () => {
+    for (const stat of upgradeableStats) {
+      await expect(
+        service.upgradeTank('child_1', 'tank_1', { stat })
+      ).resolves.toMatchObject({ level: 1, remainingParts: 1 });
+      expect(repository.requestedStat).toBe(stat);
+    }
   });
 
   it('returns only the authoritative owned tank list', async () => {
@@ -74,6 +79,10 @@ describe('ProgressionService', () => {
         nameKey: 'tank.starShield.name',
         role: 'medium',
         level: 2,
+        upgradeLevels: {
+          ...emptyTankUpgradeLevels(),
+          firepower: 1,
+        },
         stats: {
           firepower: 4,
           mobility: 3,

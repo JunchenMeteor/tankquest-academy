@@ -53,7 +53,7 @@ describe('shared contracts', () => {
   it('rejects invalid tank stats', () => {
     expect(() =>
       tankStatsSchema.parse({
-        firepower: 6,
+        firepower: 11,
         mobility: 3,
         armor: 3,
         stealth: 3,

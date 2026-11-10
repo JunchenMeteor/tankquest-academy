@@ -19,15 +19,20 @@ describe('combat profiles', () => {
         turretTraverse: 3,
       })
     ).toEqual({
+      acceleration: 420,
       damage: 34,
       detectionRange: 280,
+      dispersionRadius: 0.168,
       frontArmor: 78,
+      gunElevationDegrees: 56.7,
       health: 150,
       mass: 110,
       penetration: 82,
       projectileSpeed: 460,
       reloadSeconds: 0.35,
       topSpeed: 170,
+      turnSpeed: 2.8,
+      turretTraverseDegrees: 118,
       visibilityPercent: 94,
     });
   });
