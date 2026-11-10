@@ -41,6 +41,9 @@ use the Phaser scene instead, then pick a mission and start training.
 - Hull-to-hull impacts reuse the 2D ram rules: relative speed and mass determine
   two-way damage, armour mitigates it, and each tank pair has a 650 ms cooldown.
   Ram kills count toward mission objectives and trigger subsequent waves.
+- Shell impacts show localized damage, armour-zone, blocked-shot, and ricochet
+  feedback at the hit point; ram impacts show their damage as well. Brief gun
+  recoil and destruction flashes affect only rendering, never aim or ballistics.
 - The seeded `target-range` mission places six passive targets at different
   distances and elevations for reproducible aiming and damage checks.
 
@@ -56,14 +59,15 @@ use the Phaser scene instead, then pick a mission and start training.
 
 ## Code map
 
-| File                                            | Role                                                               |
-| ----------------------------------------------- | ------------------------------------------------------------------ |
-| `apps/web/src/game/three/battle-scene-model.ts` | Field-to-world mapping, placements, camera poses, clamped movement |
-| `apps/web/src/game/three/battle-combat.ts`      | Magazine, shell flight, hit resolution, enemy fire, hull damage    |
-| `apps/web/src/game/three/battle-input.ts`       | Input snapshot and keyboard mapping                                |
-| `apps/web/src/game/three/battle-view.ts`        | Three.js scene, tank meshes, render loop                           |
-| `apps/web/src/game/three/battle-effects.ts`     | Timed effects, shell meshes, effect resource cleanup               |
-| `apps/web/src/game/three/Battle3DCanvas.tsx`    | React host, camera toggle, ammo badge                              |
+| File                                             | Role                                                               |
+| ------------------------------------------------ | ------------------------------------------------------------------ |
+| `apps/web/src/game/three/battle-scene-model.ts`  | Field-to-world mapping, placements, camera poses, clamped movement |
+| `apps/web/src/game/three/battle-combat.ts`       | Magazine, shell flight, hit resolution, enemy fire, hull damage    |
+| `apps/web/src/game/three/battle-input.ts`        | Input snapshot and keyboard mapping                                |
+| `apps/web/src/game/three/battle-view.ts`         | Three.js scene, tank meshes, render loop                           |
+| `apps/web/src/game/three/battle-effects.ts`      | Timed effects, shell meshes, effect resource cleanup               |
+| `apps/web/src/game/three/battle-hit-feedback.ts` | Localized hit text, impact sprites, feedback resource cleanup      |
+| `apps/web/src/game/three/Battle3DCanvas.tsx`     | React host, camera toggle, ammo badge                              |
 
 The pure modules carry the tests; the renderer is exercised through screenshots
 from the preview deployment.

@@ -3,8 +3,11 @@
  * Pure state transitions so combat can be tested without a renderer.
  */
 import { calculateArmoredDamage } from '../systems/combat-damage.js';
-import { classifyArmorZone } from '../systems/projectile-impact.js';
-import type { ArmorProfile } from '../runtime/types.js';
+import {
+  calculateProjectileImpact,
+  classifyArmorZone,
+} from '../systems/projectile-impact.js';
+import type { ArmorProfile, ArmorZone } from '../runtime/types.js';
 import type { TankPlacement } from './battle-scene-model.js';
 
 export interface Shell {
@@ -283,6 +286,10 @@ export function spawnShell(
 export interface ShellImpact {
   enemyId: string;
   point: { x: number; y: number; z: number };
+  damage: number;
+  zone: ArmorZone;
+  impactAngleDegrees: number;
+  outcome: 'ricochet' | 'blocked' | 'penetrated';
 }
 
 export interface AdvanceResult {
@@ -407,6 +414,16 @@ export function advanceShells(
         hit.point.z - enemy.position.z,
         -enemy.heading
       );
+      const impact = calculateProjectileImpact({
+        armor,
+        baseDamage: shell.damage,
+        impactOffsetX: hit.point.x - enemy.position.x,
+        impactOffsetY: hit.point.z - enemy.position.z,
+        penetration: shell.penetration,
+        projectileVelocityX: Math.cos(shell.heading) * horizontal,
+        projectileVelocityY: -Math.sin(shell.heading) * horizontal,
+        targetRotation: -enemy.heading,
+      });
       const baseArmor = armor[zone];
       const impactDamage =
         shell.penetration < baseArmor
@@ -427,7 +444,19 @@ export function advanceShells(
         (enemyHealth[enemy.id] ?? enemy.combat?.maxHealth ?? 100) - damage
       );
       enemyHealth[enemy.id] = health;
-      impacts.push({ enemyId: enemy.id, point: hit.point });
+      impacts.push({
+        enemyId: enemy.id,
+        point: hit.point,
+        damage,
+        zone,
+        impactAngleDegrees: impact.impactAngleDegrees,
+        outcome:
+          damage > 0
+            ? 'penetrated'
+            : impact.impactAngleDegrees >= 70
+              ? 'ricochet'
+              : 'blocked',
+      });
       if (health === 0) {
         alive.delete(enemy.id);
         destroyed.push(enemy.id);

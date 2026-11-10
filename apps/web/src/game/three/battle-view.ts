@@ -68,6 +68,7 @@ import {
 } from './battle-enemy-ai.js';
 import { aimEnemyWeapon, type EnemyAimState } from './battle-enemy-aim.js';
 import { BattleEffects } from './battle-effects.js';
+import { BattleHitFeedback } from './battle-hit-feedback.js';
 import { advanceReload } from './battle-combat.js';
 import { createMeshHitTest } from './battle-mesh-collision.js';
 import { applyRamImpacts, calculateRamImpacts } from './battle-ram.js';
@@ -283,6 +284,9 @@ export function createBattleView(
   let usingGlbTanks = false;
   let glbAsset: TankRig | null = null;
   const effects = new BattleEffects(scene);
+  const hitFeedback = new BattleHitFeedback(scene);
+  const gunRestPosition = playerRig.gun.position.clone();
+  let recoil = 0;
   const enemySpeeds = new Map<string, number>();
   for (const enemy of config.enemies) {
     enemySpeeds.set(enemy.id, enemy.speed * 0.06);
@@ -357,6 +361,17 @@ export function createBattleView(
         impact.rotation.x = -Math.PI / 2;
         impact.position.set(root.position.x, 0.35, root.position.z);
         effects.spawn(impact, 0.55, 4);
+        const blast = new Mesh(
+          new SphereGeometry(0.55, 10, 8),
+          new MeshBasicMaterial({
+            color: 0xffc06a,
+            transparent: true,
+            opacity: 0.85,
+          })
+        );
+        blast.position.copy(root.position);
+        blast.position.y += 1;
+        effects.spawn(blast, 0.24, 1.8);
         scene.remove(root);
         enemyRoots.delete(id);
       }
@@ -551,6 +566,8 @@ export function createBattleView(
         scene.remove(playerRig.root);
         scene.add(painted.root);
         playerRig = painted;
+        gunRestPosition.copy(painted.gun.position);
+        recoil = 0;
         usingGlbTanks = true;
 
         for (const enemy of layout.enemies) {
@@ -596,6 +613,8 @@ export function createBattleView(
             procedural.root.add(playerLabel.sprite);
             scene.add(procedural.root);
             playerRig = procedural;
+            gunRestPosition.copy(procedural.gun.position);
+            recoil = 0;
             usingGlbTanks = false;
           }
         }
@@ -604,6 +623,7 @@ export function createBattleView(
     }
     const update = (delta: number) => {
       if (input) {
+        playerRig.gun.position.copy(gunRestPosition);
         const previousPositions = new Map<string, { x: number; z: number }>([
           ['player', { x: state.position.x, z: state.position.z }],
           ...layout.enemies.map(
@@ -809,6 +829,11 @@ export function createBattleView(
             flash.position.copy(root.position);
             flash.position.y += 0.35;
             effects.spawn(flash, 0.28, 2.5);
+            hitFeedback.spawnRam(
+              root.position,
+              impact.damageToSecond,
+              config.locale
+            );
           }
         }
         destroyEnemies(ramResult.destroyed, 'ram');
@@ -934,6 +959,7 @@ export function createBattleView(
             config.player.projectilePenetration,
             config.player.fireCooldownMs
           );
+          recoil = 0.12;
           const flash = new Mesh(
             new SphereGeometry(0.42, 8, 8),
             new MeshBasicMaterial({
@@ -1016,6 +1042,16 @@ export function createBattleView(
             meshHitTest
           );
           combat = result.state;
+          for (const impact of result.impacts) {
+            hitFeedback.spawn(impact, config.locale);
+            logCombatEvent('player_projectile_hit_enemy', {
+              enemyId: impact.enemyId,
+              damage: impact.damage,
+              zone: impact.zone,
+              outcome: impact.outcome,
+              impactAngleDegrees: impact.impactAngleDegrees,
+            });
+          }
           destroyEnemies(result.destroyed, 'shell');
           if (result.destroyed.length > 0) publish();
         }
@@ -1038,11 +1074,14 @@ export function createBattleView(
             reticleBounds.height
           );
         }
+        playerRig.gun.translateX(-recoil);
+        recoil = Math.max(0, recoil - delta * 0.65);
       }
     };
     driver.advance(delta, update);
 
     effects.update(delta, combat);
+    hitFeedback.update(delta);
     applyCamera();
     renderer.render(scene, camera);
     frame = requestAnimationFrame(loop);
@@ -1075,6 +1114,7 @@ export function createBattleView(
       playerLabel.dispose();
       for (const label of enemyLabels.values()) label.dispose();
       effects.dispose();
+      hitFeedback.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     },
