@@ -18,6 +18,24 @@ export function shellImpactText(
   locale: 'en' | 'zh-CN'
 ): HitFeedbackText {
   const zone = zoneNames[locale][impact.zone];
+  if (impact.outcome === 'ammo-explosion') {
+    return {
+      text:
+        locale === 'zh-CN'
+          ? `${zone}命中 · 弹药架殉爆`
+          : `${zone} hit · ammo-rack explosion`,
+      color: '#ff6d4a',
+    };
+  }
+  if (impact.outcome === 'critical') {
+    return {
+      text:
+        locale === 'zh-CN'
+          ? `${zone}致命一击 · 弹药架受损`
+          : `${zone} critical · ammo rack damaged`,
+      color: '#ffd166',
+    };
+  }
   if (impact.outcome === 'ricochet') {
     return {
       text: locale === 'zh-CN' ? `${zone}跳弹` : `${zone} ricochet`,

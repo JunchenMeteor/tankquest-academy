@@ -39,6 +39,9 @@ use the Phaser scene instead, then pick a mission and start training.
   elevated, pitched muzzle. Both shell directions resolve the first contact point
   and use the same absolute impact-angle, effective-armour, ricochet, blocked,
   penetration, and damage rules; armour is not just a flat reduction.
+- Penetrating critical hits damage the ammo rack without removing hull health.
+  A depleted rack explodes and destroys the tank; blocked shots and ricochets
+  never damage it. Both sides use the same module rules and localized feedback.
 - Enemy turrets and guns track the player independently of their hulls, with
   per-tank traverse and elevation speeds; enemies fire only when aligned.
 - Scouts use alternating side/rear lanes and switch flanks when their firing
