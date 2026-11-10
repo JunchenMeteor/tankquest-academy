@@ -131,7 +131,7 @@ test('offers localized coarse-pointer movement, aim, and fire controls', async (
   await expectNoHorizontalOverflow(page);
 
   const upgrade = page.getByRole('button', {
-    name: /Spend 2 parts: upgrade firepower|Firepower is at maximum/,
+    name: /Spend 2 parts: upgrade Firepower|Firepower is at maximum/,
   });
   await expectTouchTarget(upgrade);
   if ((await upgrade.textContent())?.includes('Spend 2 parts')) {
