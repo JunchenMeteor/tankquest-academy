@@ -23,6 +23,19 @@ describe('combat hit feedback text', () => {
     ).toBe('Rear ricochet');
   });
 
+  it('distinguishes module damage from an ammo-rack explosion', () => {
+    expect(
+      shellImpactText({ damage: 0, zone: 'rear', outcome: 'critical' }, 'zh-CN')
+        .text
+    ).toBe('背面致命一击 · 弹药架受损');
+    expect(
+      shellImpactText(
+        { damage: 0, zone: 'rear', outcome: 'ammo-explosion' },
+        'en'
+      ).text
+    ).toBe('Rear hit · ammo-rack explosion');
+  });
+
   it('localizes ram damage without treating it as an armour penetration', () => {
     expect(ramImpactText(45, 'zh-CN').text).toBe('撞击伤害 · -45');
     expect(ramImpactText(20, 'en').text).toBe('Ram damage · -20');

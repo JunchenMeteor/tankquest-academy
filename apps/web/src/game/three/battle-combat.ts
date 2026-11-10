@@ -47,7 +47,9 @@ export interface CombatState {
   playerHealth: number;
   playerMaxHealth: number;
   playerDestroyed: boolean;
+  playerAmmoRackHealth: number;
   enemyHealth: Record<string, number>;
+  ammoRackHealth: Record<string, number>;
   /** Time banked toward the next automatically loaded shell. */
   reloadMs: number;
 }
@@ -64,6 +66,15 @@ export const ENEMY_FIRE_RANGE = 34;
 export const PLAYER_HIT_RADIUS = 1.7;
 /** A shell slides into the breech on its own this often. */
 export const AUTO_RELOAD_MS = 2600;
+
+function ammoRackCapacity(maxHealth: number): number {
+  return Math.max(30, Math.round(maxHealth * 0.35));
+}
+
+function isCriticalHit(zone: ArmorZone, roll: number): boolean {
+  const chance = zone === 'rear' ? 0.24 : zone === 'side' ? 0.14 : 0.08;
+  return roll < chance;
+}
 
 export function createCombatState(
   enemyCount: number,
@@ -83,8 +94,15 @@ export function createCombatState(
     playerHealth,
     playerMaxHealth: playerHealth,
     playerDestroyed: false,
+    playerAmmoRackHealth: ammoRackCapacity(playerHealth),
     enemyHealth: Object.fromEntries(
       enemies.map((enemy) => [enemy.id, enemy.combat?.maxHealth ?? 100])
+    ),
+    ammoRackHealth: Object.fromEntries(
+      enemies.map((enemy) => [
+        enemy.id,
+        ammoRackCapacity(enemy.combat?.maxHealth ?? 100),
+      ])
     ),
     reloadMs: 0,
   };
@@ -179,13 +197,15 @@ export function advanceEnemyShells(
   player: { x: number; z: number },
   armorReduction = 0,
   armorProfile?: ArmorProfile,
-  playerHeading = 0
+  playerHeading = 0,
+  criticalRoll: () => number = () => 1
 ): { state: CombatState; damage: number; impacts: ShellImpact[] } {
   if (state.enemyShells.length === 0) {
     return { state, damage: 0, impacts: [] };
   }
   const remaining: EnemyShell[] = [];
   const impacts: ShellImpact[] = [];
+  let ammoRackHealth = state.playerAmmoRackHealth;
   let damage = 0;
 
   for (const shell of state.enemyShells) {
@@ -227,10 +247,20 @@ export function advanceEnemyShells(
               targetRotation: -playerHeading,
             })
           : null;
-      const impactDamage = calculateArmoredDamage(
-        impact?.damage ?? shell.damage,
-        armorReduction
+      const critical =
+        impact?.outcome === 'penetrated' && isCriticalHit(zone, criticalRoll());
+      ammoRackHealth = Math.max(
+        0,
+        ammoRackHealth -
+          (critical ? Math.max(1, Math.round(shell.damage * 0.65)) : 0)
       );
+      const explosion = critical && ammoRackHealth === 0;
+      const impactDamage = critical
+        ? 0
+        : calculateArmoredDamage(
+            impact?.damage ?? shell.damage,
+            armorReduction
+          );
       damage += impactDamage;
       impacts.push({
         enemyId: 'player',
@@ -238,7 +268,12 @@ export function advanceEnemyShells(
         damage: impactDamage,
         zone,
         impactAngleDegrees: impact?.impactAngleDegrees ?? 0,
-        outcome: impact?.outcome ?? 'penetrated',
+        ammoRackRemaining: ammoRackHealth,
+        outcome: explosion
+          ? 'ammo-explosion'
+          : critical
+            ? 'critical'
+            : (impact?.outcome ?? 'penetrated'),
       });
       continue;
     }
@@ -252,12 +287,16 @@ export function advanceEnemyShells(
     });
   }
 
-  const health = Math.max(0, state.playerHealth - damage);
+  const explosion = impacts.some(
+    (impact) => impact.outcome === 'ammo-explosion'
+  );
+  const health = explosion ? 0 : Math.max(0, state.playerHealth - damage);
   return {
     state: {
       ...state,
       enemyShells: remaining,
       playerHealth: health,
+      playerAmmoRackHealth: ammoRackHealth,
       playerDestroyed: health === 0,
     },
     damage,
@@ -318,7 +357,9 @@ export interface ShellImpact {
   damage: number;
   zone: ArmorZone;
   impactAngleDegrees: number;
-  outcome: 'ricochet' | 'blocked' | 'penetrated';
+  ammoRackRemaining: number;
+  outcome:
+    'ricochet' | 'blocked' | 'penetrated' | 'critical' | 'ammo-explosion';
 }
 
 export interface AdvanceResult {
@@ -408,13 +449,15 @@ export function advanceShells(
   deltaSeconds: number,
   enemies: TankPlacement[],
   stepDistance = SHELL_SPEED,
-  hitTest: ShellHitTest = sphereHitTest
+  hitTest: ShellHitTest = sphereHitTest,
+  criticalRoll: () => number = () => 1
 ): AdvanceResult {
   const destroyed: string[] = [];
   const impacts: ShellImpact[] = [];
   const alive = new Set(enemies.map((enemy) => enemy.id));
   const remaining: Shell[] = [];
   const enemyHealth = { ...state.enemyHealth };
+  const ammoRackHealth = { ...state.ammoRackHealth };
 
   for (const shell of state.shells) {
     const step = stepDistance * deltaSeconds;
@@ -453,14 +496,28 @@ export function advanceShells(
         projectileVelocityY: -Math.sin(shell.heading) * horizontal,
         targetRotation: -enemy.heading,
       });
-      const damage = calculateArmoredDamage(
-        impact.damage,
-        enemy.combat?.armorReduction ?? 0
-      );
-      const health = Math.max(
+      const critical =
+        impact.outcome === 'penetrated' && isCriticalHit(zone, criticalRoll());
+      const rackRemaining = Math.max(
         0,
-        (enemyHealth[enemy.id] ?? enemy.combat?.maxHealth ?? 100) - damage
+        (ammoRackHealth[enemy.id] ??
+          ammoRackCapacity(enemy.combat?.maxHealth ?? 100)) -
+          (critical ? Math.max(1, Math.round(shell.damage * 0.65)) : 0)
       );
+      ammoRackHealth[enemy.id] = rackRemaining;
+      const explosion = critical && rackRemaining === 0;
+      const damage = critical
+        ? 0
+        : calculateArmoredDamage(
+            impact.damage,
+            enemy.combat?.armorReduction ?? 0
+          );
+      const health = explosion
+        ? 0
+        : Math.max(
+            0,
+            (enemyHealth[enemy.id] ?? enemy.combat?.maxHealth ?? 100) - damage
+          );
       enemyHealth[enemy.id] = health;
       impacts.push({
         enemyId: enemy.id,
@@ -468,7 +525,12 @@ export function advanceShells(
         damage,
         zone,
         impactAngleDegrees: impact.impactAngleDegrees,
-        outcome: impact.outcome,
+        ammoRackRemaining: rackRemaining,
+        outcome: explosion
+          ? 'ammo-explosion'
+          : critical
+            ? 'critical'
+            : impact.outcome,
       });
       if (health === 0) {
         alive.delete(enemy.id);
@@ -491,6 +553,7 @@ export function advanceShells(
       ...state,
       shells: remaining,
       enemyHealth,
+      ammoRackHealth,
       enemiesRemaining: Math.max(0, state.enemiesRemaining - destroyed.length),
     },
     destroyed,
