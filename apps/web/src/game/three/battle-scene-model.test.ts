@@ -4,6 +4,8 @@ import {
   FIELD_SCALE,
   buildSceneLayout,
   cameraPose,
+  groundHeight,
+  resolveCameraPose,
   resolveObstacles,
   stepEnemyToward,
   stepTank,
@@ -116,17 +118,80 @@ describe('3D battle scene model', () => {
     expect(pose.position.z).toBeCloseTo(0);
   });
 
-  it('drives forward along the heading and stays inside the field', () => {
+  it('keeps the chase camera above terrain and out of obstacles', () => {
+    const ground = { width: 100, depth: 100 };
+    const blocked = resolveCameraPose(
+      {
+        position: { x: -8, y: 2, z: 0 },
+        target: { x: 6, y: 1.4, z: 0 },
+      },
+      { x: 0, y: 0, z: 0 },
+      [
+        {
+          position: { x: -4, y: 2, z: 0 },
+          size: [2, 4, 4],
+        },
+      ],
+      ground
+    );
+    expect(blocked.position.x).toBeGreaterThan(-3);
+    expect(blocked.position.x).toBeLessThan(0);
+
+    const low = resolveCameraPose(
+      {
+        position: { x: 2, y: -2, z: 3 },
+        target: { x: 0, y: 1.4, z: 0 },
+      },
+      { x: 0, y: 0, z: 0 },
+      [],
+      ground
+    );
+    expect(low.position.y).toBeCloseTo(groundHeight(2, 3) + 0.45);
+  });
+
+  it('lifts a heavily obstructed camera above the hull and obstruction', () => {
+    const resolved = resolveCameraPose(
+      {
+        position: { x: -8, y: 2, z: 0 },
+        target: { x: 6, y: 1.4, z: 0 },
+      },
+      { x: 0, y: 0, z: 0 },
+      [
+        {
+          position: { x: -1.5, y: 2, z: 0 },
+          size: [3, 4, 4],
+        },
+      ],
+      { width: 100, depth: 100 }
+    );
+    expect(resolved.position.y).toBeCloseTo(4.25);
+  });
+
+  it('accelerates toward full speed and coasts after input is released', () => {
     const layout = buildSceneLayout(config);
-    const moved = stepTank(
+    const launched = stepTank(
       { position: { x: 0, y: 0, z: 0 }, heading: 0 },
       { forward: 1, turn: 0 },
-      1,
+      0.1,
       layout
     );
-    expect(moved.position.x).toBeCloseTo(6);
-    expect(moved.position.z).toBeCloseTo(0);
+    expect(launched.trackSpeed).toBeGreaterThan(0);
+    expect(launched.trackSpeed).toBeLessThan(6);
 
+    const reached = stepTank(launched, { forward: 1, turn: 0 }, 1, layout);
+    expect(reached.trackSpeed).toBeCloseTo(6);
+    expect(reached.position.x).toBeGreaterThan(launched.position.x);
+    expect(reached.position.x).toBeLessThan(6);
+    expect(reached.position.z).toBeCloseTo(0);
+
+    const coasted = stepTank(reached, { forward: 0, turn: 0 }, 0.1, layout);
+    expect(coasted.trackSpeed).toBeGreaterThan(0);
+    expect(coasted.trackSpeed).toBeLessThan(reached.trackSpeed);
+    expect(coasted.position.x).toBeGreaterThan(reached.position.x);
+  });
+
+  it('stays inside the field while accelerating', () => {
+    const layout = buildSceneLayout(config);
     const clamped = stepTank(
       { position: { x: layout.ground.width / 2, y: 0, z: 0 }, heading: 0 },
       { forward: 1, turn: 0 },
@@ -200,6 +265,24 @@ describe('tracked steering', () => {
     expect(turned.heading).toBeGreaterThan(0);
     expect(turned.position.x).toBeCloseTo(0);
     expect(turned.position.z).toBeCloseTo(0);
+  });
+
+  it('ramps steering up and settles smoothly after the key is released', () => {
+    const started = stepTank(
+      { position: { x: 0, y: 0, z: 0 }, heading: 0 },
+      { forward: 0, turn: 1 },
+      0.05,
+      layout
+    );
+    expect(started.turnRate).toBeGreaterThan(0);
+    expect(started.turnRate).toBeLessThan(1.96);
+
+    const turning = stepTank(started, { forward: 0, turn: 1 }, 0.2, layout);
+    expect(turning.turnRate).toBeGreaterThan(started.turnRate);
+
+    const settling = stepTank(turning, { forward: 0, turn: 0 }, 0.1, layout);
+    expect(settling.turnRate).toBeGreaterThan(0);
+    expect(settling.turnRate).toBeLessThan(turning.turnRate);
   });
 
   it('keeps the turning circle tight enough to stay around the hull', () => {

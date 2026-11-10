@@ -34,6 +34,7 @@ export type TankCombatConfig = Omit<
       PlayerCombatRuntimeConfig,
       | 'reverseSpeed'
       | 'turnSpeed'
+      | 'acceleration'
       | 'mass'
       | 'turretTraverseSpeed'
       | 'gunElevationSpeed'
@@ -124,8 +125,7 @@ export function toWorld(x: number, y: number, height = 0): Vec3 {
 }
 
 export function buildSceneLayout(config: RuntimeLevelConfig): SceneLayout {
-  const elevation = (x: number, z: number) =>
-    Math.sin(x * 0.25) * 0.12 + Math.cos(z * 0.21) * 0.1;
+  const elevation = groundHeight;
   const fieldToWorld = (x: number, y: number, height = 0) =>
     toWorld(x - config.width / 2, y - config.height / 2, height);
 
@@ -259,6 +259,83 @@ export function cameraPose(
   };
 }
 
+export function groundHeight(x: number, z: number): number {
+  return Math.sin(x * 0.25) * 0.12 + Math.cos(z * 0.21) * 0.1;
+}
+
+function cameraBlockHit(
+  origin: Vec3,
+  delta: Vec3,
+  block: BlockPlacement,
+  padding: number
+): { time: number; ceiling: number } | null {
+  let enter = 0;
+  let exit = 1;
+  for (const axis of ['x', 'y', 'z'] as const) {
+    const half = block.size[axis === 'x' ? 0 : axis === 'y' ? 1 : 2] / 2;
+    const min = block.position[axis] - half - padding;
+    const max = block.position[axis] + half + padding;
+    if (Math.abs(delta[axis]) < 1e-8) {
+      if (origin[axis] < min || origin[axis] > max) return null;
+      continue;
+    }
+    const first = (min - origin[axis]) / delta[axis];
+    const second = (max - origin[axis]) / delta[axis];
+    enter = Math.max(enter, Math.min(first, second));
+    exit = Math.min(exit, Math.max(first, second));
+    if (enter > exit) return null;
+  }
+  if (exit < 0 || enter > 1) return null;
+  return {
+    time: Math.max(0, enter),
+    ceiling: block.position.y + block.size[1] / 2 + padding,
+  };
+}
+
+export function resolveCameraPose(
+  pose: CameraPose,
+  playerPosition: Vec3,
+  blocks: readonly BlockPlacement[],
+  ground: SceneLayout['ground']
+): CameraPose {
+  const halfWidth = ground.width / 2 - 0.5;
+  const halfDepth = ground.depth / 2 - 0.5;
+  const desired = {
+    x: Math.max(-halfWidth, Math.min(halfWidth, pose.position.x)),
+    y: pose.position.y,
+    z: Math.max(-halfDepth, Math.min(halfDepth, pose.position.z)),
+  };
+  const anchor = {
+    x: playerPosition.x,
+    y: playerPosition.y + 1.2,
+    z: playerPosition.z,
+  };
+  const delta = {
+    x: desired.x - anchor.x,
+    y: desired.y - anchor.y,
+    z: desired.z - anchor.z,
+  };
+  let hit: { time: number; ceiling: number } | null = null;
+  for (const block of blocks) {
+    const candidate = cameraBlockHit(anchor, delta, block, 0.25);
+    if (candidate && (!hit || candidate.time < hit.time)) hit = candidate;
+  }
+  const time = hit ? Math.max(0, hit.time - 0.04) : 1;
+  const position = {
+    x: anchor.x + delta.x * time,
+    y: anchor.y + delta.y * time,
+    z: anchor.z + delta.z * time,
+  };
+  if (hit && Math.hypot(position.x - anchor.x, position.z - anchor.z) < 2.2) {
+    position.y = Math.max(position.y, anchor.y + 1, hit.ceiling);
+  }
+  position.y = Math.max(
+    position.y,
+    groundHeight(position.x, position.z) + 0.45
+  );
+  return { position, target: pose.target };
+}
+
 /** Moves an enemy toward the player, stopping once inside `standoff`. */
 export function stepEnemyToward(
   enemy: Pick<TankPlacement, 'position'>,
@@ -295,42 +372,66 @@ export function stepEnemyToward(
   };
 }
 
-/** Applies a movement step to a tank position, clamped to the field. */
+function moveToward(current: number, target: number, amount: number): number {
+  return current < target
+    ? Math.min(target, current + amount)
+    : Math.max(target, current - amount);
+}
+
+/** Applies an accelerated movement step to a tank, clamped to the field. */
 export function stepTank(
-  player: Pick<TankPlacement, 'position' | 'heading'>,
+  player: Pick<TankPlacement, 'position' | 'heading'> & {
+    trackSpeed?: number;
+    turnRate?: number;
+  },
   input: { forward: number; turn: number },
   deltaSeconds: number,
   layout: SceneLayout
-): { position: Vec3; heading: number } {
-  /*
-   * Tracked steering: the hull pivots around its own centre when it is still and
-   * traces a wider arc as speed rises, so the circle never drifts off the tank.
-   */
-  const steerSign = input.forward < 0 ? -1 : 1;
-  const speedFactor = Math.abs(input.forward);
+): { position: Vec3; heading: number; trackSpeed: number; turnRate: number } {
   const mobility = layout.player.combat;
-  const turnRate = (mobility?.turnSpeed ?? 2.8) * (0.7 + speedFactor * 0.3);
+  const forwardSpeed = (mobility?.speed ?? 170) * (6 / 170);
+  const reverseSpeed = (mobility?.reverseSpeed ?? 120) * (6 / 170);
+  const targetSpeed =
+    input.forward > 0
+      ? forwardSpeed * Math.min(1, input.forward)
+      : input.forward < 0
+        ? -reverseSpeed * Math.min(1, -input.forward)
+        : 0;
+  const acceleration = (mobility?.acceleration ?? 420) * (6 / 170);
+  const trackSpeed = moveToward(
+    player.trackSpeed ?? 0,
+    targetSpeed,
+    acceleration * deltaSeconds
+  );
+  const speedFactor = Math.min(1, Math.abs(trackSpeed) / forwardSpeed);
+  const steerSign = trackSpeed < -0.001 || input.forward < 0 ? -1 : 1;
+  const traverse = mobility?.turnSpeed ?? 2.8;
+  const targetTurnRate =
+    input.turn * steerSign * traverse * (0.7 + speedFactor * 0.3);
+  const turnRate = moveToward(
+    player.turnRate ?? 0,
+    targetTurnRate,
+    traverse * 5 * deltaSeconds
+  );
   const heading =
-    player.heading + input.turn * steerSign * turnRate * deltaSeconds;
-  const unitsPerSecond =
-    input.forward < 0
-      ? (mobility?.reverseSpeed ?? 120) * (6 / 170)
-      : (mobility?.speed ?? 170) * (6 / 170);
-  const speed = unitsPerSecond * deltaSeconds * input.forward;
+    player.heading + ((player.turnRate ?? 0) + turnRate) * 0.5 * deltaSeconds;
+  const distance = ((player.trackSpeed ?? 0) + trackSpeed) * 0.5 * deltaSeconds;
   const bounds = layout.playfield ?? layout.ground;
   const halfWidth = bounds.width / 2 - 2.2;
   const halfDepth = bounds.depth / 2 - 2.2;
   return {
     heading,
+    trackSpeed,
+    turnRate,
     position: {
       x: Math.max(
         -halfWidth,
-        Math.min(halfWidth, player.position.x + Math.cos(heading) * speed)
+        Math.min(halfWidth, player.position.x + Math.cos(heading) * distance)
       ),
       y: player.position.y,
       z: Math.max(
         -halfDepth,
-        Math.min(halfDepth, player.position.z - Math.sin(heading) * speed)
+        Math.min(halfDepth, player.position.z - Math.sin(heading) * distance)
       ),
     },
   };

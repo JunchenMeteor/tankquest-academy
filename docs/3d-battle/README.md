@@ -9,19 +9,23 @@ use the Phaser scene instead, then pick a mission and start training.
   shadows, a PBR tank model on high quality, and procedural rigs on lower tiers.
 - Information lives on the sides: mission and live counters on the left,
   the graded question on the right.
-- Camera toggle (the button under the view): chase camera behind the hull,
-  or a first-person camera on the turret roof following the view.
+- Camera toggle (the button under the view): a chase camera that follows tank
+  position without automatically rotating with the hull, or a first-person
+  camera on the turret roof following the view.
 - Aiming follows the pointer in third person and the view direction in first
   person. The turret and gun aim at the nearest live tank or ground point hit by
   the reticle ray, using maximum shell range only when nothing is hit. Holding
-  the right mouse button locks the turret so the camera can look around;
-  releasing eases the view back behind the hull.
+  the right mouse button locks the turret so the camera can look around; the
+  camera keeps its chosen direction when the button is released.
+- The chase camera shortens or lifts its boom around obstacles and stays above
+  the terrain instead of entering the ground, scenery, or player hull.
 - Turret traverse speed comes from mobility (`turretTraverseSpeed`), so scouts
   swing faster than heavies.
 - Every shot scatters: the shell lands anywhere inside a circle whose radius is
   the tank's `dispersionRadius` (bigger guns scatter more), sampled evenly.
 - Driving uses the same input controller as the Phaser scene (`WASD`, arrows, on
-  screen touch controls).
+  screen touch controls). Configured acceleration smooths launch, braking, and
+  reverse, while steering ramps up and settles instead of changing instantly.
 - Firing spends a round from a five-round magazine. A correct answer loads the
   ammo the backend granted; a wrong answer adds a reload penalty instead of
   taking a round away, so the child is never blocked.
