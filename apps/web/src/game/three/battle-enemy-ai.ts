@@ -27,6 +27,39 @@ export function lineOfSightBlocked(
   return false;
 }
 
+function detourGoal(
+  enemy: { position: Vec3 },
+  goal: { x: number; z: number },
+  blocks: readonly BlockPlacement[]
+): { x: number; z: number } {
+  if (!lineOfSightBlocked(enemy.position, goal, blocks)) return goal;
+  let best: { x: number; z: number } | null = null;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  for (const block of blocks) {
+    if (!lineOfSightBlocked(enemy.position, goal, [block])) continue;
+    const halfX = block.size[0] / 2 + 2.2;
+    const halfZ = block.size[2] / 2 + 2.2;
+    for (const xSign of [-1, 1]) {
+      for (const zSign of [-1, 1]) {
+        const corner = {
+          x: block.position.x + halfX * xSign,
+          z: block.position.z + halfZ * zSign,
+        };
+        if (lineOfSightBlocked(enemy.position, corner, blocks)) continue;
+        if (lineOfSightBlocked(corner, goal, blocks)) continue;
+        const distance =
+          Math.hypot(corner.x - enemy.position.x, corner.z - enemy.position.z) +
+          Math.hypot(goal.x - corner.x, goal.z - corner.z);
+        if (distance < bestDistance) {
+          best = corner;
+          bestDistance = distance;
+        }
+      }
+    }
+  }
+  return best ?? goal;
+}
+
 /**
  * Where an enemy wants to be.
  *
@@ -72,10 +105,14 @@ export function enemyGoal(
         playerRight.z * preferredSide * side * (blocked ? 16 : 12) * flankScale,
     });
     const preferred = candidate(1);
-    if (!lineOfSightBlocked(preferred, player, blocks)) return preferred;
+    if (!lineOfSightBlocked(preferred, player, blocks)) {
+      return detourGoal(enemy, preferred, blocks);
+    }
     const opposite = candidate(-1);
-    if (!lineOfSightBlocked(opposite, player, blocks)) return opposite;
-    return candidate(1, 1.35);
+    if (!lineOfSightBlocked(opposite, player, blocks)) {
+      return detourGoal(enemy, opposite, blocks);
+    }
+    return detourGoal(enemy, candidate(1, 1.35), blocks);
   }
 
   const heavy = role === 'heavy';
@@ -87,10 +124,14 @@ export function enemyGoal(
     : blocked
       ? ENEMY_STANDOFF + 4
       : ENEMY_STANDOFF;
-  return {
-    x: player.x - forward.x * range + sideways.x * lateral,
-    z: player.z - forward.z * range + sideways.z * lateral,
-  };
+  return detourGoal(
+    enemy,
+    {
+      x: player.x - forward.x * range + sideways.x * lateral,
+      z: player.z - forward.z * range + sideways.z * lateral,
+    },
+    blocks
+  );
 }
 
 export function enemyHullHeading(
