@@ -4,6 +4,7 @@
  */
 import { calculateArmoredDamage } from '../systems/combat-damage.js';
 import { classifyArmorZone } from '../systems/projectile-impact.js';
+import type { ArmorProfile } from '../runtime/types.js';
 import type { TankPlacement } from './battle-scene-model.js';
 
 export interface Shell {
@@ -21,9 +22,12 @@ export interface Shell {
 export interface EnemyShell {
   id: number;
   x: number;
+  y: number;
   z: number;
   heading: number;
+  pitch: number;
   damage: number;
+  penetration?: number;
   speed: number;
   distanceTravelled: number;
 }
@@ -85,9 +89,12 @@ export function createCombatState(
 
 export interface EnemyLaunch {
   x: number;
+  y?: number;
   z: number;
   heading: number;
+  pitch?: number;
   damage: number;
+  projectilePenetration?: number;
   projectileSpeed?: number;
   sourceId: string;
 }
@@ -127,6 +134,7 @@ export function advanceEnemyFire(
         player.x - enemy.position.x
       ),
       damage: enemy.combat?.projectileDamage ?? damage,
+      projectilePenetration: enemy.combat?.projectilePenetration,
       projectileSpeed: enemy.combat?.projectileSpeed,
       sourceId: enemy.id,
     });
@@ -145,9 +153,12 @@ export function spawnEnemyShell(
   const shell: EnemyShell = {
     id: state.nextShellId,
     x: launch.x,
+    y: launch.y ?? 0.9,
     z: launch.z,
     heading: launch.heading,
+    pitch: launch.pitch ?? 0,
     damage: launch.damage,
+    penetration: launch.projectilePenetration,
     speed: (launch.projectileSpeed ?? SHELL_SPEED * 10) * 0.1,
     distanceTravelled: 0,
   };
@@ -163,7 +174,9 @@ export function advanceEnemyShells(
   state: CombatState,
   deltaSeconds: number,
   player: { x: number; z: number },
-  armorReduction = 0
+  armorReduction = 0,
+  armorProfile?: ArmorProfile,
+  playerHeading = 0
 ): { state: CombatState; damage: number } {
   if (state.enemyShells.length === 0) return { state, damage: 0 };
   const remaining: EnemyShell[] = [];
@@ -171,17 +184,38 @@ export function advanceEnemyShells(
 
   for (const shell of state.enemyShells) {
     const step = shell.speed * deltaSeconds;
-    const nextX = shell.x + Math.cos(shell.heading) * step;
-    const nextZ = shell.z - Math.sin(shell.heading) * step;
+    const horizontal = Math.cos(shell.pitch);
+    const nextX = shell.x + Math.cos(shell.heading) * step * horizontal;
+    const nextY = shell.y - Math.sin(shell.pitch) * step;
+    const nextZ = shell.z - Math.sin(shell.heading) * step * horizontal;
     const travelled = shell.distanceTravelled + step;
     if (Math.hypot(nextX - player.x, nextZ - player.z) <= PLAYER_HIT_RADIUS) {
-      damage += calculateArmoredDamage(shell.damage, armorReduction);
+      const zone = classifyArmorZone(
+        nextX - player.x,
+        nextZ - player.z,
+        -playerHeading
+      );
+      const baseArmor = armorProfile?.[zone] ?? 0;
+      const impactDamage =
+        armorProfile && shell.penetration !== undefined
+          ? shell.penetration < baseArmor
+            ? 0
+            : Math.max(
+                1,
+                Math.round(
+                  shell.damage *
+                    Math.min(1, 0.65 + (shell.penetration - baseArmor) / 100)
+                )
+              )
+          : shell.damage;
+      damage += calculateArmoredDamage(impactDamage, armorReduction);
       continue;
     }
     if (travelled > SHELL_RANGE) continue;
     remaining.push({
       ...shell,
       x: nextX,
+      y: nextY,
       z: nextZ,
       distanceTravelled: travelled,
     });
