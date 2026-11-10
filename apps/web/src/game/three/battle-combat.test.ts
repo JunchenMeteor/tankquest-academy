@@ -197,6 +197,41 @@ describe('3D battle combat', () => {
     });
   });
 
+  it('damages the ammo rack before causing an explosion on a critical hit', () => {
+    const enemies = [enemy('a', 10, 0)];
+    const first = advanceShells(
+      spawnShell(createCombatState(1, 1, 150, enemies), { x: 0, z: 0 }, 0),
+      0.5,
+      enemies,
+      420,
+      undefined,
+      () => 0
+    );
+    expect(first.state.enemyHealth.a).toBe(100);
+    expect(first.impacts[0]).toMatchObject({
+      damage: 0,
+      outcome: 'critical',
+      ammoRackRemaining: 13,
+    });
+
+    const second = advanceShells(
+      spawnShell(first.state, { x: 0, z: 0 }, 0),
+      0.5,
+      enemies,
+      420,
+      undefined,
+      () => 0
+    );
+    expect(second.state.enemyHealth.a).toBe(0);
+    expect(second.state.enemiesRemaining).toBe(0);
+    expect(second.destroyed).toEqual(['a']);
+    expect(second.impacts[0]).toMatchObject({
+      damage: 0,
+      outcome: 'ammo-explosion',
+      ammoRackRemaining: 0,
+    });
+  });
+
   it('drops shells that fly past their range', () => {
     let state = spawnShell(createCombatState(1), { x: 0, z: 0 }, 0);
     for (let step = 0; step < 20; step += 1) {
@@ -294,6 +329,54 @@ describe('enemy fire', () => {
     );
     expect(rear.damage).toBe(18);
     expect(rear.state.playerHealth).toBe(182);
+  });
+
+  it('applies critical hits and ammo-rack explosions to the player too', () => {
+    const launch = {
+      x: 8,
+      z: 0,
+      heading: Math.PI,
+      damage: 34,
+      projectilePenetration: 200,
+      sourceId: 'scout',
+    };
+    let state = createCombatState(1, 1, 200);
+    let result = advanceEnemyShells(
+      spawnEnemyShell(state, launch),
+      0.1,
+      { x: 4, z: 0 },
+      0,
+      { front: 78, side: 58, rear: 42 },
+      0,
+      () => 0
+    );
+    state = result.state;
+    expect(state.playerHealth).toBe(200);
+    expect(result.impacts[0]).toMatchObject({
+      damage: 0,
+      outcome: 'critical',
+      ammoRackRemaining: 48,
+    });
+
+    for (let hit = 0; hit < 3; hit += 1) {
+      result = advanceEnemyShells(
+        spawnEnemyShell(state, launch),
+        0.1,
+        { x: 4, z: 0 },
+        0,
+        { front: 78, side: 58, rear: 42 },
+        0,
+        () => 0
+      );
+      state = result.state;
+    }
+    expect(state.playerHealth).toBe(0);
+    expect(state.playerDestroyed).toBe(true);
+    expect(result.impacts[0]).toMatchObject({
+      damage: 0,
+      outcome: 'ammo-explosion',
+      ammoRackRemaining: 0,
+    });
   });
 
   it('keeps enemy shells at their authored muzzle height and pitch', () => {

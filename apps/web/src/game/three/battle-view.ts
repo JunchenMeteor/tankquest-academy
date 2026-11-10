@@ -1041,7 +1041,8 @@ export function createBattleView(
               },
               config.player.armorReduction,
               config.player.armorProfile,
-              state.heading
+              state.heading,
+              Math.random
             );
             combat = incoming.state;
             for (const impact of incoming.impacts) {
@@ -1051,6 +1052,7 @@ export function createBattleView(
                 zone: impact.zone,
                 outcome: impact.outcome,
                 impactAngleDegrees: impact.impactAngleDegrees,
+                ammoRackRemaining: impact.ammoRackRemaining,
               });
             }
             if (incoming.damage > 0) publish();
@@ -1066,7 +1068,8 @@ export function createBattleView(
             delta,
             alive,
             config.player.projectileSpeed * 0.1,
-            meshHitTest
+            meshHitTest,
+            Math.random
           );
           combat = result.state;
           for (const impact of result.impacts) {
@@ -1077,6 +1080,7 @@ export function createBattleView(
               zone: impact.zone,
               outcome: impact.outcome,
               impactAngleDegrees: impact.impactAngleDegrees,
+              ammoRackRemaining: impact.ammoRackRemaining,
             });
           }
           destroyEnemies(result.destroyed, 'shell');
