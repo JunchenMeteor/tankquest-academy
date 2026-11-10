@@ -2,8 +2,10 @@ import { BoxGeometry, Group, Mesh, MeshStandardMaterial } from 'three';
 import { describe, expect, it } from 'vitest';
 
 import {
+  advanceEnemyShells,
   advanceShells,
   createCombatState,
+  spawnEnemyShell,
   spawnShell,
 } from './battle-combat.js';
 import { createMeshHitTest } from './battle-mesh-collision.js';
@@ -61,8 +63,64 @@ describe('mesh projectile collision', () => {
       near,
     ]);
 
-    expect(hit?.enemy.id).toBe('near');
+    expect(hit?.enemy?.id).toBe('near');
     expect(hit?.point.x).toBeCloseTo(9);
     expect(hit?.fraction).toBeCloseTo(9 / 25);
+  });
+
+  it('stops player shells at cover before the enemy without dealing damage', () => {
+    const target = enemy('a', 10);
+    const hitTest = createMeshHitTest(new Map([['a', boxRoot(10)]]), [
+      boxRoot(5),
+    ]);
+    let state = createCombatState(1, 1, 150, [target]);
+    state = spawnShell(state, { x: 0, z: 0 }, 0);
+
+    const result = advanceShells(state, 1, [target], 20, hitTest);
+
+    expect(result.state.shells).toHaveLength(0);
+    expect(result.impacts).toHaveLength(0);
+    expect(result.state.enemyHealth.a).toBe(100);
+  });
+
+  it('stops enemy shells at cover before the player without dealing damage', () => {
+    const hitTest = createMeshHitTest(new Map(), [boxRoot(5)]);
+    const state = spawnEnemyShell(createCombatState(1, 1, 200), {
+      x: 0,
+      z: 0,
+      heading: 0,
+      damage: 34,
+      projectilePenetration: 200,
+      projectileSpeed: 80,
+      sourceId: 'scout',
+    });
+
+    const result = advanceEnemyShells(
+      state,
+      1,
+      { x: 10, z: 0 },
+      0,
+      undefined,
+      0,
+      () => 1,
+      hitTest
+    );
+
+    expect(result.state.enemyShells).toHaveLength(0);
+    expect(result.impacts).toHaveLength(0);
+    expect(result.state.playerHealth).toBe(200);
+  });
+
+  it('stops a downward shell at the terrain surface', () => {
+    const terrain = new Group();
+    terrain.add(new Mesh(new BoxGeometry(100, 0.1, 100), undefined));
+    const hitTest = createMeshHitTest(new Map(), [terrain]);
+    let state = createCombatState(1);
+    state = spawnShell(state, { x: 0, z: 0 }, 0, 0.2, 1.2);
+
+    const result = advanceShells(state, 1, [], 20, hitTest);
+
+    expect(result.state.shells).toHaveLength(0);
+    expect(result.impacts).toHaveLength(0);
   });
 });

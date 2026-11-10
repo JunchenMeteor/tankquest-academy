@@ -198,7 +198,8 @@ export function advanceEnemyShells(
   armorReduction = 0,
   armorProfile?: ArmorProfile,
   playerHeading = 0,
-  criticalRoll: () => number = () => 1
+  criticalRoll: () => number = () => 1,
+  coverHitTest?: ShellHitTest
 ): { state: CombatState; damage: number; impacts: ShellImpact[] } {
   if (state.enemyShells.length === 0) {
     return { state, damage: 0, impacts: [] };
@@ -215,9 +216,10 @@ export function advanceEnemyShells(
     const nextY = shell.y - Math.sin(shell.pitch) * step;
     const nextZ = shell.z - Math.sin(shell.heading) * step * horizontal;
     const travelled = shell.distanceTravelled + step;
+    const from = { x: shell.x, y: shell.y, z: shell.z };
+    const to = { x: nextX, y: nextY, z: nextZ };
+    if (coverHitTest?.(from, to, [])?.cover) continue;
     if (Math.hypot(nextX - player.x, nextZ - player.z) <= PLAYER_HIT_RADIUS) {
-      const from = { x: shell.x, y: shell.y, z: shell.z };
-      const to = { x: nextX, y: nextY, z: nextZ };
       const fraction = sweepFraction(
         from,
         to,
@@ -369,8 +371,9 @@ export interface AdvanceResult {
 }
 
 export interface ShellHit {
-  enemy: TankPlacement;
+  enemy: TankPlacement | null;
   fraction: number;
+  cover?: boolean;
   point: { x: number; y: number; z: number };
 }
 
@@ -474,7 +477,8 @@ export function advanceShells(
       enemies.filter((enemy) => alive.has(enemy.id))
     );
 
-    if (hit) {
+    if (hit?.cover) continue;
+    if (hit?.enemy) {
       const enemy = hit.enemy;
       const armor = enemy.combat?.armorProfile ?? {
         front: 54,
