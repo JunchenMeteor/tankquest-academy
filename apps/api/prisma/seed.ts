@@ -729,6 +729,64 @@ const levelSeeds = [
     },
   },
   {
+    code: 'flank-drill',
+    titleKey: 'level.flankDrill.title',
+    subject: 'math',
+    questionCodes: officialQuestionCodes('math', 2),
+    difficulty: 2,
+    theme: 'forest-camp',
+    map: {
+      style: 'patrol',
+      playerSpawn: { x: 120, y: 270 },
+      obstacles: [
+        { x: 455, y: 270, width: 64, height: 190 },
+        { x: 700, y: 90, width: 150, height: 34 },
+        { x: 700, y: 450, width: 150, height: 34 },
+      ],
+    },
+    enemyTanks: [
+      enemyTank('flank_scout_north', 'scout', 720, 105),
+      enemyTank('flank_scout_south', 'scout', 720, 435),
+      enemyTank('flank_medium_anchor', 'medium', 835, 230),
+      enemyTank('flank_medium_support', 'medium', 855, 330),
+    ],
+    objectiveSet: {
+      completion: 'all',
+      objectives: [
+        { id: 'clear_flank_drill', type: 'eliminate', targetCount: 4 },
+      ],
+    },
+  },
+  {
+    code: 'heavy-line',
+    titleKey: 'level.heavyLine.title',
+    subject: 'math',
+    questionCodes: officialQuestionCodes('math', 3),
+    difficulty: 3,
+    theme: 'snow-field',
+    map: {
+      style: 'gate',
+      playerSpawn: { x: 110, y: 270 },
+      obstacles: [
+        { x: 430, y: 100, width: 210, height: 36 },
+        { x: 430, y: 440, width: 210, height: 36 },
+        { x: 665, y: 270, width: 46, height: 120 },
+      ],
+    },
+    enemyTanks: [
+      enemyTank('heavy_line_scout_alpha', 'scout', 720, 90),
+      enemyTank('heavy_line_scout_bravo', 'scout', 720, 450),
+      enemyTank('heavy_line_guard_alpha', 'heavy', 790, 220),
+      enemyTank('heavy_line_guard_bravo', 'heavy', 790, 360, true),
+    ],
+    objectiveSet: {
+      completion: 'all',
+      objectives: [
+        { id: 'clear_heavy_line', type: 'eliminate', targetCount: 4 },
+      ],
+    },
+  },
+  {
     code: 'target-range',
     titleKey: 'level.targetRange.title',
     subject: 'math',

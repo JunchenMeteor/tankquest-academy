@@ -62,7 +62,7 @@ test('completes the authoritative learning and upgrade journey', async ({
 
   const levelCatalog = await request.get('http://127.0.0.1:3000/api/levels');
   const levelPayload = (await levelCatalog.json()) as ApiResponse<LevelDto[]>;
-  expect(levelPayload.data).toHaveLength(13);
+  expect(levelPayload.data).toHaveLength(15);
   const targetEnemies = levelPayload.data?.find(
     (level) => level.code === 'target-range'
   )?.config.enemyTanks as EnemyTankConfigDto[] | undefined;

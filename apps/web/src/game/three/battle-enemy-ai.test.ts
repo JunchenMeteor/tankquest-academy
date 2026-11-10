@@ -4,6 +4,7 @@ import {
   ENEMY_STANDOFF,
   advanceEnemy,
   enemyGoal,
+  enemyHullHeading,
   enemyReloadMs,
   groupSpread,
   lineOfSightBlocked,
@@ -108,5 +109,56 @@ describe('enemy cadence', () => {
   it('staggers the opening shot less as difficulty rises', () => {
     expect(openingDelayMs(2, 0)).toBeGreaterThan(openingDelayMs(2, 1));
     expect(openingDelayMs(0, 0)).toBe(0);
+  });
+});
+
+describe('role tactics', () => {
+  it('sends paired scouts to opposite side/rear lanes', () => {
+    const enemy = { position: { x: 0, y: 0, z: 0 } };
+    const player = { x: 30, z: 0, heading: 0 };
+    const first = enemyGoal(enemy, player, 0, 2, [], 'scout');
+    const second = enemyGoal(enemy, player, 1, 2, [], 'scout');
+    expect(first.x).toBeCloseTo(26);
+    expect(first.z).toBeCloseTo(12);
+    expect(second.z).toBeCloseTo(-12);
+  });
+
+  it('uses the opposite flank when the preferred firing line is blocked', () => {
+    const goal = enemyGoal(
+      { position: { x: 0, y: 0, z: 0 } },
+      { x: 30, z: 0, heading: 0 },
+      0,
+      1,
+      [
+        {
+          position: { x: 28, y: 0.55, z: 12 },
+          size: [4, 1.1, 6],
+        },
+      ],
+      'scout'
+    );
+    expect(goal.z).toBeLessThan(0);
+  });
+
+  it('keeps medium spacing while heavies press closer', () => {
+    const enemy = { position: { x: 0, y: 0, z: 0 } };
+    const player = { x: 30, z: 0, heading: 0 };
+    const medium = enemyGoal(enemy, player, 0, 1, [], 'medium');
+    const heavy = enemyGoal(enemy, player, 0, 1, [], 'heavy');
+    expect(medium.x).toBeCloseTo(21);
+    expect(heavy.x).toBeCloseTo(23);
+    expect(heavy.x).toBeGreaterThan(medium.x);
+  });
+
+  it('faces non-scout hulls toward the player during engagement', () => {
+    const enemy = { position: { x: 10, y: 0, z: 5 } };
+    const player = { x: 0, z: 0 };
+    expect(enemyHullHeading(enemy, player, 'heavy', 0)).toBeCloseTo(
+      Math.atan2(5, -10)
+    );
+    expect(enemyHullHeading(enemy, player, 'medium', 0)).toBeCloseTo(
+      Math.atan2(5, -10)
+    );
+    expect(enemyHullHeading(enemy, player, 'scout', 1.23)).toBe(1.23);
   });
 });

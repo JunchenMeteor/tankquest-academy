@@ -36,10 +36,11 @@ export function lineOfSightBlocked(
  */
 export function enemyGoal(
   enemy: { position: Vec3 },
-  player: { x: number; z: number },
+  player: { x: number; z: number; heading?: number },
   slot: number,
   count: number,
-  blocks: readonly BlockPlacement[]
+  blocks: readonly BlockPlacement[],
+  role: 'scout' | 'medium' | 'heavy' = 'medium'
 ): { x: number; z: number } {
   const spread =
     count > 1 ? (slot - (count - 1) / 2) / Math.max(1, count - 1) : 0;
@@ -48,15 +49,61 @@ export function enemyGoal(
   const distance = Math.hypot(dx, dz) || 1;
   const forward = { x: dx / distance, z: dz / distance };
   const sideways = { x: -forward.z, z: forward.x };
-
   const blocked = lineOfSightBlocked(enemy.position, player, blocks);
-  const lateral = spread * FLANK_OFFSET * (blocked ? 2.4 : 1);
-  const range = blocked ? ENEMY_STANDOFF + 4 : ENEMY_STANDOFF;
 
+  if (role === 'scout') {
+    const preferredSide = slot % 2 === 0 ? 1 : -1;
+    const playerForward = {
+      x: Math.cos(player.heading ?? 0),
+      z: -Math.sin(player.heading ?? 0),
+    };
+    const playerRight = {
+      x: Math.sin(player.heading ?? 0),
+      z: Math.cos(player.heading ?? 0),
+    };
+    const candidate = (side: number, flankScale = 1) => ({
+      x:
+        player.x -
+        playerForward.x * (blocked ? 7 : 4) +
+        playerRight.x * preferredSide * side * (blocked ? 16 : 12) * flankScale,
+      z:
+        player.z -
+        playerForward.z * (blocked ? 7 : 4) +
+        playerRight.z * preferredSide * side * (blocked ? 16 : 12) * flankScale,
+    });
+    const preferred = candidate(1);
+    if (!lineOfSightBlocked(preferred, player, blocks)) return preferred;
+    const opposite = candidate(-1);
+    if (!lineOfSightBlocked(opposite, player, blocks)) return opposite;
+    return candidate(1, 1.35);
+  }
+
+  const heavy = role === 'heavy';
+  const lateral = spread * (heavy ? 2.5 : FLANK_OFFSET) * (blocked ? 2.4 : 1);
+  const range = heavy
+    ? blocked
+      ? ENEMY_STANDOFF + 1
+      : 7
+    : blocked
+      ? ENEMY_STANDOFF + 4
+      : ENEMY_STANDOFF;
   return {
     x: player.x - forward.x * range + sideways.x * lateral,
     z: player.z - forward.z * range + sideways.z * lateral,
   };
+}
+
+export function enemyHullHeading(
+  enemy: { position: Vec3 },
+  player: { x: number; z: number },
+  role: 'scout' | 'medium' | 'heavy',
+  currentHeading: number
+): number {
+  if (role === 'scout') return currentHeading;
+  return Math.atan2(
+    -(player.z - enemy.position.z),
+    player.x - enemy.position.x
+  );
 }
 
 /** Moves an enemy toward its goal, clamped to the field. */
