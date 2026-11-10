@@ -140,6 +140,25 @@ describe('role tactics', () => {
     expect(goal.z).toBeLessThan(0);
   });
 
+  it('routes around an obstacle that blocks the path to a clear flank', () => {
+    const enemy = { position: { x: 0, y: 0, z: 0 } };
+    const wall = {
+      position: { x: 12, y: 0.55, z: 6 },
+      size: [4, 1.1, 10] as [number, number, number],
+    };
+    const goal = enemyGoal(
+      enemy,
+      { x: 30, z: 0, heading: 0 },
+      0,
+      1,
+      [wall],
+      'scout'
+    );
+    expect(goal).not.toEqual({ x: 26, z: 12 });
+    expect(lineOfSightBlocked(enemy.position, goal, [wall])).toBe(false);
+    expect(lineOfSightBlocked(goal, { x: 26, z: 12 }, [wall])).toBe(false);
+  });
+
   it('keeps medium spacing while heavies press closer', () => {
     const enemy = { position: { x: 0, y: 0, z: 0 } };
     const player = { x: 30, z: 0, heading: 0 };
