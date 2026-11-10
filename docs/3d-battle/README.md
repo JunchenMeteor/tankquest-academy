@@ -29,6 +29,11 @@ use the Phaser scene instead, then pick a mission and start training.
   At zero the existing defeat card takes over with restart and return.
 - Hull health, directional armour, penetration, damage, projectile speed,
   reload time, and mobility come from the selected tank and enemy presets.
+- Incoming shells carry the firing tank's penetration and launch from its actual
+  elevated, pitched muzzle. The player uses directional armour and heading, so
+  heavy front armour can block scout fire instead of only applying a flat reduction.
+- Enemy turrets and guns track the player independently of their hulls, with
+  per-tank traverse and elevation speeds; enemies fire only when aligned.
 - Hull-to-hull impacts reuse the 2D ram rules: relative speed and mass determine
   two-way damage, armour mitigates it, and each tank pair has a 650 ms cooldown.
   Ram kills count toward mission objectives and trigger subsequent waves.

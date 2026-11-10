@@ -189,7 +189,62 @@ describe('enemy fire', () => {
     const advanced = advanceEnemyShells(state, 0.5, { x: 100, z: 0 });
 
     expect(fire.launches[0]?.projectileSpeed).toBe(200);
+    expect(fire.launches[0]?.projectilePenetration).toBe(40);
     expect(advanced.state.enemyShells[0]?.x).toBeCloseTo(-5);
+  });
+
+  it('blocks scout shells on heavy front armour but applies rear damage', () => {
+    const profile = { front: 102, side: 74, rear: 52 };
+    const launch = {
+      x: 0,
+      z: 0,
+      heading: 0,
+      damage: 27,
+      projectilePenetration: 70,
+      sourceId: 'scout',
+    };
+    const front = spawnEnemyShell(createCombatState(1, 1, 200), launch);
+    const blocked = advanceEnemyShells(
+      front,
+      0.1,
+      { x: 4, z: 0 },
+      0.19,
+      profile,
+      0
+    );
+    expect(blocked.damage).toBe(0);
+    expect(blocked.state.playerHealth).toBe(200);
+
+    const rear = advanceEnemyShells(
+      spawnEnemyShell(createCombatState(1, 1, 200), {
+        ...launch,
+        heading: Math.PI,
+      }),
+      0.1,
+      { x: -4, z: 0 },
+      0.19,
+      profile,
+      0
+    );
+    expect(rear.damage).toBe(18);
+    expect(rear.state.playerHealth).toBe(182);
+  });
+
+  it('keeps enemy shells at their authored muzzle height and pitch', () => {
+    const state = spawnEnemyShell(createCombatState(1), {
+      x: 0,
+      y: 3,
+      z: 0,
+      heading: 0,
+      pitch: Math.PI / 6,
+      damage: 12,
+      sourceId: 'a',
+    });
+    const advanced = advanceEnemyShells(state, 0.1, { x: 100, z: 0 });
+    expect(advanced.state.enemyShells[0]?.y).toBeCloseTo(0.9);
+    expect(advanced.state.enemyShells[0]?.x).toBeCloseTo(
+      4.2 * Math.cos(Math.PI / 6)
+    );
   });
 
   it('damages the player when an incoming shell reaches them', () => {

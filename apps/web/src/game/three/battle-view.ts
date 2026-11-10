@@ -65,6 +65,7 @@ import {
   groupSpread,
   openingDelayMs,
 } from './battle-enemy-ai.js';
+import { aimEnemyWeapon, type EnemyAimState } from './battle-enemy-aim.js';
 import { advanceReload } from './battle-combat.js';
 import { createMeshHitTest } from './battle-mesh-collision.js';
 import { applyRamImpacts, calculateRamImpacts } from './battle-ram.js';
@@ -296,6 +297,8 @@ export function createBattleView(
   /* Difficulty follows the group size: more tanks, sharper shooting. */
   const difficulty = Math.min(1, Math.max(0, (config.enemies.length - 1) / 3));
   const enemyRoots = new Map<string, Group>();
+  const enemyRigs = new Map<string, TankRig>();
+  const enemyAimStates = new Map<string, EnemyAimState>();
   const enemyLabels = new Map<string, ReturnType<typeof createTankLabel>>();
   const roleNames =
     config.locale === 'zh-CN'
@@ -317,6 +320,8 @@ export function createBattleView(
     rig.root.add(label.sprite);
     enemyLabels.set(enemy.id, label);
     enemyRoots.set(enemy.id, rig.root);
+    enemyRigs.set(enemy.id, rig);
+    enemyAimStates.set(enemy.id, { turret: 0, pitch: 0.1 });
     scene.add(rig.root);
   };
   const waves = layout.enemies.every((enemy) => enemy.passive)
@@ -377,6 +382,8 @@ export function createBattleView(
         scene.remove(root);
         enemyRoots.delete(id);
       }
+      enemyRigs.delete(id);
+      enemyAimStates.delete(id);
       enemyLabels.get(id)?.dispose();
       enemyLabels.delete(id);
       destroyedCount += 1;
@@ -554,6 +561,7 @@ export function createBattleView(
           if (label) model.root.add(label.sprite);
           scene.remove(root);
           enemyRoots.set(enemy.id, model.root);
+          enemyRigs.set(enemy.id, model);
           scene.add(model.root);
         }
       })
@@ -716,6 +724,29 @@ export function createBattleView(
             enemy.position.z
           );
           root.rotation.y = enemy.heading;
+          const rig = enemyRigs.get(enemy.id);
+          const aimState = enemyAimStates.get(enemy.id);
+          if (rig && aimState) {
+            const target = new Vector3(
+              state.position.x,
+              state.position.y,
+              state.position.z
+            );
+            Object.assign(
+              aimState,
+              aimEnemyWeapon(
+                aimState,
+                rig.turret.getWorldPosition(new Vector3()),
+                rig.gun.getWorldPosition(new Vector3()),
+                target,
+                enemy.heading,
+                (enemy.combat?.turretTraverseSpeed ?? 1.2) * delta,
+                (enemy.combat?.gunElevationSpeed ?? 0.7) * delta
+              )
+            );
+            rig.turret.rotation.y = aimState.turret;
+            rig.gun.rotation.x = aimState.pitch;
+          }
         }
 
         /* Hull-to-hull separation: enemies and the player never share a spot. */
@@ -927,6 +958,29 @@ export function createBattleView(
           );
           combat = fire.state;
           for (const launch of fire.launches) {
+            const rig = enemyRigs.get(launch.sourceId);
+            if (rig) {
+              const muzzle = rig.muzzle.getWorldPosition(new Vector3());
+              const direction = rig.muzzle.getWorldDirection(new Vector3());
+              const target = new Vector3(
+                state.position.x,
+                state.position.y,
+                state.position.z
+              );
+              if (
+                aimAlignmentError(muzzle, direction, target) >
+                FIRE_AIM_TOLERANCE
+              ) {
+                continue;
+              }
+              Object.assign(launch, {
+                x: muzzle.x,
+                y: muzzle.y,
+                z: muzzle.z,
+                heading: aimYaw(muzzle, target),
+                pitch: aimPitch(muzzle, target),
+              });
+            }
             combat = spawnEnemyShell(combat, launch);
           }
           if (combat.enemyShells.length > 0) {
@@ -937,7 +991,9 @@ export function createBattleView(
                 x: state.position.x,
                 z: state.position.z,
               },
-              config.player.armorReduction
+              config.player.armorReduction,
+              config.player.armorProfile,
+              state.heading
             );
             combat = incoming.state;
             if (incoming.damage > 0) publish();
@@ -1030,10 +1086,15 @@ export function createBattleView(
         enemyShellMeshes.set(shell.id, mesh);
         scene.add(mesh);
       }
-      mesh.position.set(shell.x, 0.9, shell.z);
+      mesh.position.set(shell.x, shell.y, shell.z);
+      const horizontal = Math.cos(shell.pitch);
       mesh.quaternion.setFromUnitVectors(
         new Vector3(0, 1, 0),
-        new Vector3(Math.cos(shell.heading), 0, -Math.sin(shell.heading))
+        new Vector3(
+          Math.cos(shell.heading) * horizontal,
+          -Math.sin(shell.pitch),
+          -Math.sin(shell.heading) * horizontal
+        )
       );
     }
     for (const [id, mesh] of enemyShellMeshes) {
