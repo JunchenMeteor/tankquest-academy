@@ -92,9 +92,34 @@ describe('deriveCombatStats', () => {
     expect(fastTurret.gunElevationSpeed).toBe(slowTurret.gunElevationSpeed);
   });
 
-  it('clamps unexpected API values to the supported one-to-five range', () => {
+  it('keeps every purchased level meaningful beyond the old cap', () => {
+    const heavy = deriveCombatStats(withStat('armor', 5));
+    const upgradedHeavy = deriveCombatStats(withStat('armor', 6));
+    expect(upgradedHeavy.maxHealth).toBe(heavy.maxHealth + 25);
+    expect(upgradedHeavy.armorProfile.front).toBe(
+      heavy.armorProfile.front + 12
+    );
+
+    const reloadFive = deriveCombatStats(withStat('firepower', 5));
+    const reloadSix = deriveCombatStats(withStat('firepower', 6));
+    expect(reloadSix.fireCooldownMs).toBeLessThan(reloadFive.fireCooldownMs);
+
+    const turretFive = deriveCombatStats(withStat('turretTraverse', 5));
+    const turretSix = deriveCombatStats(withStat('turretTraverse', 6));
+    expect(turretSix.turretTraverseSpeed).toBeGreaterThan(
+      turretFive.turretTraverseSpeed
+    );
+
+    const accuracyFive = deriveCombatStats(withStat('accuracy', 5));
+    const accuracySix = deriveCombatStats(withStat('accuracy', 6));
+    expect(accuracySix.dispersionRadius).toBeLessThan(
+      accuracyFive.dispersionRadius
+    );
+  });
+
+  it('clamps unexpected API values to the supported one-to-ten range', () => {
     expect(deriveCombatStats(withStat('firepower', 99))).toEqual(
-      deriveCombatStats(withStat('firepower', 5))
+      deriveCombatStats(withStat('firepower', 10))
     );
     expect(deriveCombatStats(withStat('armor', Number.NaN))).toEqual(
       deriveCombatStats(withStat('armor', 3))

@@ -6,11 +6,6 @@ import type {
 
 export type UpgradeStat = UpgradeableStat;
 
-export interface UpgradeMaterial {
-  itemKey: string;
-  amount: number;
-}
-
 export type UpgradeResult =
   | { status: 'upgraded'; upgrade: UpgradeTankResponse }
   | { status: 'unavailable' }
