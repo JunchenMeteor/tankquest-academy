@@ -26,6 +26,8 @@ use the Phaser scene instead, then pick a mission and start training.
 - Driving uses the same input controller as the Phaser scene (`WASD`, arrows, on
   screen touch controls). Configured acceleration smooths launch, braking, and
   reverse, while steering ramps up and settles instead of changing instantly.
+  The visible fence uses the same playfield bounds as tank movement, so there is
+  no separate invisible boundary in front of it.
 - Firing spends a round from a five-round magazine. A correct answer loads the
   ammo the backend granted; a wrong answer adds a reload penalty instead of
   taking a round away, so the child is never blocked.

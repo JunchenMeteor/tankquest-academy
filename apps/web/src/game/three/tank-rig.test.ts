@@ -37,7 +37,9 @@ describe('TankRig contract', () => {
     expect(rig.turret).toBe(turret);
     expect(rig.gun).toBe(gun);
     expect(rig.muzzle).toBe(muzzle);
-    expect(rig.wheels).toEqual([wheel]);
+    expect(rig.wheels).toEqual([]);
+    expect(rig.idlers).toEqual([wheel]);
+    expect(rig.sprockets).toEqual([]);
     expect(rig.wheelAxis).toBe('x');
     expect(rig.trackTextures).toHaveLength(1);
   });
@@ -51,6 +53,8 @@ describe('TankRig contract', () => {
       gun: new Object3D(),
       muzzle: new Object3D(),
       wheels: [wheel],
+      idlers: [],
+      sprockets: [],
       wheelAxis: 'x' as const,
       wheelRadius: 0.3,
       trackTextures: [texture],
@@ -63,6 +67,26 @@ describe('TankRig contract', () => {
     advanceRunningGear(rig, -0.5);
     expect(wheel.rotation.x).toBeCloseTo(-10 / 3);
     expect(texture.offset.y).toBeCloseTo(-0.25);
+  });
+
+  it('rotates idlers and sprockets with their own radii', () => {
+    const idler = new Object3D();
+    const sprocket = new Object3D();
+    const rig = {
+      root: new Group(),
+      turret: new Object3D(),
+      gun: new Object3D(),
+      muzzle: new Object3D(),
+      wheels: [],
+      idlers: [idler],
+      sprockets: [sprocket],
+      wheelAxis: 'x' as const,
+      wheelRadius: 0.3,
+      trackTextures: [],
+    };
+    advanceRunningGear(rig, 1);
+    expect(idler.rotation.x).toBeCloseTo(-1 / (0.3 * 1.12));
+    expect(sprocket.rotation.x).toBeCloseTo(-1 / (0.3 * 0.92));
   });
 
   it('reads the muzzle from its articulated world transform', () => {
