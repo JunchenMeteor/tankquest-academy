@@ -38,6 +38,11 @@ use the Phaser scene instead, then pick a mission and start training.
   heavy front armour can block scout fire instead of only applying a flat reduction.
 - Enemy turrets and guns track the player independently of their hulls, with
   per-tank traverse and elevation speeds; enemies fire only when aligned.
+- Scouts use alternating side/rear lanes and switch flanks when their firing
+  line is blocked, mediums preserve formation spacing, and heavies close the
+  distance while facing the player to engage with frontal armour.
+- Backend-seeded `flank-drill` and `heavy-line` missions provide focused mixed-
+  role tactical practice alongside the existing campaign and wave objectives.
 - Hull-to-hull impacts reuse the 2D ram rules: relative speed and mass determine
   two-way damage, armour mitigates it, and each tank pair has a 650 ms cooldown.
   Ram kills count toward mission objectives and trigger subsequent waves.
