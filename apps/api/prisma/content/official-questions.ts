@@ -49,7 +49,7 @@ function numericChoices(
   choices: LocalizedText[];
   correctIndex: number;
 } {
-  const values = [Math.max(0, correct - 2), correct, correct + 3];
+  const values = [correct, correct + 2, correct + 5, Math.max(0, correct - 2)];
   const shift = index % values.length;
   const rotated = [...values.slice(shift), ...values.slice(0, shift)];
   return {
@@ -64,52 +64,28 @@ function numericChoices(
 function mathQuestions(): OfficialQuestionSeed[] {
   const questions: OfficialQuestionSeed[] = [];
   for (let index = 0; index < 10; index += 1) {
-    const addition = index < 5;
-    const left = addition ? 6 + index : 14 + index;
-    const right = addition ? 3 + (index % 4) : 4 + (index % 3);
-    const correct = addition ? left + right : left - right;
+    const division = index >= 5;
+    const factor = 2 + (index % 5);
+    const other = 3 + (index % 4);
+    const left = division ? factor * other : factor;
+    const right = division ? factor : other;
+    const correct = division ? other : factor * other;
     const answer = numericChoices(correct, index);
     questions.push(
       seed(
         'math',
         1,
         index,
-        addition ? 'addition-within-20' : 'subtraction-within-20',
+        division ? 'division-facts' : 'multiplication-facts',
         {
-          en: `${left} ${addition ? '+' : '-'} ${right} = ?`,
-          'zh-CN': `${left} ${addition ? '+' : '-'} ${right} 等于多少？`,
+          en: `${left} ${division ? '÷' : '×'} ${right} = ?`,
+          'zh-CN': `${left} ${division ? '÷' : '×'} ${right} 等于多少？`,
         },
         answer.choices,
         answer.correctIndex,
         {
-          en: `${left} ${addition ? 'plus' : 'minus'} ${right} equals ${correct}.`,
-          'zh-CN': `${left} ${addition ? '加' : '减'} ${right} 等于 ${correct}。`,
-        }
-      )
-    );
-  }
-
-  for (let index = 0; index < 10; index += 1) {
-    const addition = index % 2 === 0;
-    const left = addition ? 28 + index * 3 : 62 + index * 2;
-    const right = 11 + index;
-    const correct = addition ? left + right : left - right;
-    const answer = numericChoices(correct, index + 1);
-    questions.push(
-      seed(
-        'math',
-        2,
-        index,
-        addition ? 'addition-within-100' : 'subtraction-within-100',
-        {
-          en: `${left} ${addition ? '+' : '-'} ${right} = ?`,
-          'zh-CN': `${left} ${addition ? '+' : '-'} ${right} 等于多少？`,
-        },
-        answer.choices,
-        answer.correctIndex,
-        {
-          en: `${left} ${addition ? 'plus' : 'minus'} ${right} equals ${correct}.`,
-          'zh-CN': `${left} ${addition ? '加' : '减'} ${right} 等于 ${correct}。`,
+          en: `${left} ${division ? 'divided by' : 'times'} ${right} equals ${correct}.`,
+          'zh-CN': `${left} ${division ? '除以' : '乘以'} ${right} 等于 ${correct}。`,
         }
       )
     );
@@ -117,11 +93,39 @@ function mathQuestions(): OfficialQuestionSeed[] {
 
   for (let index = 0; index < 10; index += 1) {
     const division = index >= 5;
-    const factor = 2 + (index % 5);
-    const other = 3 + (index % 4);
-    const left = division ? factor * other : factor;
-    const right = division ? factor : other;
-    const correct = division ? other : factor * other;
+    const left = division
+      ? (3 + (index % 4)) * (7 + index * 2)
+      : 12 + index * 3;
+    const right = 3 + (index % 4);
+    const correct = division ? 7 + index * 2 : left * right;
+    const answer = numericChoices(correct, index + 1);
+    questions.push(
+      seed(
+        'math',
+        2,
+        index,
+        division ? 'division-facts' : 'multiplication-facts',
+        {
+          en: `${left} ${division ? '÷' : '×'} ${right} = ?`,
+          'zh-CN': `${left} ${division ? '÷' : '×'} ${right} 等于多少？`,
+        },
+        answer.choices,
+        answer.correctIndex,
+        {
+          en: `${left} ${division ? 'divided by' : 'times'} ${right} equals ${correct}.`,
+          'zh-CN': `${left} ${division ? '除以' : '乘以'} ${right} 等于 ${correct}。`,
+        }
+      )
+    );
+  }
+
+  for (let index = 0; index < 10; index += 1) {
+    const division = index >= 5;
+    const divisor = 6 + (index % 5);
+    const quotient = 16 + index * 7;
+    const left = division ? divisor * quotient : 35 + index * 17;
+    const right = division ? divisor : 6 + (index % 4);
+    const correct = division ? quotient : left * right;
     const answer = numericChoices(correct, index + 2);
     questions.push(
       seed(
@@ -144,27 +148,42 @@ function mathQuestions(): OfficialQuestionSeed[] {
   }
 
   for (let index = 0; index < 10; index += 1) {
-    const start = 12 + index * 2;
-    const multiplier = 3 + (index % 4);
-    const subtract = 7 + (index % 6);
-    const correct = start * multiplier - subtract;
+    const mixedDivision = index >= 5;
+    const left = mixedDivision ? 8 + index : 24 + index * 12;
+    const multiplier = mixedDivision ? 4 + (index % 4) : 4 + index;
+    const offset = 9 + index * 3;
+    const addition = index % 2 === 0;
+    const divisor = 3 + (index % 3);
+    const quotient = 7 + index;
+    const dividend = divisor * quotient;
+    const correct = mixedDivision
+      ? quotient + left * multiplier
+      : left * multiplier + (addition ? offset : -offset);
+    const prompt = mixedDivision
+      ? `${dividend} ÷ ${divisor} + ${left} × ${multiplier}`
+      : `${left} × ${multiplier} ${addition ? '+' : '-'} ${offset}`;
     const answer = numericChoices(correct, index);
     questions.push(
       seed(
         'math',
         4,
         index,
-        index < 5 ? 'two-step-arithmetic' : 'operation-order',
+        mixedDivision ? 'division-facts' : 'multiplication-facts',
         {
-          en: `Calculate ${start} × ${multiplier} - ${subtract}.`,
-          'zh-CN': `计算 ${start} × ${multiplier} - ${subtract}。`,
+          en: `Calculate ${prompt}.`,
+          'zh-CN': `计算 ${prompt}。`,
         },
         answer.choices,
         answer.correctIndex,
-        {
-          en: `Multiply first: ${start} × ${multiplier} = ${start * multiplier}; then subtract ${subtract} to get ${correct}.`,
-          'zh-CN': `先算乘法：${start} × ${multiplier} = ${start * multiplier}；再减去 ${subtract}，得到 ${correct}。`,
-        }
+        mixedDivision
+          ? {
+              en: `Multiply and divide first: ${dividend} ÷ ${divisor} = ${quotient} and ${left} × ${multiplier} = ${left * multiplier}; then add to get ${correct}.`,
+              'zh-CN': `先算乘除：${dividend} ÷ ${divisor} = ${quotient}，${left} × ${multiplier} = ${left * multiplier}；再相加得到 ${correct}。`,
+            }
+          : {
+              en: `Multiply first: ${left} × ${multiplier} = ${left * multiplier}; then ${addition ? 'add' : 'subtract'} ${offset} to get ${correct}.`,
+              'zh-CN': `先算乘法：${left} × ${multiplier} = ${left * multiplier}；再${addition ? '加' : '减'} ${offset}，得到 ${correct}。`,
+            }
       )
     );
   }
@@ -677,7 +696,8 @@ export function validateOfficialQuestions(questions: OfficialQuestionSeed[]) {
       throw new Error(`Missing localized content: ${question.id}`);
     }
     if (
-      question.choices.length !== 3 ||
+      question.choices.length < 3 ||
+      question.choices.length > 4 ||
       !Number.isInteger(question.correctIndex) ||
       question.correctIndex < 0 ||
       question.correctIndex >= question.choices.length
