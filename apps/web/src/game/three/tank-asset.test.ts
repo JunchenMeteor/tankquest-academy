@@ -79,7 +79,7 @@ describe('imported tank asset', () => {
     expect(root.position.toArray()).toEqual([0, 0, 0]);
   });
 
-  it('raises and sizes the front idler before normalisation', () => {
+  it('raises and shrinks the front idler before normalisation', () => {
     const root = new Group();
     const idler = new Group();
     idler.name = 'Wheel_L_00';
@@ -90,9 +90,9 @@ describe('imported tank asset', () => {
 
     expect(idler.position.y).toBe(82);
     expect(idler.position.z).toBe(258);
-    expect(idler.scale.x).toBeCloseTo(1.12);
-    expect(idler.scale.y).toBeCloseTo(1.12);
-    expect(idler.scale.z).toBeCloseTo(1.12);
+    expect(idler.scale.x).toBeCloseTo(0.82);
+    expect(idler.scale.y).toBeCloseTo(0.82);
+    expect(idler.scale.z).toBeCloseTo(0.82);
   });
 
   it('preserves authored hull and turret regions during painting', () => {
