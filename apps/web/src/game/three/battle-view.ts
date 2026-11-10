@@ -62,6 +62,7 @@ import { advanceRunningGear, type TankRig } from './tank-rig.js';
 import {
   advanceEnemy,
   enemyGoal,
+  enemyHullHeading,
   enemyReloadMs,
   groupSpread,
   openingDelayMs,
@@ -315,6 +316,8 @@ export function createBattleView(
       'enemy'
     );
     rig.root.add(label.sprite);
+    rig.root.userData.enemyId = enemy.id;
+    rig.root.userData.enemyRole = enemy.role;
     enemyLabels.set(enemy.id, label);
     enemyRoots.set(enemy.id, rig.root);
     enemyRigs.set(enemy.id, rig);
@@ -576,6 +579,7 @@ export function createBattleView(
           const model = paintTankRig(asset, enemy.color, enemy.secondaryColor);
           model.root.position.copy(root.position);
           model.root.rotation.copy(root.rotation);
+          model.root.userData = { ...root.userData };
           const label = enemyLabels.get(enemy.id);
           if (label) model.root.add(label.sprite);
           scene.remove(root);
@@ -721,11 +725,18 @@ export function createBattleView(
           if (!root || enemy.passive) continue;
           const goal = enemyGoal(
             enemy,
-            { x: state.position.x, z: state.position.z },
-            groupSpread(slot, layout.enemies.length, difficulty) *
-              layout.enemies.length,
+            {
+              x: state.position.x,
+              z: state.position.z,
+              heading: state.heading,
+            },
+            enemy.role === 'scout'
+              ? slot
+              : groupSpread(slot, layout.enemies.length, difficulty) *
+                  layout.enemies.length,
             layout.enemies.length,
-            layout.blocks
+            layout.blocks,
+            enemy.role
           );
           const step = advanceEnemy(
             enemy,
@@ -742,6 +753,12 @@ export function createBattleView(
             );
             enemy.heading = step.heading;
           }
+          enemy.heading = enemyHullHeading(
+            enemy,
+            state.position,
+            enemy.role,
+            enemy.heading
+          );
           root.position.set(
             enemy.position.x,
             enemy.position.y,
