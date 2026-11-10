@@ -52,6 +52,26 @@ describe('calculateProjectileImpact', () => {
     });
   });
 
+  it('uses the same perpendicular angle for either front approach direction', () => {
+    const input = {
+      armor: { front: 102, side: 74, rear: 52 },
+      baseDamage: 34,
+      impactOffsetX: 20,
+      impactOffsetY: 0,
+      penetration: 82,
+      projectileVelocityY: 0,
+      targetRotation: 0,
+    };
+    expect(
+      calculateProjectileImpact({ ...input, projectileVelocityX: -100 })
+        .impactAngleDegrees
+    ).toBe(0);
+    expect(
+      calculateProjectileImpact({ ...input, projectileVelocityX: 100 })
+        .impactAngleDegrees
+    ).toBe(0);
+  });
+
   it('penetrates weaker side armor and returns bounded damage', () => {
     const impact = calculateProjectileImpact({
       armor: mediumArmor,

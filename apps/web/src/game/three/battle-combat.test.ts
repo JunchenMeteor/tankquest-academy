@@ -145,6 +145,58 @@ describe('3D battle combat', () => {
     expect(result.impacts[0]?.impactAngleDegrees).toBeTypeOf('number');
   });
 
+  it('applies grazing-angle ricochets to both shell directions', () => {
+    const enemies = [enemy('a', 10, 0)];
+    const outgoing = advanceShells(
+      spawnShell(
+        createCombatState(1, 1, 150, enemies),
+        { x: 0, z: 0 },
+        Math.PI / 2,
+        0,
+        1.2,
+        34,
+        200
+      ),
+      0.5,
+      enemies,
+      42,
+      (_from, _to, targets) => ({
+        enemy: targets[0]!,
+        fraction: 0.5,
+        point: { x: 10, y: 1.2, z: 0 },
+      })
+    );
+    expect(outgoing.state.enemyHealth.a).toBe(100);
+    expect(outgoing.impacts[0]).toMatchObject({
+      damage: 0,
+      outcome: 'ricochet',
+    });
+
+    const incoming = advanceEnemyShells(
+      spawnEnemyShell(createCombatState(1, 1, 200), {
+        x: 0,
+        z: 1.5,
+        heading: 0.1,
+        damage: 34,
+        projectilePenetration: 200,
+        projectileSpeed: 4,
+        sourceId: 'scout',
+      }),
+      0.1,
+      { x: 0, z: 0 },
+      0,
+      { front: 78, side: 58, rear: 42 },
+      0
+    );
+    expect(incoming.state.playerHealth, JSON.stringify(incoming.impacts)).toBe(
+      200
+    );
+    expect(incoming.impacts[0]).toMatchObject({
+      damage: 0,
+      outcome: 'ricochet',
+    });
+  });
+
   it('drops shells that fly past their range', () => {
     let state = spawnShell(createCombatState(1), { x: 0, z: 0 }, 0);
     for (let step = 0; step < 20; step += 1) {
@@ -209,9 +261,9 @@ describe('enemy fire', () => {
   it('blocks scout shells on heavy front armour but applies rear damage', () => {
     const profile = { front: 102, side: 74, rear: 52 };
     const launch = {
-      x: 0,
+      x: 8,
       z: 0,
-      heading: 0,
+      heading: Math.PI,
       damage: 27,
       projectilePenetration: 70,
       sourceId: 'scout',
@@ -225,13 +277,14 @@ describe('enemy fire', () => {
       profile,
       0
     );
-    expect(blocked.damage).toBe(0);
+    expect(blocked.damage, JSON.stringify(blocked.impacts)).toBe(0);
     expect(blocked.state.playerHealth).toBe(200);
 
     const rear = advanceEnemyShells(
       spawnEnemyShell(createCombatState(1, 1, 200), {
         ...launch,
-        heading: Math.PI,
+        x: -8,
+        heading: 0,
       }),
       0.1,
       { x: -4, z: 0 },
