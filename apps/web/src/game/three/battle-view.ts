@@ -31,6 +31,8 @@ import {
 import {
   buildSceneLayout,
   cameraPose,
+  groundHeight,
+  resolveCameraPose,
   resolveObstacles,
   stepTank,
   type CameraMode,
@@ -116,7 +118,7 @@ function buildGround(layout: SceneLayout, palette: ScenePalette): Group {
   for (let index = 0; index < attribute.count; index += 1) {
     const x = attribute.getX(index);
     const y = attribute.getY(index);
-    attribute.setZ(index, Math.sin(x * 0.25) * 0.12 + Math.cos(y * 0.21) * 0.1);
+    attribute.setZ(index, groundHeight(x, -y));
   }
   geometry.computeVertexNormals();
 
@@ -408,6 +410,8 @@ export function createBattleView(
     mode: 'third' as CameraMode,
     heading: layout.player.heading,
     position: { ...layout.player.position },
+    trackSpeed: 0,
+    turnRate: 0,
     turret: 0,
   };
   const updateLabelVisibility = (
@@ -495,13 +499,35 @@ export function createBattleView(
       : new ResizeObserver(() => resize());
   observer?.observe(host);
 
+  const cameraBlocks = [
+    ...layout.blocks,
+    ...layout.enemies
+      .filter((enemy) => enemy.passive && enemy.position.y > 0.3)
+      .map((enemy) => ({
+        position: {
+          x: enemy.position.x,
+          y: enemy.position.y / 2,
+          z: enemy.position.z,
+        },
+        size: [4.2, enemy.position.y, 6.4] as [number, number, number],
+      })),
+  ];
   const applyCamera = () => {
-    const pose = cameraPose(
+    const idealPose = cameraPose(
       state.mode,
       { ...state, heading: 0 },
       camYaw,
       camPitch
     );
+    const pose =
+      state.mode === 'third'
+        ? resolveCameraPose(
+            idealPose,
+            state.position,
+            cameraBlocks,
+            layout.ground
+          )
+        : idealPose;
     camera.position.set(pose.position.x, pose.position.y, pose.position.z);
     camera.lookAt(new Vector3(pose.target.x, pose.target.y, pose.target.z));
     playerRig.root.visible = state.mode !== 'first';
@@ -593,6 +619,8 @@ export function createBattleView(
           delta,
           layout
         );
+        state.trackSpeed = next.trackSpeed;
+        state.turnRate = next.turnRate;
         if (
           next.heading !== state.heading ||
           next.position !== state.position
@@ -609,7 +637,7 @@ export function createBattleView(
             Math.hypot(
               state.position.x - previousPosition.x,
               state.position.z - previousPosition.z
-            ) * Math.sign(command.forward);
+            ) * Math.sign(next.trackSpeed);
           advanceRunningGear(playerRig, travelled);
           playerRig.root.rotation.y = next.heading;
         }
