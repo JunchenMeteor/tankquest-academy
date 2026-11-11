@@ -59,6 +59,7 @@ import { createTankLabel } from './battle-tank-label.js';
 import { loadTankRig, paintTankRig } from './tank-asset.js';
 import { advanceRunningGear, type TankRig } from './tank-rig.js';
 import { bindBattlePointerInput } from './battle-pointer-input.js';
+import { terrainGroundPose } from './terrain-contact.js';
 import { travelledForHeading } from './running-gear-layout.js';
 import {
   advanceEnemy,
@@ -651,18 +652,24 @@ export function createBattleView(
             layout.blocks,
             groundHeight
           );
-          playerRig.root.position.set(
-            state.position.x,
-            state.position.y,
-            state.position.z
+          const contact = terrainGroundPose(
+            state.position,
+            next.heading,
+            groundHeight
           );
+          playerRig.root.position.copy(contact.position);
           const travelled =
             Math.hypot(
               state.position.x - previousPosition.x,
               state.position.z - previousPosition.z
             ) * Math.sign(next.trackSpeed);
           advanceRunningGear(playerRig, travelled);
-          playerRig.root.rotation.y = next.heading;
+          playerRig.root.rotation.set(
+            contact.roll,
+            next.heading,
+            contact.pitch,
+            'YXZ'
+          );
         }
         if (command.turret !== 0) {
           state.turret = normaliseAngle(
@@ -759,12 +766,27 @@ export function createBattleView(
             enemy.role,
             enemy.heading
           );
-          root.position.set(
-            enemy.position.x,
-            enemy.position.y,
-            enemy.position.z
-          );
-          root.rotation.y = enemy.heading;
+          if (enemy.passive) {
+            root.position.set(
+              enemy.position.x,
+              enemy.position.y,
+              enemy.position.z
+            );
+            root.rotation.y = enemy.heading;
+          } else {
+            const contact = terrainGroundPose(
+              enemy.position,
+              enemy.heading,
+              groundHeight
+            );
+            root.position.copy(contact.position);
+            root.rotation.set(
+              contact.roll,
+              enemy.heading,
+              contact.pitch,
+              'YXZ'
+            );
+          }
           const rig = enemyRigs.get(enemy.id);
           const previous = previousPositions.get(enemy.id);
           if (rig && step.moved && previous) {
