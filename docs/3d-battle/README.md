@@ -12,8 +12,10 @@ use the Phaser scene instead, then pick a mission and start training.
 - Walls, raised platforms, the boundary, and the terrain itself stop both player
   and enemy shells at the nearest contact. Cover never applies hull or ammo-rack
   damage; a clear line to the tank is still required for a damaging hit.
-- Front idlers use 0.82 scale on both the authored and procedural rigs so they
-  remain inside the track silhouette instead of protruding through it.
+- Running gear follows measured wheel radii and track contact. The authored and
+  procedural rigs use separate idler, road-wheel and sprocket roles, visible
+  sprocket teeth, return rollers and closed-loop track animation; see
+  `docs/3d-battle/tank-model.md` for the exact contract.
 - Information lives on the sides: mission and live counters on the left,
   the graded question on the right.
 - Camera toggle (the button under the view): a chase camera that follows tank
@@ -24,6 +26,11 @@ use the Phaser scene instead, then pick a mission and start training.
   the reticle ray, using maximum shell range only when nothing is hit. Holding
   the right mouse button locks the turret so the camera can look around; the
   camera keeps its chosen direction when the button is released.
+- The explicit **Lock mouse** button enables Pointer Lock and a bounded virtual
+  reticle, so the physical cursor no longer stops at the browser edge. The lock
+  button never fires; later left clicks do. **Esc**, answering a question, mission
+  UI, focus loss, and disposal release the pointer and clear every held input.
+  Unlocked right-drag uses Pointer Capture when Pointer Lock is unavailable.
 - The chase camera shortens or lifts its boom around obstacles and stays above
   the terrain instead of entering the ground, scenery, or player hull.
 - Turret traverse speed comes from mobility (`turretTraverseSpeed`), so scouts
@@ -78,16 +85,17 @@ use the Phaser scene instead, then pick a mission and start training.
 
 ## Code map
 
-| File                                             | Role                                                               |
-| ------------------------------------------------ | ------------------------------------------------------------------ |
-| `apps/web/src/game/three/battle-scene-model.ts`  | Field-to-world mapping, placements, camera poses, clamped movement |
-| `apps/web/src/game/three/battle-cover.ts`        | Deterministic cover placement that avoids spawns and objectives    |
-| `apps/web/src/game/three/battle-combat.ts`       | Magazine, shell flight, hit resolution, enemy fire, hull damage    |
-| `apps/web/src/game/three/battle-input.ts`        | Input snapshot and keyboard mapping                                |
-| `apps/web/src/game/three/battle-view.ts`         | Three.js scene, tank meshes, render loop                           |
-| `apps/web/src/game/three/battle-effects.ts`      | Timed effects, shell meshes, effect resource cleanup               |
-| `apps/web/src/game/three/battle-hit-feedback.ts` | Localized hit text, impact sprites, feedback resource cleanup      |
-| `apps/web/src/game/three/Battle3DCanvas.tsx`     | React host, camera toggle, ammo badge                              |
+| File                                              | Role                                                               |
+| ------------------------------------------------- | ------------------------------------------------------------------ |
+| `apps/web/src/game/three/battle-scene-model.ts`   | Field-to-world mapping, placements, camera poses, clamped movement |
+| `apps/web/src/game/three/battle-cover.ts`         | Deterministic cover placement that avoids spawns and objectives    |
+| `apps/web/src/game/three/battle-combat.ts`        | Magazine, shell flight, hit resolution, enemy fire, hull damage    |
+| `apps/web/src/game/three/battle-input.ts`         | Input snapshot and keyboard mapping                                |
+| `apps/web/src/game/three/battle-pointer-input.ts` | Pointer Lock, virtual reticle, capture and input cleanup           |
+| `apps/web/src/game/three/battle-view.ts`          | Three.js scene, tank meshes, render loop                           |
+| `apps/web/src/game/three/battle-effects.ts`       | Timed effects, shell meshes, effect resource cleanup               |
+| `apps/web/src/game/three/battle-hit-feedback.ts`  | Localized hit text, impact sprites, feedback resource cleanup      |
+| `apps/web/src/game/three/Battle3DCanvas.tsx`      | React host, camera and pointer-lock toggles, ammo badge            |
 
 The pure modules carry the tests; the renderer is exercised through screenshots
 from the preview deployment.
