@@ -8,7 +8,10 @@ use the Phaser scene instead, then pick a mission and start training.
 - Full-screen battlefield: an expanded field with meaningful height variation,
   deterministic extra cover, obstacles casting shadows, a PBR tank model on high
   quality, and procedural rigs on lower tiers. Tanks and cameras follow the
-  terrain instead of hovering at their spawn height.
+  terrain instead of hovering at their spawn height. Hull pitch and roll are
+  sampled from front, rear and side terrain contacts, with a small curvature
+  clearance so slopes do not bury the tracks. Passive targets keep their platform
+  elevation instead of being folded into the terrain.
 - Walls, raised platforms, the boundary, and the terrain itself stop both player
   and enemy shells at the nearest contact. Cover never applies hull or ammo-rack
   damage; a clear line to the tank is still required for a damaging hit.
