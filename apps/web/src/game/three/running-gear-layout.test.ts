@@ -5,6 +5,7 @@ import {
   layoutRoadWheels,
   sampleTrackPath,
   trackContactHeights,
+  travelledForHeading,
 } from './running-gear-layout.js';
 
 describe('procedural running gear layout', () => {
@@ -52,5 +53,21 @@ describe('procedural running gear layout', () => {
     expect(backward.x).toBeCloseTo(forward.x);
     expect(backward.y).toBeCloseTo(forward.y);
     expect(backward.angle).toBeCloseTo(forward.angle);
+  });
+
+  it('derives signed travel from actual displacement and hull heading', () => {
+    expect(travelledForHeading({ x: 0, z: 0 }, { x: 2, z: 0 }, 0)).toBeCloseTo(
+      2
+    );
+    expect(travelledForHeading({ x: 2, z: 0 }, { x: 0, z: 0 }, 0)).toBeCloseTo(
+      -2
+    );
+    expect(
+      travelledForHeading({ x: 0, z: 0 }, { x: 0, z: -2 }, Math.PI / 2)
+    ).toBeCloseTo(2);
+    expect(
+      travelledForHeading({ x: 0, z: 0 }, { x: 0, z: 2 }, Math.PI / 2)
+    ).toBeCloseTo(-2);
+    expect(travelledForHeading({ x: 1, z: 1 }, { x: 1, z: 1 }, 0)).toBe(0);
   });
 });

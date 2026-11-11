@@ -8,6 +8,7 @@ import {
   Vector3,
 } from 'three';
 import type { BufferGeometry, Object3D } from 'three';
+import { addRunningGearParts } from './running-gear-parts.js';
 import { tankRigFromScene, type TankRig } from './tank-rig.js';
 
 /** Bump this when the GLB changes so cached copies are refetched. */
@@ -205,8 +206,9 @@ export function normalise(root: Object3D, length = 6): void {
     if (idler) node.position.z -= 12;
     if (sprocket) node.position.z -= 3;
     node.scale.multiplyScalar(scale);
-    scaledWheelRadii.set(node, radius * scale);
+    scaledWheelRadii.set(node, (sprocket ? 56.5 : radius) * scale);
   });
+  const accessories = addRunningGearParts(root);
   root.updateMatrixWorld(true);
   const box = new Box3().setFromObject(root);
   const size = box.getSize(new Vector3());
@@ -219,6 +221,10 @@ export function normalise(root: Object3D, length = 6): void {
   normalised.rotation.y = Math.PI / 2;
   for (const [node, radius] of scaledWheelRadii) {
     node.userData.rollingRadius = radius * normalised.scale.x;
+  }
+  for (const node of accessories) {
+    node.userData.rollingRadius =
+      node.userData.sourceRollingRadius * normalised.scale.x;
   }
   root.updateMatrixWorld(true);
 

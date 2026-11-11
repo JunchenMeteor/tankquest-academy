@@ -136,3 +136,14 @@ export function sampleTrackPath(
     angle: Math.abs(angle - Math.PI * 2) < 1e-8 ? 0 : angle,
   };
 }
+
+export function travelledForHeading(
+  previous: { x: number; z: number },
+  current: { x: number; z: number },
+  heading: number
+): number {
+  const dx = current.x - previous.x;
+  const dz = current.z - previous.z;
+  const forward = dx * Math.cos(heading) - dz * Math.sin(heading);
+  return Math.hypot(dx, dz) * Math.sign(forward);
+}

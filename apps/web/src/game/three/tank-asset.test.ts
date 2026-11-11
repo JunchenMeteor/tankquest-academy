@@ -105,15 +105,24 @@ describe('imported tank asset', () => {
     expect(sprocket.position.y).toBeCloseTo(59.64);
     expect(sprocket.position.z).toBeCloseTo(-338.06);
     expect(sprocket.scale.toArray()).toEqual([0.9, 0.9, 0.9]);
-    const surfaceGap = (front: Mesh, rear: Mesh) =>
-      front.position.z - rear.position.z - 55 * (front.scale.z + rear.scale.z);
+    const surfaceGap = (
+      front: Mesh,
+      rear: Mesh,
+      frontRadius = 55,
+      rearRadius = 55
+    ) =>
+      front.position.z -
+      rear.position.z -
+      frontRadius * front.scale.z -
+      rearRadius * rear.scale.z;
     expect(surfaceGap(idler, firstRoadWheel)).toBeCloseTo(1.14);
-    expect(surfaceGap(lastRoadWheel, sprocket)).toBeCloseTo(2.4);
+    expect(surfaceGap(lastRoadWheel, sprocket, 55, 56.5)).toBeCloseTo(1.05);
     expect(idler.position.z + 55 * idler.scale.z).toBeLessThanOrEqual(281.6);
     const normalisedScale = 6 / 726.3;
     for (const node of [idler, firstRoadWheel, lastRoadWheel, sprocket]) {
+      const sourceRadius = node === sprocket ? 56.5 : 55;
       expect(node.userData.rollingRadius).toBeCloseTo(
-        55 * node.scale.z * normalisedScale
+        sourceRadius * node.scale.z * normalisedScale
       );
     }
   });

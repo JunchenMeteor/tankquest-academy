@@ -58,6 +58,7 @@ import { buildTankModel } from './tank-model.js';
 import { createTankLabel } from './battle-tank-label.js';
 import { loadTankRig, paintTankRig } from './tank-asset.js';
 import { advanceRunningGear, type TankRig } from './tank-rig.js';
+import { travelledForHeading } from './running-gear-layout.js';
 import {
   advanceEnemy,
   enemyGoal,
@@ -588,8 +589,8 @@ export function createBattleView(
           scene.add(model.root);
         }
       })
-      .catch(() => {
-        /* Keep the procedural tanks when the asset cannot load. */
+      .catch((error: unknown) => {
+        console.warn('Tank GLB load failed; using procedural tanks', error);
       });
   }
 
@@ -772,6 +773,13 @@ export function createBattleView(
           );
           root.rotation.y = enemy.heading;
           const rig = enemyRigs.get(enemy.id);
+          const previous = previousPositions.get(enemy.id);
+          if (rig && step.moved && previous) {
+            advanceRunningGear(
+              rig,
+              travelledForHeading(previous, enemy.position, step.heading)
+            );
+          }
           const aimState = enemyAimStates.get(enemy.id);
           if (rig && aimState) {
             const target = new Vector3(
