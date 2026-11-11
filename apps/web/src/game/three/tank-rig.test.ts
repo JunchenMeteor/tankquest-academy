@@ -61,11 +61,11 @@ describe('TankRig contract', () => {
     };
 
     advanceRunningGear(rig, 1.5);
-    expect(wheel.rotation.x).toBeCloseTo(-5);
+    expect(wheel.rotation.x).toBeCloseTo(-1.5 / (0.3 * 0.85));
     expect(texture.offset.y).toBeCloseTo(-0.375);
 
     advanceRunningGear(rig, -0.5);
-    expect(wheel.rotation.x).toBeCloseTo(-10 / 3);
+    expect(wheel.rotation.x).toBeCloseTo(-1 / (0.3 * 0.85));
     expect(texture.offset.y).toBeCloseTo(-0.25);
   });
 
@@ -85,7 +85,7 @@ describe('TankRig contract', () => {
       trackTextures: [],
     };
     advanceRunningGear(rig, 1);
-    expect(idler.rotation.x).toBeCloseTo(-1 / (0.3 * 1.12));
+    expect(idler.rotation.x).toBeCloseTo(-1 / (0.3 * 0.82));
     expect(sprocket.rotation.x).toBeCloseTo(-1 / (0.3 * 0.92));
   });
 
@@ -133,8 +133,16 @@ describe('procedural TankRig', () => {
     expect(rig.muzzle.parent).toBe(rig.gun);
     expect(rig.wheels.length).toBeGreaterThan(0);
     expect(rig.muzzle.getWorldPosition(new Vector3()).x).toBeGreaterThan(3);
+    const roadWheel = rig.wheels[0]!;
+    const idler = rig.idlers[0]!;
+    expect(
+      roadWheel.position.y - rig.wheelRadius * roadWheel.scale.y
+    ).toBeCloseTo(0.04);
+    expect(
+      idler.position.y - rig.wheelRadius * 0.92 * idler.scale.y
+    ).toBeCloseTo(0.04);
 
     advanceRunningGear(rig, 0.6);
-    expect(rig.wheels[0]!.rotation.z).toBeCloseTo(-2);
+    expect(roadWheel.rotation.z).toBeCloseTo(-0.6 / (0.3 * 0.85));
   });
 });

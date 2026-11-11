@@ -73,10 +73,10 @@ export function tankRigFromScene(root: Group): TankRig {
 
 export function advanceRunningGear(rig: TankRig, travelled: number): void {
   for (const wheel of rig.wheels) {
-    wheel.rotation[rig.wheelAxis] -= travelled / rig.wheelRadius;
+    wheel.rotation[rig.wheelAxis] -= travelled / (rig.wheelRadius * 0.85);
   }
   for (const idler of rig.idlers) {
-    idler.rotation[rig.wheelAxis] -= travelled / (rig.wheelRadius * 1.12);
+    idler.rotation[rig.wheelAxis] -= travelled / (rig.wheelRadius * 0.82);
   }
   for (const sprocket of rig.sprockets) {
     sprocket.rotation[rig.wheelAxis] -= travelled / (rig.wheelRadius * 0.92);

@@ -148,7 +148,8 @@ function addRoadWheels(
   for (const z of [-trackOffset, trackOffset]) {
     for (const x of positions) {
       const holder = new Group();
-      holder.position.set(x, wheelRadius + 0.04, z);
+      holder.position.set(x, wheelRadius * 0.85 + 0.04, z);
+      holder.scale.setScalar(0.85);
       wheels.push(holder);
 
       const wheel = new Mesh(wheelGeometry, materials.rubber);
@@ -175,7 +176,7 @@ function addRoadWheels(
 
     const idler = sprocket.clone();
     idler.position.x = -hullDepth / 2 + 0.2;
-    idler.position.y += 0.08;
+    idler.position.y = 0.04 + wheelRadius * 0.92 * 0.82;
     idler.scale.multiplyScalar(0.82);
     group.add(idler);
     idlers.push(idler);
