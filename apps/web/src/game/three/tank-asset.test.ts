@@ -79,20 +79,23 @@ describe('imported tank asset', () => {
     expect(root.position.toArray()).toEqual([0, 0, 0]);
   });
 
-  it('raises and shrinks the front idler before normalisation', () => {
+  it('aligns the scaled front idler and road wheels at their contact line', () => {
     const root = new Group();
-    const idler = new Group();
+    const idler = new Mesh(new BoxGeometry(28, 110, 110));
     idler.name = 'Wheel_L_00';
     idler.position.set(0, 60, 240);
-    root.add(idler);
+    const roadWheel = new Mesh(new BoxGeometry(28, 110, 110));
+    roadWheel.name = 'Wheel_R_03';
+    roadWheel.position.set(0, 60, 0);
+    root.add(idler, roadWheel);
 
     normalise(root);
 
-    expect(idler.position.y).toBe(82);
+    expect(idler.position.y).toBeCloseTo(50.1);
     expect(idler.position.z).toBe(258);
-    expect(idler.scale.x).toBeCloseTo(0.82);
-    expect(idler.scale.y).toBeCloseTo(0.82);
-    expect(idler.scale.z).toBeCloseTo(0.82);
+    expect(idler.scale.toArray()).toEqual([0.82, 0.82, 0.82]);
+    expect(roadWheel.position.y).toBeCloseTo(51.75);
+    expect(roadWheel.scale.toArray()).toEqual([0.85, 0.85, 0.85]);
   });
 
   it('preserves authored hull and turret regions during painting', () => {
