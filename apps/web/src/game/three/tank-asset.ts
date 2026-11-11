@@ -8,6 +8,7 @@ import {
   Vector3,
 } from 'three';
 import type { BufferGeometry, Object3D } from 'three';
+import { addRunningGearParts } from './running-gear-parts.js';
 import { tankRigFromScene, type TankRig } from './tank-rig.js';
 
 /** Bump this when the GLB changes so cached copies are refetched. */
@@ -187,21 +188,27 @@ export function bake(scene: Object3D): TankAsset {
 
 /** Scales to the battle footprint, faces the barrel forward and rests on the ground. */
 export function normalise(root: Object3D, length = 6): void {
+  const scaledWheelRadii = new Map<Object3D, number>();
   root.traverse((node) => {
     const idler = /^Wheel_[LR]_00$/.test(node.name);
     const roadWheel = /^Wheel_[LR]_0[1-5]$/.test(node.name);
-    if (!idler && !roadWheel) return;
-    const scale = idler ? 0.82 : 0.85;
+    const sprocket = /^Wheel_[LR]_06$/.test(node.name);
+    if (!idler && !roadWheel && !sprocket) return;
+    const scale = idler ? 0.65 : sprocket ? 0.9 : 0.85;
     let radius = 55;
     if (node instanceof Mesh) {
       node.geometry.computeBoundingBox();
       const size = node.geometry.boundingBox?.getSize(new Vector3());
       if (size) radius = Math.max(size.y, size.z) / 2;
     }
-    node.position.y -= radius * (1 - scale);
-    if (idler) node.position.z += 18;
+    const contactLift = idler ? 23.92 : sprocket ? 2.34 : 0.77;
+    node.position.y += contactLift - radius * (1 - scale);
+    if (idler) node.position.z -= 12;
+    if (sprocket) node.position.z -= 3;
     node.scale.multiplyScalar(scale);
+    scaledWheelRadii.set(node, (sprocket ? 56.5 : radius) * scale);
   });
+  const accessories = addRunningGearParts(root);
   root.updateMatrixWorld(true);
   const box = new Box3().setFromObject(root);
   const size = box.getSize(new Vector3());
@@ -212,6 +219,13 @@ export function normalise(root: Object3D, length = 6): void {
   root.add(normalised);
   normalised.scale.multiplyScalar(length / horizontal);
   normalised.rotation.y = Math.PI / 2;
+  for (const [node, radius] of scaledWheelRadii) {
+    node.userData.rollingRadius = radius * normalised.scale.x;
+  }
+  for (const node of accessories) {
+    node.userData.rollingRadius =
+      node.userData.sourceRollingRadius * normalised.scale.x;
+  }
   root.updateMatrixWorld(true);
 
   const scaled = new Box3().setFromObject(root);

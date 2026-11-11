@@ -55,9 +55,11 @@ describe('TankRig contract', () => {
       wheels: [wheel],
       idlers: [],
       sprockets: [],
+      returnRollers: [],
       wheelAxis: 'x' as const,
       wheelRadius: 0.3,
       trackTextures: [texture],
+      trackLoops: [],
     };
 
     advanceRunningGear(rig, 1.5);
@@ -69,9 +71,11 @@ describe('TankRig contract', () => {
     expect(texture.offset.y).toBeCloseTo(-0.25);
   });
 
-  it('rotates idlers and sprockets with their own radii', () => {
+  it('rotates idlers and sprockets with their measured radii', () => {
     const idler = new Object3D();
+    idler.userData.rollingRadius = 0.21;
     const sprocket = new Object3D();
+    sprocket.userData.rollingRadius = 0.33;
     const rig = {
       root: new Group(),
       turret: new Object3D(),
@@ -80,13 +84,15 @@ describe('TankRig contract', () => {
       wheels: [],
       idlers: [idler],
       sprockets: [sprocket],
+      returnRollers: [],
       wheelAxis: 'x' as const,
       wheelRadius: 0.3,
       trackTextures: [],
+      trackLoops: [],
     };
     advanceRunningGear(rig, 1);
-    expect(idler.rotation.x).toBeCloseTo(-1 / (0.3 * 0.82));
-    expect(sprocket.rotation.x).toBeCloseTo(-1 / (0.3 * 0.92));
+    expect(idler.rotation.x).toBeCloseTo(-1 / 0.21);
+    expect(sprocket.rotation.x).toBeCloseTo(-1 / 0.33);
   });
 
   it('reads the muzzle from its articulated world transform', () => {
@@ -135,14 +141,25 @@ describe('procedural TankRig', () => {
     expect(rig.muzzle.getWorldPosition(new Vector3()).x).toBeGreaterThan(3);
     const roadWheel = rig.wheels[0]!;
     const idler = rig.idlers[0]!;
-    expect(
-      roadWheel.position.y - rig.wheelRadius * roadWheel.scale.y
-    ).toBeCloseTo(0.04);
-    expect(
-      idler.position.y - rig.wheelRadius * 0.92 * idler.scale.y
-    ).toBeCloseTo(0.04);
+    expect(idler.position.x).toBeGreaterThan(0);
+    expect(rig.sprockets[0]!.position.x).toBeLessThan(0);
+    expect(roadWheel.position.y - roadWheel.userData.rollingRadius).toBeCloseTo(
+      0.0493
+    );
+    expect(idler.position.y - idler.userData.rollingRadius).toBeCloseTo(0.0493);
+    expect(rig.trackLoops).toHaveLength(2);
+    const loop = rig.trackLoops[0]!;
+    const initialLinkX = loop.links[0]!.position.x;
 
     advanceRunningGear(rig, 0.6);
-    expect(roadWheel.rotation.z).toBeCloseTo(-0.6 / (0.3 * 0.85));
+    expect(roadWheel.rotation.z).toBeCloseTo(
+      -0.6 / roadWheel.userData.rollingRadius
+    );
+    expect(loop.travelled).toBeCloseTo(0.6);
+    expect(loop.links[0]!.position.x).not.toBeCloseTo(initialLinkX);
+
+    advanceRunningGear(rig, -0.6);
+    expect(loop.travelled).toBeCloseTo(0);
+    expect(loop.links[0]!.position.x).toBeCloseTo(initialLinkX);
   });
 });
