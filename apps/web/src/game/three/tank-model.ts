@@ -10,7 +10,12 @@ import {
 } from 'three';
 
 import type { TankPlacement } from './battle-scene-model.js';
-import type { TankRig } from './tank-rig.js';
+import {
+  createTrackPath,
+  layoutRoadWheels,
+  trackContactHeights,
+} from './running-gear-layout.js';
+import type { TankRig, TrackLoop } from './tank-rig.js';
 import { createTankTextures, type TankTextures } from './tank-textures.js';
 
 let sharedTextures: TankTextures | null = null;
@@ -76,80 +81,47 @@ function materialsFor(color: number): TankMaterials {
   };
 }
 
-/** Stadium-shaped track path, walked to place individual links. */
-function trackPath(
-  halfLength: number,
-  radius: number,
-  samples: number
-): Array<{ x: number; y: number; angle: number }> {
-  const straight = Math.max(0.2, halfLength - radius);
-  const perimeter = straight * 4 + Math.PI * 2 * radius;
-  const points: Array<{ x: number; y: number; angle: number }> = [];
-
-  for (let index = 0; index < samples; index += 1) {
-    const distance = (index / samples) * perimeter;
-    if (distance < straight * 2) {
-      points.push({ x: -straight + distance, y: -radius, angle: 0 });
-      continue;
-    }
-    if (distance < straight * 2 + Math.PI * radius) {
-      const phase = -Math.PI / 2 + (distance - straight * 2) / radius;
-      points.push({
-        x: straight + radius * Math.cos(phase),
-        y: radius * Math.sin(phase),
-        angle: phase + Math.PI / 2,
-      });
-      continue;
-    }
-    if (distance < straight * 4 + Math.PI * radius) {
-      points.push({
-        x: straight - (distance - straight * 2 - Math.PI * radius),
-        y: radius,
-        angle: Math.PI,
-      });
-      continue;
-    }
-    const phase =
-      Math.PI / 2 + (distance - straight * 4 - Math.PI * radius) / radius;
-    points.push({
-      x: -straight + radius * Math.cos(phase),
-      y: radius * Math.sin(phase),
-      angle: phase + Math.PI / 2,
-    });
-  }
-  return points;
-}
-
 function addRoadWheels(
   group: Group,
   materials: TankMaterials,
   hullDepth: number,
   trackOffset: number,
-  wheelRadius: number
-): { wheels: Group[]; idlers: Mesh[]; sprockets: Mesh[] } {
+  wheelRadius: number,
+  floor: number
+): {
+  wheels: Group[];
+  idlers: Mesh[];
+  sprockets: Mesh[];
+  returnRollers: Mesh[];
+} {
+  const layout = layoutRoadWheels(hullDepth, wheelRadius);
+  const contact = trackContactHeights(floor);
   const wheelGeometry = new CylinderGeometry(
-    wheelRadius,
-    wheelRadius,
+    layout.roadRadius,
+    layout.roadRadius,
     0.5,
     20,
     1
   );
   const hubGeometry = new CylinderGeometry(
-    wheelRadius * 0.55,
-    wheelRadius * 0.55,
+    layout.roadRadius * 0.55,
+    layout.roadRadius * 0.55,
     0.54,
     14
   );
-  const positions = [-2, -1, 0, 1, 2].map((index) => index * (hullDepth / 5.4));
-
   const wheels: Group[] = [];
   const idlers: Mesh[] = [];
   const sprockets: Mesh[] = [];
-  for (const z of [-trackOffset, trackOffset]) {
-    for (const x of positions) {
+  const returnRollers: Mesh[] = [];
+  for (const [side, z] of [
+    ['L', -trackOffset],
+    ['R', trackOffset],
+  ] as const) {
+    for (const [index, x] of layout.roadPositions.entries()) {
       const holder = new Group();
-      holder.position.set(x, wheelRadius * 0.85 + 0.04, z);
-      holder.scale.setScalar(0.85);
+      holder.name = `Wheel_${side}_${String(index + 1).padStart(2, '0')}`;
+      holder.position.set(x, contact.lower + layout.roadRadius, z);
+      holder.userData.rollingRadius = layout.roadRadius;
       wheels.push(holder);
 
       const wheel = new Mesh(wheelGeometry, materials.rubber);
@@ -163,57 +135,75 @@ function addRoadWheels(
       group.add(holder);
     }
 
-    /* Sprocket at the back, idler at the front, return rollers on top. */
-    const sprocket = new Mesh(
-      new CylinderGeometry(wheelRadius * 0.92, wheelRadius * 0.92, 0.46, 12),
-      materials.steel
+    const endWheel = (name: string, x: number, radius: number) => {
+      const mesh = new Mesh(
+        new CylinderGeometry(radius, radius, 0.46, 16),
+        materials.steel
+      );
+      mesh.name = name;
+      mesh.rotation.x = Math.PI / 2;
+      mesh.position.set(x, contact.lower + radius, z);
+      mesh.userData.rollingRadius = radius;
+      mesh.castShadow = true;
+      group.add(mesh);
+      return mesh;
+    };
+    sprockets.push(
+      endWheel(`Wheel_${side}_06`, layout.sprocketX, layout.sprocketRadius)
     );
-    sprocket.rotation.x = Math.PI / 2;
-    sprocket.position.set(hullDepth / 2 - 0.2, wheelRadius + 0.02, z);
-    sprocket.castShadow = true;
-    group.add(sprocket);
-    sprockets.push(sprocket);
+    idlers.push(
+      endWheel(`Wheel_${side}_00`, layout.idlerX, layout.idlerRadius)
+    );
 
-    const idler = sprocket.clone();
-    idler.position.x = -hullDepth / 2 + 0.2;
-    idler.position.y = 0.04 + wheelRadius * 0.92 * 0.82;
-    idler.scale.multiplyScalar(0.82);
-    group.add(idler);
-    idlers.push(idler);
-
-    for (const x of [-hullDepth / 3.2, 0, hullDepth / 3.2]) {
+    for (const [index, x] of [-hullDepth / 3.2, 0, hullDepth / 3.2].entries()) {
       const roller = new Mesh(
         new CylinderGeometry(0.14, 0.14, 0.4, 10),
         materials.steel
       );
+      roller.name = `ReturnRoller_${side}_${String(index + 1).padStart(2, '0')}`;
       roller.rotation.x = Math.PI / 2;
-      roller.position.set(x, 0.72, z);
+      roller.position.set(x, contact.returnRoller, z);
+      roller.userData.rollingRadius = 0.14;
       group.add(roller);
+      returnRollers.push(roller);
     }
   }
-  return { wheels, idlers, sprockets };
+  return { wheels, idlers, sprockets, returnRollers };
 }
 
 function addTrackBand(
   group: Group,
   materials: TankMaterials,
   hullDepth: number,
-  trackOffset: number
-): void {
+  trackOffset: number,
+  floor: number
+): TrackLoop[] {
   const radius = 0.34;
-  const halfLength = hullDepth / 2 + 0.16;
-  const links = 120;
+  const track = createTrackPath(hullDepth / 2 + 0.16, radius, 0.26);
   const linkGeometry = new BoxGeometry(0.26, 0.085, 0.62);
-  for (const z of [-trackOffset, trackOffset]) {
-    const path = trackPath(halfLength, radius, links);
-    for (const point of path) {
+  const loops: TrackLoop[] = [];
+  for (const [side, z] of [
+    ['L', -trackOffset],
+    ['R', trackOffset],
+  ] as const) {
+    const loop: TrackLoop = {
+      ...track,
+      links: [],
+      baseY: floor + radius * 0.02,
+      travelled: 0,
+    };
+    for (const [index, point] of track.points.entries()) {
       const link = new Mesh(linkGeometry, materials.track);
-      link.position.set(point.x, point.y + radius * 0.02, z);
+      link.name = `Tracks_${side}_${String(index).padStart(3, '0')}`;
+      link.position.set(point.x, point.y + loop.baseY, z);
       link.rotation.z = point.angle;
       link.castShadow = true;
       group.add(link);
+      loop.links.push(link);
     }
+    loops.push(loop);
   }
+  return loops;
 }
 
 function addTurretGroups(
@@ -494,16 +484,23 @@ export function buildTankModel(
     group.add(spare);
   }
 
-  const { wheels, idlers, sprockets } = addRoadWheels(
+  const { wheels, idlers, sprockets, returnRollers } = addRoadWheels(
     group,
     materials,
     hullDepth,
     trackOffset,
-    0.3
+    0.3,
+    floor
   );
   group.userData.wheels = wheels;
   group.userData.wheelRadius = 0.3;
-  addTrackBand(group, materials, hullDepth, trackOffset);
+  const trackLoops = addTrackBand(
+    group,
+    materials,
+    hullDepth,
+    trackOffset,
+    floor
+  );
 
   const { turret, gunGroup, muzzle } = addTurretGroups(placement, materials);
   turret.userData.gun = gunGroup;
@@ -525,9 +522,11 @@ export function buildTankModel(
     wheels,
     idlers,
     sprockets,
+    returnRollers,
     wheelAxis: 'z',
     wheelRadius: 0.3,
     trackTextures: [],
+    trackLoops,
   };
 }
 
