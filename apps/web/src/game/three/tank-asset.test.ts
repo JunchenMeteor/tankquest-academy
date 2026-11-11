@@ -79,23 +79,43 @@ describe('imported tank asset', () => {
     expect(root.position.toArray()).toEqual([0, 0, 0]);
   });
 
-  it('aligns the scaled front idler and road wheels at their contact line', () => {
+  it('keeps every wheel inside the track and records its actual rolling radius', () => {
     const root = new Group();
-    const idler = new Mesh(new BoxGeometry(28, 110, 110));
-    idler.name = 'Wheel_L_00';
-    idler.position.set(0, 60, 240);
-    const roadWheel = new Mesh(new BoxGeometry(28, 110, 110));
-    roadWheel.name = 'Wheel_R_03';
-    roadWheel.position.set(0, 60, 0);
-    root.add(idler, roadWheel);
+    const track = new Mesh(new BoxGeometry(352.4, 126.2, 726.3));
+    track.position.set(0, 62.8, -81.55);
+    const wheel = (name: string, z: number) => {
+      const node = new Mesh(new BoxGeometry(28, 110, 110));
+      node.name = name;
+      node.position.set(0, 62.8, z);
+      return node;
+    };
+    const idler = wheel('Wheel_L_00', 238.81);
+    const firstRoadWheel = wheel('Wheel_L_01', 143.17);
+    const lastRoadWheel = wheel('Wheel_L_05', -239.41);
+    const sprocket = wheel('Wheel_L_06', -335.06);
+    root.add(track, idler, firstRoadWheel, lastRoadWheel, sprocket);
 
     normalise(root);
 
-    expect(idler.position.y).toBeCloseTo(50.1);
-    expect(idler.position.z).toBe(258);
-    expect(idler.scale.toArray()).toEqual([0.82, 0.82, 0.82]);
-    expect(roadWheel.position.y).toBeCloseTo(51.75);
-    expect(roadWheel.scale.toArray()).toEqual([0.85, 0.85, 0.85]);
+    expect(idler.position.y).toBeCloseTo(67.47);
+    expect(idler.position.z).toBeCloseTo(226.81);
+    expect(idler.scale.toArray()).toEqual([0.65, 0.65, 0.65]);
+    expect(firstRoadWheel.position.y).toBeCloseTo(55.32);
+    expect(firstRoadWheel.scale.toArray()).toEqual([0.85, 0.85, 0.85]);
+    expect(sprocket.position.y).toBeCloseTo(59.64);
+    expect(sprocket.position.z).toBeCloseTo(-338.06);
+    expect(sprocket.scale.toArray()).toEqual([0.9, 0.9, 0.9]);
+    const surfaceGap = (front: Mesh, rear: Mesh) =>
+      front.position.z - rear.position.z - 55 * (front.scale.z + rear.scale.z);
+    expect(surfaceGap(idler, firstRoadWheel)).toBeCloseTo(1.14);
+    expect(surfaceGap(lastRoadWheel, sprocket)).toBeCloseTo(2.4);
+    expect(idler.position.z + 55 * idler.scale.z).toBeLessThanOrEqual(281.6);
+    const normalisedScale = 6 / 726.3;
+    for (const node of [idler, firstRoadWheel, lastRoadWheel, sprocket]) {
+      expect(node.userData.rollingRadius).toBeCloseTo(
+        55 * node.scale.z * normalisedScale
+      );
+    }
   });
 
   it('preserves authored hull and turret regions during painting', () => {

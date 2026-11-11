@@ -69,9 +69,11 @@ describe('TankRig contract', () => {
     expect(texture.offset.y).toBeCloseTo(-0.25);
   });
 
-  it('rotates idlers and sprockets with their own radii', () => {
+  it('rotates idlers and sprockets with their measured radii', () => {
     const idler = new Object3D();
+    idler.userData.rollingRadius = 0.21;
     const sprocket = new Object3D();
+    sprocket.userData.rollingRadius = 0.33;
     const rig = {
       root: new Group(),
       turret: new Object3D(),
@@ -85,8 +87,8 @@ describe('TankRig contract', () => {
       trackTextures: [],
     };
     advanceRunningGear(rig, 1);
-    expect(idler.rotation.x).toBeCloseTo(-1 / (0.3 * 0.82));
-    expect(sprocket.rotation.x).toBeCloseTo(-1 / (0.3 * 0.92));
+    expect(idler.rotation.x).toBeCloseTo(-1 / 0.21);
+    expect(sprocket.rotation.x).toBeCloseTo(-1 / 0.33);
   });
 
   it('reads the muzzle from its articulated world transform', () => {
