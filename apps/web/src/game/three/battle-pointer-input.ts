@@ -86,12 +86,14 @@ export function bindBattlePointerInput(
   const onPointerMove = (event: PointerEvent) => {
     if (rightHeld) callbacks.look(event.movementX, event.movementY);
     if (isLocked()) {
-      virtualAim = advanceVirtualAim(
-        virtualAim,
-        { x: event.movementX, y: event.movementY },
-        canvas.getBoundingClientRect()
-      );
-      callbacks.aim(virtualAim.x, virtualAim.y);
+      if (!rightHeld) {
+        virtualAim = advanceVirtualAim(
+          virtualAim,
+          { x: event.movementX, y: event.movementY },
+          canvas.getBoundingClientRect()
+        );
+        callbacks.aim(virtualAim.x, virtualAim.y);
+      }
     } else {
       updateAbsoluteAim(event);
     }

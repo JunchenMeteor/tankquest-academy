@@ -102,7 +102,7 @@ describe('battle pointer input', () => {
   });
 
   it('uses pointer capture for unlocked right-drag and relative look while locked', async () => {
-    const { canvas, look, right, handle } = setup();
+    const { canvas, aim, look, right, handle } = setup();
     const capture = vi.spyOn(canvas, 'setPointerCapture');
     canvas.dispatchEvent(
       pointerEvent('pointerdown', { button: 2, pointerId: 7 })
@@ -115,12 +115,18 @@ describe('battle pointer input', () => {
     expect(look).toHaveBeenCalledWith(20, -5);
 
     await handle.requestLock();
+    aim.mockClear();
     canvas.dispatchEvent(
       pointerEvent('pointermove', { movementX: 12, movementY: 4 })
     );
     expect(look).toHaveBeenCalledWith(12, 4);
+    expect(aim).not.toHaveBeenCalled();
     globalThis.dispatchEvent(pointerEvent('pointerup', { button: 2 }));
     expect(right).toHaveBeenCalledWith(false);
+    canvas.dispatchEvent(
+      pointerEvent('pointermove', { movementX: 7, movementY: 3 })
+    );
+    expect(aim).toHaveBeenCalled();
     handle.dispose();
   });
 
