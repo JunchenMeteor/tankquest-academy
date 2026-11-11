@@ -58,6 +58,8 @@ import { buildTankModel } from './tank-model.js';
 import { createTankLabel } from './battle-tank-label.js';
 import { loadTankRig, paintTankRig } from './tank-asset.js';
 import { advanceRunningGear, type TankRig } from './tank-rig.js';
+import { bindBattlePointerInput } from './battle-pointer-input.js';
+import { travelledForHeading } from './running-gear-layout.js';
 import {
   advanceEnemy,
   enemyGoal,
@@ -106,6 +108,8 @@ export interface Battle3DHandle {
   getMode(): CameraMode;
   /** Applies a graded answer: rewarded ammo on a hit, a reload penalty otherwise. */
   applyAnswer(correct: boolean, reward: number): void;
+  requestPointerLock(): Promise<boolean>;
+  releasePointerLock(): void;
   dispose(): void;
 }
 
@@ -477,36 +481,26 @@ export function createBattleView(
     camPitch = Math.max(-0.5, Math.min(0.8, camPitch - movementY * 0.0011));
   };
 
-  /*
-   * No pointer lock or virtual cursor: the pointer target follows the mouse,
-   * while the second sight follows the real barrel until both are aligned.
-   */
   canvas.classList.add('battle-canvas--locked');
-  const updateAim = (clientX: number, clientY: number) => {
+  const updateAim = (x: number, y: number) => {
     const bounds = canvas.getBoundingClientRect();
-    aim.x = Math.max(0, Math.min(bounds.width, clientX - bounds.left));
-    aim.y = Math.max(0, Math.min(bounds.height, clientY - bounds.top));
+    aim.x = Math.max(0, Math.min(bounds.width, x));
+    aim.y = Math.max(0, Math.min(bounds.height, y));
     aim.ready = true;
   };
-
-  canvas.addEventListener('pointermove', (event) => {
-    /* Look around only while the right button is held, otherwise the view stays
-       behind the hull so the world does not swing while aiming. */
-    if (rightHeld) look(event.movementX, event.movementY);
-    updateAim(event.clientX, event.clientY);
+  const pointerInput = bindBattlePointerInput(canvas, {
+    aim: updateAim,
+    look,
+    fire: (pressed) => input?.setCommand('fire', pressed, 'pointer'),
+    right: (held) => {
+      rightHeld = held;
+    },
+    reset: () => {
+      rightHeld = false;
+      input?.resetAll();
+    },
+    lockChange: (locked) => onPointerLock?.(locked),
   });
-  canvas.addEventListener('pointerdown', (event) => {
-    if (event.button === 2) rightHeld = true;
-    if (event.button === 0) {
-      updateAim(event.clientX, event.clientY);
-      input?.setCommand('fire', true, 'pointer');
-    }
-  });
-  globalThis.addEventListener('pointerup', (event) => {
-    if (event.button === 0) input?.setCommand('fire', false, 'pointer');
-    if (event.button === 2) rightHeld = false;
-  });
-  canvas.addEventListener('contextmenu', (event) => event.preventDefault());
   const observer =
     typeof ResizeObserver === 'undefined'
       ? null
@@ -588,8 +582,8 @@ export function createBattleView(
           scene.add(model.root);
         }
       })
-      .catch(() => {
-        /* Keep the procedural tanks when the asset cannot load. */
+      .catch((error: unknown) => {
+        console.warn('Tank GLB load failed; using procedural tanks', error);
       });
   }
 
@@ -772,6 +766,13 @@ export function createBattleView(
           );
           root.rotation.y = enemy.heading;
           const rig = enemyRigs.get(enemy.id);
+          const previous = previousPositions.get(enemy.id);
+          if (rig && step.moved && previous) {
+            advanceRunningGear(
+              rig,
+              travelledForHeading(previous, enemy.position, step.heading)
+            );
+          }
           const aimState = enemyAimStates.get(enemy.id);
           if (rig && aimState) {
             const target = new Vector3(
@@ -1146,7 +1147,14 @@ export function createBattleView(
     getMode() {
       return state.mode;
     },
+    requestPointerLock() {
+      return pointerInput.requestLock();
+    },
+    releasePointerLock() {
+      pointerInput.release();
+    },
     dispose() {
+      pointerInput.dispose();
       cancelAnimationFrame(frame);
       globalThis.removeEventListener('resize', resize);
       observer?.disconnect();

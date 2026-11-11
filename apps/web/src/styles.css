@@ -1401,6 +1401,21 @@ body {
   z-index: 3;
 }
 
+.battle-layout[data-layout='3d'] .battle-pointer-lock-toggle {
+  position: absolute;
+  left: 18px;
+  bottom: 18px;
+  z-index: 3;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+@media (pointer: coarse) {
+  .battle-layout[data-layout='3d'] .battle-pointer-lock-toggle {
+    display: none;
+  }
+}
+
 @media (max-width: 900px) {
   .battle-layout[data-layout='3d'] .battle-briefing,
   .battle-layout[data-layout='3d'] .learning-console {
