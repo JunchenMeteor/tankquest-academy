@@ -54,6 +54,7 @@ export function Battle3DCanvas({
   const reticleRef = useRef<HTMLDivElement | null>(null);
   const pointerReticleRef = useRef<HTMLDivElement | null>(null);
   const [combo, setCombo] = useState({ streak: 0, bonus: 0 });
+  const [pointerLocked, setPointerLocked] = useState(false);
 
   useEffect(() => {
     if (!hostRef.current) return;
@@ -68,7 +69,7 @@ export function Battle3DCanvas({
         setTier(next);
         if (typeof window !== 'undefined') storeTier(window.localStorage, next);
       },
-      () => {},
+      setPointerLocked,
       () => {},
       (x, y, w, h) => {
         /* Move both reticles imperatively instead of re-rendering every frame. */
@@ -106,11 +107,16 @@ export function Battle3DCanvas({
 
   useEffect(() => {
     if (!answer) return;
+    viewRef.current?.releasePointerLock();
     viewRef.current?.applyAnswer(answer.correct, answer.resourceReward.amount);
   }, [answer]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        viewRef.current?.releasePointerLock();
+        return;
+      }
       const command = keyToCommand(event.key);
       if (!command) return;
       if (command === 'fire') event.preventDefault();
@@ -120,11 +126,14 @@ export function Battle3DCanvas({
       const command = keyToCommand(event.key);
       if (command) input.setCommand(command, false, 'keyboard');
     };
+    const onBlur = () => input.resetSource('keyboard');
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onBlur);
     return () => {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onBlur);
       input.resetSource('keyboard');
     };
   }, [input]);
@@ -161,7 +170,7 @@ export function Battle3DCanvas({
           Quality: {tier}
         </p>
         <p className="battle-pointer-hint">
-          Right-drag to look · A/D to steer · shots queue until aligned
+          Right-drag to look · A/D to steer · Esc releases the mouse
         </p>
         {combo.streak >= 2 ? (
           <p className="battle-combo" data-bonus={combo.bonus > 0}>
@@ -172,6 +181,16 @@ export function Battle3DCanvas({
         <p className="battle-ammo" role="status">
           Ammo {ammo.current} / {ammo.max}
         </p>
+        <button
+          type="button"
+          className="battle-pointer-lock-toggle"
+          onClick={() => {
+            if (pointerLocked) viewRef.current?.releasePointerLock();
+            else void viewRef.current?.requestPointerLock();
+          }}
+        >
+          {pointerLocked ? 'Release mouse · Esc' : 'Lock mouse'}
+        </button>
         <button
           type="button"
           className="battle-camera-toggle"
