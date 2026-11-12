@@ -29,11 +29,11 @@ use the Phaser scene instead, then pick a mission and start training.
 - Aiming follows the pointer in third person and the view direction in first
   person. The turret and gun aim at the nearest live tank or ground point hit by
   the reticle ray, using maximum shell range only when nothing is hit. Gun
-  elevation is solved from the muzzle in the gun parent's local space to
-  compensate for hull pitch, roll, and muzzle offset. Reticle alignment is only
-  a colour cue: player fire depends on
-  ammo and cooldown, and shells follow the actual muzzle axis without a second
-  world-space elevation clamp. Holding the right mouse button locks the turret
+  elevation is solved from the muzzle in the gun parent's local space, while
+  turret yaw closes the loop on the real muzzle axis to compensate for model
+  offsets and hull attitude. Reticle alignment is only a colour cue: player fire
+  depends on ammo and cooldown, and shells follow the actual muzzle axis without
+  a second world-space elevation clamp. Holding the right mouse button locks the turret
   so the camera can look around; the camera keeps its direction on release.
 - The explicit **Lock mouse** button enables Pointer Lock and a bounded virtual
   reticle, so the physical cursor no longer stops at the browser edge. The lock
