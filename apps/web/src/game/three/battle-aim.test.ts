@@ -1,4 +1,4 @@
-import { PerspectiveCamera, Vector3 } from 'three';
+import { Group, PerspectiveCamera, Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -8,6 +8,7 @@ import {
   aimYaw,
   clampGunPitch,
   dispersionOffset,
+  localAimPitch,
   projectGunSight,
   rotateTowards,
   scatterAimPoint,
@@ -39,6 +40,22 @@ describe('3D battle aiming', () => {
     expect(aimPitch(from, { x: 10, y: 2, z: 0 })).toBeCloseTo(0);
     expect(aimPitch(from, { x: 10, y: 12, z: 0 })).toBeCloseTo(-Math.PI / 4);
     expect(aimPitch(from, { x: 10, y: -8, z: 0 })).toBeCloseTo(Math.PI / 4);
+  });
+
+  it('compensates for hull pitch in the gun parent coordinate space', () => {
+    const root = new Group();
+    const turret = new Group();
+    const gun = new Group();
+    gun.position.y = 1;
+    root.rotation.z = 0.3;
+    turret.rotation.y = Math.PI / 2;
+    root.add(turret);
+    turret.add(gun);
+    root.updateMatrixWorld(true);
+    const origin = gun.getWorldPosition(new Vector3());
+    const target = origin.clone().add(new Vector3(10, 0, 0));
+
+    expect(localAimPitch(gun, target)).toBeCloseTo(0.3);
   });
 
   it('measures the angle between the real gun axis and its target', () => {

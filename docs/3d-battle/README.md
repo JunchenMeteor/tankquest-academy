@@ -12,8 +12,8 @@ use the Phaser scene instead, then pick a mission and start training.
   sampled from front, rear and side terrain contacts. A footprint-wide contact
   grid adds relative clearance for rises between those samples without lifting
   the hull on a uniform slope. The distant flat skirt stays below every playable
-  valley so it cannot occlude low terrain or tanks. Passive targets keep their
-  platform elevation instead of being folded into the terrain.
+  valley so it cannot occlude low terrain or tanks. Ground-level passive targets
+  follow their local terrain, while raised targets keep their platform elevation.
 - Walls, raised platforms, the boundary, and the terrain itself stop both player
   and enemy shells at the nearest contact. Cover never applies hull or ammo-rack
   damage; a clear line to the tank is still required for a damaging hit.
@@ -28,9 +28,12 @@ use the Phaser scene instead, then pick a mission and start training.
   camera on the turret roof following the view.
 - Aiming follows the pointer in third person and the view direction in first
   person. The turret and gun aim at the nearest live tank or ground point hit by
-  the reticle ray, using maximum shell range only when nothing is hit. Holding
-  the right mouse button locks the turret so the camera can look around; the
-  camera keeps its chosen direction when the button is released.
+  the reticle ray, using maximum shell range only when nothing is hit. Gun
+  elevation is solved in the gun parent's local space to compensate for hull
+  pitch and roll. Reticle alignment is only a colour cue: player fire depends on
+  ammo and cooldown, and shells follow the actual muzzle axis without a second
+  world-space elevation clamp. Holding the right mouse button locks the turret
+  so the camera can look around; the camera keeps its direction on release.
 - The explicit **Lock mouse** button enables Pointer Lock and a bounded virtual
   reticle, so the physical cursor no longer stops at the browser edge. The lock
   button never fires; later left clicks do. **Esc**, answering a question, mission

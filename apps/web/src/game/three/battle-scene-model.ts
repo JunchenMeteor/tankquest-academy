@@ -167,11 +167,12 @@ export function buildSceneLayout(config: RuntimeLevelConfig): SceneLayout {
     const position = fieldToWorld(
       enemy.x,
       enemy.y,
-      enemy.elevation ??
-        elevation(
-          (enemy.x - config.width / 2) / FIELD_SCALE,
-          (enemy.y - config.height / 2) / FIELD_SCALE
-        )
+      enemy.elevation && enemy.elevation > 0
+        ? enemy.elevation
+        : elevation(
+            (enemy.x - config.width / 2) / FIELD_SCALE,
+            (enemy.y - config.height / 2) / FIELD_SCALE
+          )
     );
     return {
       id: enemy.id,
