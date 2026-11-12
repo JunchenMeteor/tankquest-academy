@@ -1,3 +1,4 @@
+import type { Object3D } from 'three';
 import type { Vec3 } from './battle-scene-model.js';
 
 export function terrainGroundPose(
@@ -49,4 +50,15 @@ export function terrainGroundPose(
     pitch: Math.atan(forwardSlope),
     roll: -Math.atan(sideSlope),
   };
+}
+
+export function applyTankGroundPose(
+  root: Object3D,
+  position: Vec3,
+  heading: number,
+  ground: (x: number, z: number) => number
+): void {
+  const pose = terrainGroundPose(position, heading, ground);
+  root.position.copy(pose.position);
+  root.rotation.set(pose.roll, heading, pose.pitch, 'YXZ');
 }
