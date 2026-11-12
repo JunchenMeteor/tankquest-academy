@@ -58,6 +58,25 @@ describe('3D battle aiming', () => {
     expect(localAimPitch(gun, target)).toBeCloseTo(0.3);
   });
 
+  it('solves elevation from the muzzle rather than the gun root', () => {
+    const root = new Group();
+    const turret = new Group();
+    const gun = new Group();
+    const muzzle = new Group();
+    gun.position.y = 1;
+    muzzle.position.z = 4;
+    root.rotation.z = 0.3;
+    turret.rotation.y = Math.PI / 2;
+    root.add(turret);
+    turret.add(gun);
+    gun.add(muzzle);
+    root.updateMatrixWorld(true);
+    const origin = muzzle.getWorldPosition(new Vector3());
+    const target = origin.clone().add(new Vector3(2, 0, 0));
+
+    expect(localAimPitch(gun, target, muzzle)).toBeCloseTo(0.3);
+  });
+
   it('measures the angle between the real gun axis and its target', () => {
     const origin = { x: 0, y: 0, z: 0 };
     expect(
