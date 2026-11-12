@@ -46,8 +46,8 @@ import {
   aimAlignmentError,
   aimPitch,
   aimYaw,
-  clampGunPitch,
   FIRE_AIM_TOLERANCE,
+  localAimPitch,
   projectGunSight,
   resolveAimPoint,
   rotateTowards,
@@ -93,6 +93,7 @@ import {
   advanceShells,
   applyWrongAnswer,
   canFire,
+  canPlayerFire,
   createCombatState,
   loadAmmo,
   spawnEnemyShell,
@@ -685,10 +686,9 @@ export function createBattleView(
           );
           const pivot = playerRig.turret.getWorldPosition(new Vector3());
           targetWorld = aimYaw(pivot, aimPoint);
-          const gunPivot = playerRig.gun.getWorldPosition(new Vector3());
           gunPitch = stepGunPitch(
             gunPitch,
-            aimPitch(gunPivot, aimPoint),
+            localAimPitch(playerRig.gun, aimPoint),
             elevationSpeed * delta
           );
           if (playerRig.gun.userData.pitchAxis === 'x') {
@@ -960,23 +960,19 @@ export function createBattleView(
         combat = advanceReload(combat, delta);
         combat = tickCooldown(combat, delta);
         if (combat.ammo !== beforeAmmo) onAmmo?.(combat.ammo, MAX_AMMO);
-        const aligned =
-          !guidedAim ||
-          aimAlignmentError(muzzle, direction, aimPoint) <= FIRE_AIM_TOLERANCE;
-        if (canFire(combat) && aligned && input.consumeFireRequest()) {
+        const fireRequested = canFire(combat) && input.consumeFireRequest();
+        if (canPlayerFire(combat, fireRequested)) {
           const baseAim = {
             x: muzzle.x + direction.x * SHELL_RANGE,
             y: muzzle.y + direction.y * SHELL_RANGE,
             z: muzzle.z + direction.z * SHELL_RANGE,
           };
           const scattered = scatterAimPoint(baseAim, Math.random, dispersion);
-          const shotPitch = clampGunPitch(
-            aimPitch(muzzle, {
-              x: scattered.x,
-              y: baseAim.y,
-              z: scattered.z,
-            })
-          );
+          const shotPitch = aimPitch(muzzle, {
+            x: scattered.x,
+            y: baseAim.y,
+            z: scattered.z,
+          });
           combat = spawnShell(
             combat,
             muzzle,
