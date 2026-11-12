@@ -23,9 +23,9 @@ export function terrainGroundPose(
   const left = ground(position.x - side.x, position.z - side.z);
   const forwardSlope = (front - back) / (halfLength * 2);
   const sideSlope = (right - left) / (halfWidth * 2);
-  let curvatureClearance = 0;
-  for (const longitudinal of [-1, 1]) {
-    for (const lateral of [-1, 1]) {
+  let contactClearance = 0;
+  for (const longitudinal of [-1, -0.5, 0, 0.5, 1]) {
+    for (const lateral of [-1, -0.5, 0, 0.5, 1]) {
       const forwardOffset = longitudinal * halfLength;
       const sideOffset = lateral * halfWidth;
       const actual = ground(
@@ -38,13 +38,13 @@ export function terrainGroundPose(
       );
       const predicted =
         centre + forwardSlope * forwardOffset + sideSlope * sideOffset;
-      curvatureClearance = Math.max(curvatureClearance, actual - predicted);
+      contactClearance = Math.max(contactClearance, actual - predicted);
     }
   }
   return {
     position: {
       x: position.x,
-      y: centre + Math.max(0, curvatureClearance) + 0.04,
+      y: centre + contactClearance + 0.08,
       z: position.z,
     },
     pitch: Math.atan(forwardSlope),

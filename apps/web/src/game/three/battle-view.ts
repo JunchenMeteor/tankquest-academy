@@ -266,7 +266,7 @@ export function createBattleView(
     })
   );
   skirt.rotation.x = -Math.PI / 2;
-  skirt.position.y = -0.02;
+  skirt.position.y = -2;
   skirt.receiveShadow = true;
   scene.add(skirt);
   const boundary = buildFence(layout, palette);
