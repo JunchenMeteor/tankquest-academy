@@ -27,6 +27,20 @@ export function aimYaw(
   return Math.atan2(-(to.z - from.z), to.x - from.x);
 }
 
+export function muzzleAimYaw(
+  muzzle: Object3D,
+  target: Vector3Type,
+  hullHeading: number,
+  turretHeading: number
+): number {
+  const direction = muzzle.getWorldDirection(target.clone());
+  const currentYaw = aimYaw({ x: 0, z: 0 }, { x: direction.x, z: direction.z });
+  const targetYaw = aimYaw(muzzle.getWorldPosition(target.clone()), target);
+  return normaliseAngle(
+    hullHeading + turretHeading + normaliseAngle(targetYaw - currentYaw)
+  );
+}
+
 /** Positive pitch points down, matching shell travel and camera pitch. */
 export function aimPitch(
   from: { x: number; y: number; z: number },

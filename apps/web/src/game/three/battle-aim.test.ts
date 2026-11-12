@@ -9,6 +9,7 @@ import {
   clampGunPitch,
   dispersionOffset,
   localAimPitch,
+  muzzleAimYaw,
   projectGunSight,
   rotateTowards,
   scatterAimPoint,
@@ -75,6 +76,26 @@ describe('3D battle aiming', () => {
     const target = origin.clone().add(new Vector3(2, 0, 0));
 
     expect(localAimPitch(gun, target, muzzle)).toBeCloseTo(0.3);
+  });
+
+  it('corrects turret yaw using the real muzzle axis', () => {
+    const root = new Group();
+    const turret = new Group();
+    const gun = new Group();
+    const muzzle = new Group();
+    root.rotation.y = 0.3;
+    turret.rotation.y = 0.2;
+    gun.rotation.y = Math.PI / 2;
+    muzzle.rotation.y = 0.01;
+    muzzle.position.z = 4;
+    root.add(turret);
+    turret.add(gun);
+    gun.add(muzzle);
+    root.updateMatrixWorld(true);
+    const origin = muzzle.getWorldPosition(new Vector3());
+    const target = origin.clone().add(new Vector3(10, 0, 0));
+
+    expect(muzzleAimYaw(muzzle, target, 0.3, 0.2)).toBeCloseTo(-0.01);
   });
 
   it('measures the angle between the real gun axis and its target', () => {
