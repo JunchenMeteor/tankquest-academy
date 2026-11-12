@@ -48,6 +48,7 @@ import {
   aimYaw,
   FIRE_AIM_TOLERANCE,
   localAimPitch,
+  muzzleAimYaw,
   projectGunSight,
   resolveAimPoint,
   rotateTowards,
@@ -684,8 +685,12 @@ export function createBattleView(
               SHELL_RANGE * 2
             )
           );
-          const pivot = playerRig.turret.getWorldPosition(new Vector3());
-          targetWorld = aimYaw(pivot, aimPoint);
+          targetWorld = muzzleAimYaw(
+            playerRig.muzzle,
+            aimPoint,
+            state.heading,
+            state.turret
+          );
           gunPitch = stepGunPitch(
             gunPitch,
             localAimPitch(playerRig.gun, aimPoint, playerRig.muzzle),
