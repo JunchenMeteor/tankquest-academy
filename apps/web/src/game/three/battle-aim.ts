@@ -35,11 +35,21 @@ export function aimPitch(
   return Math.atan2(-(to.y - from.y), Math.hypot(to.x - from.x, to.z - from.z));
 }
 
-export function localAimPitch(gun: Object3D, target: Vector3Type): number {
-  if (!gun.parent) {
-    return aimPitch(gun.getWorldPosition(target.clone()), target);
-  }
-  return aimPitch(gun.position, gun.parent.worldToLocal(target.clone()));
+export function localAimPitch(
+  gun: Object3D,
+  target: Vector3Type,
+  muzzle?: Object3D
+): number {
+  const origin = muzzle
+    ? muzzle.getWorldPosition(target.clone())
+    : gun.parent
+      ? gun.position
+      : gun.getWorldPosition(target.clone());
+  if (!gun.parent) return aimPitch(origin, target);
+  return aimPitch(
+    gun.parent.worldToLocal(origin),
+    gun.parent.worldToLocal(target.clone())
+  );
 }
 
 export function resolveAimPoint(

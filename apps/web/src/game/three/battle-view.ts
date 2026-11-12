@@ -688,7 +688,7 @@ export function createBattleView(
           targetWorld = aimYaw(pivot, aimPoint);
           gunPitch = stepGunPitch(
             gunPitch,
-            localAimPitch(playerRig.gun, aimPoint),
+            localAimPitch(playerRig.gun, aimPoint, playerRig.muzzle),
             elevationSpeed * delta
           );
           if (playerRig.gun.userData.pitchAxis === 'x') {
