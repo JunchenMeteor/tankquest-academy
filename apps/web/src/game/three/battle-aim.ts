@@ -35,6 +35,13 @@ export function aimPitch(
   return Math.atan2(-(to.y - from.y), Math.hypot(to.x - from.x, to.z - from.z));
 }
 
+export function localAimPitch(gun: Object3D, target: Vector3Type): number {
+  if (!gun.parent) {
+    return aimPitch(gun.getWorldPosition(target.clone()), target);
+  }
+  return aimPitch(gun.position, gun.parent.worldToLocal(target.clone()));
+}
+
 export function resolveAimPoint(
   ray: Ray,
   targets: Object3D[],

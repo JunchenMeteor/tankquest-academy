@@ -83,6 +83,23 @@ describe('3D battle scene model', () => {
     expect(layout.blocks[0]?.position.y).toBeCloseTo(groundHeight(0, 0) + 0.9);
   });
 
+  it('places zero-elevation passive targets on the local terrain', () => {
+    const layout = buildSceneLayout({
+      ...config,
+      enemies: [
+        {
+          ...config.enemies[0]!,
+          id: 'target_mid_low',
+          x: 540,
+          y: 340,
+          elevation: 0,
+          passive: true,
+        },
+      ],
+    });
+    expect(layout.enemies[0]?.position.y).toBeCloseTo(0.8814526199323324);
+  });
+
   it('keeps the first-person camera on the turret and looking forward', () => {
     const pose = cameraPose('first', {
       position: { x: 0, y: 0, z: 0 },

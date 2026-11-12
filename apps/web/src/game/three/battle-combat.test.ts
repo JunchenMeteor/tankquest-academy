@@ -8,6 +8,7 @@ import {
   advanceShells,
   applyWrongAnswer,
   canFire,
+  canPlayerFire,
   createCombatState,
   elevatedMuzzleHeight,
   loadAmmo,
@@ -60,6 +61,13 @@ describe('3D battle combat', () => {
     const fired = spawnShell(loaded, { x: 0, z: 0 }, 0);
     expect(fired.ammo).toBe(0);
     expect(canFire(fired)).toBe(false);
+  });
+
+  it('allows a requested player shot without a reticle-alignment precondition', () => {
+    const loaded = createCombatState(1, 1);
+    expect(canPlayerFire(loaded, true)).toBe(true);
+    expect(canPlayerFire(loaded, false)).toBe(false);
+    expect(canPlayerFire(createCombatState(1, 0), true)).toBe(false);
   });
 
   it('adds a reload penalty for a wrong answer', () => {

@@ -321,6 +321,13 @@ export function canFire(state: CombatState): boolean {
   return state.ammo > 0 && state.cooldownMs === 0;
 }
 
+export function canPlayerFire(
+  state: CombatState,
+  fireRequested: boolean
+): boolean {
+  return fireRequested && canFire(state);
+}
+
 /** Spawns a shell from the turret tip so it does not start inside the hull. */
 export function spawnShell(
   state: CombatState,
