@@ -54,9 +54,7 @@ export interface PlayerAimControllerOptions {
   initialGunPitch?: number;
 }
 
-export function createPlayerAimController(
-  options: PlayerAimControllerOptions
-) {
+export function createPlayerAimController(options: PlayerAimControllerOptions) {
   const raycaster = new Raycaster();
   const aimPoint = new Vector3();
   let gunPitch = options.initialGunPitch ?? 0;

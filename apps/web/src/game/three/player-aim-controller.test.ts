@@ -96,4 +96,31 @@ describe('player aim controller', () => {
     expect(result.guidedAim).toBe(false);
     expect(result.aimOffset).toBeNull();
   });
+
+  it('keeps independent aim state per battle instance', () => {
+    const first = createPlayerAimController({
+      getRig: rigWithOffset,
+      traverseSpeed: 1,
+      elevationSpeed: 0,
+    });
+    const second = createPlayerAimController({
+      getRig: rigWithOffset,
+      traverseSpeed: 1,
+      elevationSpeed: 1,
+    });
+    const frame = {
+      delta: 0.1,
+      state: { position: { x: 0, y: 0, z: 0 }, heading: 0, turret: 0 },
+      command: { forward: 0, turn: 0, turret: 0 },
+      rightHeld: false,
+      pointer: { x: 50, y: 50, ready: true },
+      camera: new PerspectiveCamera(),
+      camYaw: 0,
+      bounds: { width: 100, height: 100 },
+      targets: [],
+    };
+    const firstResult = first.updateControl(frame);
+    const secondResult = second.updateControl(frame);
+    expect(firstResult.gunPitch).not.toBe(secondResult.gunPitch);
+  });
 });
