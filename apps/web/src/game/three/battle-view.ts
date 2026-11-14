@@ -19,10 +19,8 @@ import {
   PCFSoftShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
-  Raycaster,
   RingGeometry,
   Scene,
-  Vector2,
   Vector3,
   WebGLRenderer,
 } from 'three';
@@ -47,19 +45,14 @@ import {
   aimPitch,
   aimYaw,
   FIRE_AIM_TOLERANCE,
-  localAimPitch,
-  muzzleAimYaw,
-  projectGunSight,
-  resolveAimPoint,
-  rotateTowards,
   scatterAimPoint,
-  stepGunPitch,
 } from './battle-aim.js';
 import { buildTankModel } from './tank-model.js';
 import { createTankLabel } from './battle-tank-label.js';
 import { loadTankRig, paintTankRig } from './tank-asset.js';
 import { advanceRunningGear, type TankRig } from './tank-rig.js';
 import { bindBattlePointerInput } from './battle-pointer-input.js';
+import { createPlayerAimController } from './player-aim-controller.js';
 import { applyTankGroundPose } from './terrain-contact.js';
 import { travelledForHeading } from './running-gear-layout.js';
 import {
@@ -420,11 +413,15 @@ export function createBattleView(
   const elevationSpeed = config.player.gunElevationSpeed ?? 0.9;
   const dispersion = config.player.dispersionRadius;
   let rightHeld = false;
-  const raycaster = new Raycaster();
-  const aimPoint = new Vector3();
   let camYaw = layout.player.heading;
   let camPitch = 0.15;
   let gunPitch = camPitch;
+  const aimController = createPlayerAimController({
+    getRig: () => playerRig,
+    traverseSpeed,
+    elevationSpeed,
+    initialGunPitch: camPitch,
+  });
   /* Pointer target in CSS pixels inside the canvas; the gun sight is separate. */
   const aim = { x: 0, y: 0, ready: false };
   const state = {
@@ -668,53 +665,26 @@ export function createBattleView(
           playerRig.turret.rotation.y = state.turret;
         }
 
-        const guidedAim = !rightHeld && command.turret === 0 && aim.ready;
-        let targetWorld: number | null =
-          rightHeld || command.turret !== 0 ? null : camYaw;
-        if (guidedAim) {
-          const bounds = canvas.getBoundingClientRect();
-          const ndc = new Vector2(
-            (aim.x / Math.max(1, bounds.width)) * 2 - 1,
-            -(aim.y / Math.max(1, bounds.height)) * 2 + 1
-          );
-          raycaster.setFromCamera(ndc, camera);
-          aimPoint.copy(
-            resolveAimPoint(
-              raycaster.ray,
-              [...enemyRoots.values(), ground],
-              SHELL_RANGE * 2
-            )
-          );
-          targetWorld = muzzleAimYaw(
-            playerRig.muzzle,
-            aimPoint,
-            state.heading,
-            state.turret
-          );
-          gunPitch = stepGunPitch(
-            gunPitch,
-            localAimPitch(playerRig.gun, aimPoint, playerRig.muzzle),
-            elevationSpeed * delta
-          );
-          if (playerRig.gun.userData.pitchAxis === 'x') {
-            playerRig.gun.rotation.x = gunPitch;
-          } else {
-            playerRig.gun.rotation.z = -gunPitch;
-          }
+        const control = aimController.updateControl({
+          delta,
+          state,
+          command,
+          rightHeld,
+          pointer: aim,
+          camera,
+          camYaw,
+          bounds: canvas.getBoundingClientRect(),
+          targets: [...enemyRoots.values(), ground],
+        });
+        state.turret = control.turret;
+        gunPitch = control.gunPitch;
+        playerRig.turret.rotation.y = state.turret;
+        if (playerRig.gun.userData.pitchAxis === 'x') {
+          playerRig.gun.rotation.x = gunPitch;
+        } else {
+          playerRig.gun.rotation.z = -gunPitch;
         }
-
-        if (targetWorld !== null) {
-          onAimOffset?.(
-            normaliseAngle(targetWorld - (state.heading + state.turret))
-          );
-          const localTarget = normaliseAngle(targetWorld - state.heading);
-          state.turret = rotateTowards(
-            state.turret,
-            localTarget,
-            traverseSpeed * delta
-          );
-          playerRig.turret.rotation.y = state.turret;
-        }
+        if (control.aimOffset !== null) onAimOffset?.(control.aimOffset);
         /* Enemies close the distance until they are inside their firing standoff. */
         const boundsRect = layout.playfield ?? layout.ground;
         const limitX = boundsRect.width / 2 - 2.4;
@@ -933,21 +903,22 @@ export function createBattleView(
           state.heading,
           groundHeight
         );
-        const muzzle = playerRig.muzzle.getWorldPosition(new Vector3());
-        const direction = playerRig.muzzle.getWorldDirection(new Vector3());
-        const sight = projectGunSight(
+        const presentation = aimController.updatePresentation({
+          camera,
+          pointer: aim,
+          guidedAim: control.guidedAim,
+          bounds: canvas.getBoundingClientRect(),
+        });
+        const {
           muzzle,
           direction,
-          aim.ready ? muzzle.distanceTo(aimPoint) : SHELL_RANGE,
-          camera
-        );
+          sight,
+          aligned: reticleAligned,
+        } = presentation;
         const reticleBounds = canvas.getBoundingClientRect();
-        const reticleAligned =
-          !guidedAim ||
-          aimAlignmentError(muzzle, direction, aimPoint) <= FIRE_AIM_TOLERANCE;
         onReticle?.(
-          ((sight.x + 1) / 2) * reticleBounds.width,
-          ((1 - sight.y) / 2) * reticleBounds.height,
+          sight.x,
+          sight.y,
           reticleBounds.width,
           reticleBounds.height
         );
