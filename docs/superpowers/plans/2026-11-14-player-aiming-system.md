@@ -1,47 +1,47 @@
-# Player Aiming System Implementation Plan
+# 玩家瞄准系统实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **给执行 agent：**必须使用 `superpowers:executing-plans` 按任务逐项实施，并用复选框记录进度。
 
-**Goal:** Extract player aiming from `battle-view.ts` into a per-battle, two-phase controller without changing aiming, firing, pointer, terrain, or rendering behavior.
+**目标：**把玩家瞄准从 `battle-view.ts` 拆成每局独立的两阶段控制器，不改变瞄准、开火、指针、地形或渲染行为。
 
-**Architecture:** A factory creates one controller per battle. The controller owns only `aimPoint`, `gunPitch`, a raycaster, and reusable vectors; `RuntimeState.turret` and all Three.js resources remain with the existing view. Control runs before enemy/terrain updates, presentation runs afterward, and firing remains outside the controller.
+**架构：**工厂在每局战斗创建一个控制器。控制器只持有 `aimPoint`、`gunPitch`、射线检测器和可复用向量；`RuntimeState.turret` 与 Three.js 资源仍由现有视图管理。控制阶段位于敌人和地形更新之前，投影阶段位于其后，开火仍由控制器外部负责。
 
-**Tech Stack:** TypeScript, Three.js, Vitest, React, Vite, Playwright.
+**技术栈：**TypeScript、Three.js、Vitest、React、Vite、Playwright。
 
-**Spec:** `docs/superpowers/specs/2026-11-14-player-aiming-system-design.md`
+**设计文档：**`docs/superpowers/specs/2026-11-14-player-aiming-system-design.md`
 
-## Global Constraints
+## 全局约束
 
-- Preserve `createBattleView()` and `Battle3DHandle` exactly.
-- Preserve 60 Hz fixed-step logic and the current frame order.
-- No global singleton, service locator, new framework, or backend changes.
-- No enemy AI, map, physics, Pointer Lock, or unrelated performance changes in this PR.
-- Player fire depends only on ammo, cooldown, and fire request, never reticle alignment.
-- Every code change follows TDD: watch the new test fail before implementing it.
-- Issue/PR titles use the repository prefix rules; commit messages have no bracket prefix or tool attribution.
+- 完整保留 `createBattleView()` 和 `Battle3DHandle`。
+- 保留 60 Hz 固定步进和现有帧顺序。
+- 禁止全局单例、服务定位器、新框架和后端改动。
+- 本 PR 不修改敌人 AI、地图、物理、Pointer Lock 或无关性能逻辑。
+- 玩家开火只受弹药、冷却和开火请求约束，不受准心对齐约束。
+- 所有代码改动遵循 TDD：先看到新增测试失败，再实现功能。
+- Issue/PR 标题遵守仓库前缀规范；提交信息不加方括号前缀或工具署名。
 
 ---
 
-### Task 1: Build and test the two-phase player aim controller
+### 任务 1：建立并验证两阶段玩家瞄准控制器
 
-**Files:**
+**文件：**
 
-- Create: `apps/web/src/game/three/player-aim-controller.ts`
-- Create: `apps/web/src/game/three/player-aim-controller.test.ts`
-- Reuse: `apps/web/src/game/three/battle-aim.ts`
-- Reuse: `apps/web/src/game/three/tank-rig.ts`
+- 新建：`apps/web/src/game/three/player-aim-controller.ts`
+- 新建：`apps/web/src/game/three/player-aim-controller.test.ts`
+- 复用：`apps/web/src/game/three/battle-aim.ts`
+- 复用：`apps/web/src/game/three/tank-rig.ts`
 
-**Interfaces:**
+**接口：**
 
-- Consumes: `aimAlignmentError`, `localAimPitch`, `muzzleAimYaw`, `projectGunSight`, `resolveAimPoint`, `rotateTowards`, `stepGunPitch`, `normaliseAngle`, `SHELL_RANGE`, `TankRig`, `DriveCommand`.
-- Produces: `createPlayerAimController(options)`, `updateControl(frame)`, and `updatePresentation(frame)` used by `battle-view.ts`.
+- 输入：`aimAlignmentError`、`localAimPitch`、`muzzleAimYaw`、`projectGunSight`、`resolveAimPoint`、`rotateTowards`、`stepGunPitch`、`normaliseAngle`、`SHELL_RANGE`、`TankRig`、`DriveCommand`。
+- 输出：供 `battle-view.ts` 使用的 `createPlayerAimController(options)`、`updateControl(frame)`、`updatePresentation(frame)`。
 
-- [ ] **Step 1: Write the failing control and presentation tests**
+- [ ] **步骤 1：先写控制与投影失败测试**
 
-Create tests using real Three.js objects. The rig must include an intrinsic muzzle yaw offset so the test fails if the controller reverts to logical turret heading instead of the real muzzle axis.
+使用真实 Three.js 对象。测试 rig 必须带固有炮口水平偏移，防止实现退回逻辑炮塔朝向而不是真实炮口轴向。
 
 ```ts
-import { Group, PerspectiveCamera, Vector3 } from 'three';
+import { Group, PerspectiveCamera } from 'three';
 import { describe, expect, it } from 'vitest';
 import { createPlayerAimController } from './player-aim-controller.js';
 import type { TankRig } from './tank-rig.js';
@@ -87,14 +87,12 @@ describe('player aim controller', () => {
       traverseSpeed: 10,
       elevationSpeed: 10,
     });
-    const state = { position: { x: 0, y: 0, z: 0 }, heading: 0, turret: 0 };
-    const pointer = { x: 50, y: 50, ready: true };
     const control = controller.updateControl({
       delta: 1,
-      state,
+      state: { position: { x: 0, y: 0, z: 0 }, heading: 0, turret: 0 },
       command: { forward: 0, turn: 0, turret: 0 },
       rightHeld: false,
-      pointer,
+      pointer: { x: 50, y: 50, ready: true },
       camera,
       camYaw: 0,
       bounds: { width: 100, height: 100 },
@@ -105,7 +103,7 @@ describe('player aim controller', () => {
     rig.root.updateMatrixWorld(true);
     const result = controller.updatePresentation({
       camera,
-      pointer,
+      pointer: { x: 50, y: 50, ready: true },
       guidedAim: true,
       bounds: { width: 100, height: 100 },
     });
@@ -139,14 +137,15 @@ describe('player aim controller', () => {
 });
 ```
 
-- [ ] **Step 2: Run the tests and confirm the missing factory fails**
+- [ ] **步骤 2：运行测试并确认因工厂缺失而失败**
 
-Run: `npm test --workspace @tankquest/web -- --run src/game/three/player-aim-controller.test.ts`
-Expected: FAIL because `createPlayerAimController` does not exist.
+运行：`npm test --workspace @tankquest/web -- --run src/game/three/player-aim-controller.test.ts`
 
-- [ ] **Step 3: Define the public controller contract**
+预期：失败，因为 `createPlayerAimController` 尚不存在。
 
-Create `player-aim-controller.ts` with these exact types:
+- [ ] **步骤 3：定义控制器公开契约**
+
+在 `player-aim-controller.ts` 中定义以下类型：
 
 ```ts
 import { Raycaster, Vector2, Vector3 } from 'three';
@@ -188,11 +187,11 @@ export interface PlayerAimControllerOptions {
 }
 ```
 
-The controller returns `{ turret, gunPitch, guidedAim, aimOffset }` from `updateControl` and `{ muzzle, direction, sight, aligned }` from `updatePresentation`. `sight` is in CSS pixels and `muzzle`/`direction` are new vectors owned by the caller.
+`updateControl` 返回 `{ turret, gunPitch, guidedAim, aimOffset }`；`updatePresentation` 返回 `{ muzzle, direction, sight, aligned }`。`sight` 使用 CSS 像素，调用方持有返回的 `muzzle` 和 `direction` 新向量。
 
-- [ ] **Step 4: Implement the control phase**
+- [ ] **步骤 4：实现控制阶段**
 
-Use a per-instance `aimPoint` and `gunPitch`. Keep this exact behavior:
+每个实例独立持有 `aimPoint` 和 `gunPitch`，并读取 `options.getRig()` 的最新 rig。保持现有行为：
 
 ```ts
 const rig = options.getRig();
@@ -217,7 +216,7 @@ if (guidedAim) {
   gunPitch = stepGunPitch(
     gunPitch,
     localAimPitch(rig.gun, aimPoint, rig.muzzle),
-    elevationSpeed * frame.delta
+    options.elevationSpeed * frame.delta
   );
 }
 
@@ -227,7 +226,7 @@ const turret =
     : rotateTowards(
         frame.state.turret,
         normaliseAngle(targetWorld - frame.state.heading),
-        traverseSpeed * frame.delta
+        options.traverseSpeed * frame.delta
       );
 const aimOffset =
   targetWorld === null
@@ -236,11 +235,11 @@ const aimOffset =
 return { turret, gunPitch, guidedAim, aimOffset };
 ```
 
-Apply no rig or runtime-state mutation in this method.
+此方法不得修改 rig 或运行时状态。
 
-- [ ] **Step 5: Implement the presentation phase**
+- [ ] **步骤 5：实现投影阶段**
 
-Read the final world transforms after terrain synchronization:
+在地形同步之后读取最终世界变换：
 
 ```ts
 const rig = options.getRig();
@@ -266,14 +265,15 @@ return {
 };
 ```
 
-Export `createPlayerAimController(options)` as a factory returning `{ updateControl, updatePresentation }`. Do not export a singleton.
+导出 `createPlayerAimController(options)`，返回 `{ updateControl, updatePresentation }`，不得导出单例。
 
-- [ ] **Step 6: Run the controller tests and full aiming tests**
+- [ ] **步骤 6：运行控制器与瞄准测试**
 
-Run: `npm test --workspace @tankquest/web -- --run src/game/three/player-aim-controller.test.ts src/game/three/battle-aim.test.ts src/game/three/battle-combat.test.ts`
-Expected: all tests pass.
+运行：`npm test --workspace @tankquest/web -- --run src/game/three/player-aim-controller.test.ts src/game/three/battle-aim.test.ts src/game/three/battle-combat.test.ts`
 
-- [ ] **Step 7: Commit the independently tested controller**
+预期：全部通过。
+
+- [ ] **步骤 7：提交已独立验证的控制器**
 
 ```bash
 git add apps/web/src/game/three/player-aim-controller.ts apps/web/src/game/three/player-aim-controller.test.ts
@@ -282,22 +282,22 @@ git commit -m "Add a two-phase player aim controller"
 
 ---
 
-### Task 2: Wire the controller into the battle view without behavior changes
+### 任务 2：接入主视图且保持行为不变
 
-**Files:**
+**文件：**
 
-- Modify: `apps/web/src/game/three/battle-view.ts`
-- Modify: `apps/web/src/game/three/player-aim-controller.test.ts`
-- Modify: `docs/3d-battle/README.md`
+- 修改：`apps/web/src/game/three/battle-view.ts`
+- 修改：`apps/web/src/game/three/player-aim-controller.test.ts`
+- 修改：`docs/3d-battle/README.md`
 
-**Interfaces:**
+**接口：**
 
-- Consumes: `createPlayerAimController(options)`, `updateControl(frame)`, `updatePresentation(frame)` from Task 1.
-- Produces: the same `createBattleView()` and `Battle3DHandle` API as before.
+- 输入：任务 1 的 `createPlayerAimController(options)`、`updateControl(frame)`、`updatePresentation(frame)`。
+- 输出：与之前完全一致的 `createBattleView()` 和 `Battle3DHandle`。
 
-- [ ] **Step 1: Add a failing integration regression for independent instance state**
+- [ ] **步骤 1：增加实例状态独立的回归测试**
 
-Add a test proving two controllers do not share `gunPitch` or `aimPoint`:
+证明两个控制器不共享 `gunPitch` 或 `aimPoint`：
 
 ```ts
 it('keeps independent aim state per battle instance', () => {
@@ -328,12 +328,13 @@ it('keeps independent aim state per battle instance', () => {
 });
 ```
 
-Run: `npm test --workspace @tankquest/web -- --run src/game/three/player-aim-controller.test.ts`
-Expected: FAIL if instance state is shared; if it passes immediately, keep it as a guard and record that the factory already satisfies the requirement rather than changing code to force a failure.
+运行：`npm test --workspace @tankquest/web -- --run src/game/three/player-aim-controller.test.ts`
 
-- [ ] **Step 2: Replace only the player control block in `battle-view.ts`**
+预期：若共享实例状态则失败；若工厂已满足约束则保留该守护测试，不为制造失败而改坏实现。
 
-Create the controller after `playerRig` exists:
+- [ ] **步骤 2：只替换主视图中的玩家控制代码**
+
+在 `playerRig` 可访问的位置创建控制器，`getRig()` 必须始终读取最新变量，防止 GLB 替换后使用旧模型：
 
 ```ts
 const aimController = createPlayerAimController({
@@ -343,7 +344,7 @@ const aimController = createPlayerAimController({
 });
 ```
 
-Replace the current guided-aim/turret block with:
+用以下调用替换现有引导瞄准和炮塔控制块：
 
 ```ts
 const control = aimController.updateControl({
@@ -368,11 +369,11 @@ if (playerRig.gun.userData.pitchAxis === 'x') {
 if (control.aimOffset !== null) onAimOffset?.(control.aimOffset);
 ```
 
-Do not change driving, enemy updates, ram handling, obstacle resolution, or ground poses.
+不得修改驾驶、敌人、撞击、障碍处理或地形姿态。
 
-- [ ] **Step 3: Replace only the player projection block**
+- [ ] **步骤 3：只替换玩家投影代码**
 
-After `applyTankGroundPose(playerRig.root, ...)`, call:
+在 `applyTankGroundPose(playerRig.root, ...)` 后调用：
 
 ```ts
 const presentation = aimController.updatePresentation({
@@ -384,20 +385,21 @@ const presentation = aimController.updatePresentation({
 const { muzzle, direction, sight, aligned: reticleAligned } = presentation;
 ```
 
-Keep the existing `onReticle` and `onPointerReticle` callbacks and all reload/fire code. `canFire`, `canPlayerFire`, shell scattering, and `aimPitch(muzzle, scattered)` must remain outside the controller and unchanged.
+保留现有 `onReticle`、`onPointerReticle`、装填和开火代码。`canFire`、`canPlayerFire`、散布以及 `aimPitch(muzzle, scattered)` 必须留在控制器外部且行为不变。
 
-- [ ] **Step 4: Run focused integration tests and typecheck**
+- [ ] **步骤 4：运行定向集成测试和类型检查**
 
-Run: `npm test --workspace @tankquest/web -- --run src/game/three/player-aim-controller.test.ts src/game/three/battle-aim.test.ts src/game/three/battle-combat.test.ts src/game/three/battle-pointer-input.test.ts src/game/three/battle-view-terrain.test.ts && npx tsc --noEmit -p apps/web`
-Expected: all tests and typecheck pass, with no unused `gunPitch` or aim-controller variables.
+运行：`npm test --workspace @tankquest/web -- --run src/game/three/player-aim-controller.test.ts src/game/three/battle-aim.test.ts src/game/three/battle-combat.test.ts src/game/three/battle-pointer-input.test.ts src/game/three/battle-view-terrain.test.ts && npx tsc --noEmit -p apps/web`
 
-- [ ] **Step 5: Update the architecture documentation**
+预期：全部通过，没有未使用的瞄准变量或类型错误。
 
-Add `player-aim-controller.ts` to the `docs/3d-battle/README.md` code map. Document that it owns only per-battle aim state and runs control before enemy/terrain updates and presentation afterward. Do not claim a broader battle-loop refactor is complete.
+- [ ] **步骤 5：更新架构文档**
 
-- [ ] **Step 6: Run the complete quality gate**
+把 `player-aim-controller.ts` 加入 `docs/3d-battle/README.md` 的代码索引，说明其只持有每局瞄准状态，并在敌人和地形更新前执行控制、之后执行投影。不得宣称整个主循环、地图或物理重构已经完成。
 
-Run in order:
+- [ ] **步骤 6：运行完整质量门禁**
+
+依次运行：
 
 ```bash
 npx prettier --check .
@@ -408,9 +410,9 @@ npm run build
 node scripts/verify-web-performance.mjs
 ```
 
-Expected: all checks pass; Web test count is at least the previous 317 plus the new controller tests; shell/game gzip budgets remain within 130 KB/560 KB.
+预期：全部通过；Web 测试数不少于原有 317 项加新增测试；shell/game 的 gzip 预算仍不超过 130 KB/560 KB。
 
-- [ ] **Step 7: Commit the integration**
+- [ ] **步骤 7：提交集成改动**
 
 ```bash
 git add apps/web/src/game/three/battle-view.ts apps/web/src/game/three/player-aim-controller.test.ts docs/3d-battle/README.md
@@ -419,42 +421,42 @@ git commit -m "Extract player aiming from the battle view"
 
 ---
 
-### Task 3: Verify the release candidate and merge safely
+### 任务 3：验证候选版本并安全合并发布
 
-**Files:**
+**文件：**
 
-- Modify only if evidence requires correction: `apps/web/src/game/three/player-aim-controller.ts`
-- Modify only if evidence requires correction: `apps/web/src/game/three/battle-view.ts`
+- 仅在证据要求修正时修改：`apps/web/src/game/three/player-aim-controller.ts`
+- 仅在证据要求修正时修改：`apps/web/src/game/three/battle-view.ts`
 
-**Interfaces:**
+**接口：**
 
-- Consumes: the integrated controller from Tasks 1–2.
-- Produces: verified Preview/production behavior and a mergeable PR; no new feature scope.
+- 输入：任务 1–2 集成的控制器。
+- 输出：通过验证的 Preview/生产行为和可合并 PR，不增加新功能范围。
 
-- [ ] **Step 1: Run local real-browser aiming checks**
+- [ ] **步骤 1：执行本地真实浏览器验收**
 
-Use `?model=glb&quality=high` and hardware acceleration where available. Verify:
+使用 `?model=glb&quality=high`，可用时使用硬件加速，验证：
 
-- Passive targets remain on local terrain.
-- Normal targets converge to 0 px after settling, both at spawn and on a slope.
-- A deliberately misaligned click increments shots and consumes ammo.
-- Extreme gun-limit targets may remain unaligned but still fire.
-- Pointer Lock, right-drag look, and Esc input cleanup still work.
+- 被动靶位仍贴合各自地形。
+- 出生地和坡地的普通目标稳定后双准心均为 0 px。
+- 故意未重合点击时射击次数增加且弹药减少。
+- 超过物理限位的目标可以不重合，但仍能开火。
+- Pointer Lock、右键环视和 Esc 输入清理保持正常。
 
-Record numeric reticle error and screenshots; do not rely on visual judgment alone.
+必须记录数值误差和截图，不能只凭画面主观判断。
 
-- [ ] **Step 2: Compare performance with the baseline**
+- [ ] **步骤 2：与真实设备性能基线比较**
 
-Reuse the RTX 2070 sampling method in `Codex/TankQuestAssets/PerformanceBaseline-20261113/run-baseline.cjs`. Compare average FPS, P95 frame time, long tasks, heap trend, and quality tier against `baseline-r0960.json`. Investigate any persistent new long task or quality downgrade before merging.
+复用 `G:/开发测试/Codex/TankQuestAssets/PerformanceBaseline-20261113/run-baseline.cjs` 的采样方式，对比 `baseline-r0960.json` 中的平均 FPS、P95 帧时间、长任务、堆内存趋势和画质。若出现持续新增长任务或额外画质降级，合并前必须查明原因。
 
-- [ ] **Step 3: Run CI and merge only when all required checks pass**
+- [ ] **步骤 3：CI 全部通过后合并**
 
-Push the branch and create a `[Refactor]` PR that closes its implementation issue. Require Verify, Core, Windows desktop, and API/AI/Web container checks. Squash merge only after all are green.
+推送分支并创建 `[Refactor]` PR 关联实施 Issue。Verify、Core、Windows desktop、API/AI/Web 容器检查全部通过后，才能 squash merge。
 
-- [ ] **Step 4: Promote the exact main tree to release and deploy both environments**
+- [ ] **步骤 4：将 main 的精确树晋级到 release 并部署双环境**
 
-Create the release PR with `git merge -s ours origin/release`, verify `git diff --exit-code origin/main`, then deploy one new image tag to Preview and production. Cancel duplicate automatic deployment runs before manual deployment. Keep the previous image as the verified rollback.
+使用 `git merge -s ours origin/release` 创建发布 PR，确认 `git diff --exit-code origin/main`，再用同一个新镜像标签部署 Preview 和生产。手工部署前取消重复自动发布，保留上一版可用回滚镜像。
 
-- [ ] **Step 5: Repeat two adversarial rounds in each environment**
+- [ ] **步骤 5：在每个环境执行两轮对抗验收**
 
-Round 1: spawn targets, pointer input, misaligned fire, and target terrain. Round 2: slope driving, turret/elevation convergence, extreme targets, and continuous firing. Check build hash and `/api/health` before and after. Report actual measurements and any residual limitation; do not claim a broader battle-loop, map, or physics refactor is complete.
+第一轮：出生点目标、指针输入、未重合开火和靶位地形。第二轮：坡地驾驶、炮塔/俯仰收敛、极限目标和连续开火。前后都核对构建号与 `/api/health`，报告真实测量和剩余限制，不得扩大宣称整个主循环、地图或物理重构完成。
