@@ -24,9 +24,11 @@ import {
 } from './game/systems/mission-objectives.js';
 import { useI18n } from './i18n/I18nProvider.js';
 import { MissionResult } from './MissionResult.js';
+import { GarageHome } from './GarageHome.js';
 import { useTheme } from './theme/ThemeProvider.js';
-import { ActiveTraining, AppHud, MissionPicker } from './TrainingViews.js';
+import { ActiveTraining, AppHud } from './TrainingViews.js';
 import './styles.css';
+import './garage.css';
 import './theme/experience.css';
 
 const api = new ApiClient(clientConfig.apiBaseUrl);
@@ -423,7 +425,7 @@ export function App() {
       {phase === 'loading' && <StatusCard>{t('app.loading')}</StatusCard>}
 
       {phase === 'ready' && (
-        <MissionPicker
+        <GarageHome
           busy={busy}
           online={online}
           levels={levels}
@@ -435,6 +437,7 @@ export function App() {
           onSelectLevel={setSelectedLevelId}
           onSelectTank={setSelectedTankId}
           onEquipSkin={(skinId) => void equipSkin(skinId)}
+          onUpgrade={(stat) => void upgradeStat(stat)}
           onStart={() => void startTraining()}
         />
       )}
