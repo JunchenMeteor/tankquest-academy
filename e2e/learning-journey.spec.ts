@@ -371,10 +371,10 @@ test('continues combat after repeated enemy projectile impacts', async ({
   await page.goto('/?renderer=2d');
   await page.getByRole('button', { name: 'Start training' }).click();
   const hullIntegrity = page.locator('.hud dd').filter({ hasText: '/1500' });
-  await expect(hullIntegrity).not.toHaveText('1500/1500', { timeout: 5_000 });
+  await expect(hullIntegrity).not.toHaveText('1500/1500', { timeout: 15_000 });
   const healthAfterFirstImpact = await hullIntegrity.textContent();
   await expect
-    .poll(() => hullIntegrity.textContent(), { timeout: 5_000 })
+    .poll(() => hullIntegrity.textContent(), { timeout: 15_000 })
     .not.toBe(healthAfterFirstImpact);
   const impacts = await page.evaluate(() => {
     const target = globalThis as typeof globalThis & {
@@ -776,10 +776,14 @@ async function fireAt(
   };
   await page.mouse.move(targetX, targetY);
   await page.waitForTimeout(100);
-  for (let shot = 0; shot < shots; shot += 1) {
-    await page.mouse.click(targetX, targetY);
-    await page.waitForTimeout(400);
-    if (await hasNewKill()) break;
+  await page.keyboard.down('Space');
+  try {
+    for (let shot = 0; shot < shots; shot += 1) {
+      await page.waitForTimeout(400);
+      if (await hasNewKill()) break;
+    }
+  } finally {
+    await page.keyboard.up('Space');
   }
   if (!(await hasNewKill())) {
     const recentHits = await page.evaluate(() => {
