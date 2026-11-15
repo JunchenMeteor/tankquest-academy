@@ -34,6 +34,8 @@ function correctAnswerForPrompt(prompt: string): string | undefined {
   );
 }
 
+test.setTimeout(300_000);
+
 test('completes the authoritative learning and upgrade journey', async ({
   page,
   request,
@@ -140,10 +142,10 @@ test('completes the authoritative learning and upgrade journey', async ({
     /Firepower\s*[3-5]/
   );
   await expect(page.locator('.game-canvas canvas')).toBeVisible();
-  await expect(page.getByText('150/150')).toBeVisible();
+  await expect(page.getByText('1500/1500')).toBeVisible();
   await expect(page.locator('.hud-health meter')).toHaveAttribute(
     'value',
-    '150'
+    '1500'
   );
 
   for (let index = 0; index < 3; index += 1) {
@@ -179,8 +181,8 @@ test('completes the authoritative learning and upgrade journey', async ({
   await expect(
     page.getByRole('heading', { name: '2 training tanks remain' })
   ).toBeVisible();
-  await fireAt(page, 720, 145, 4);
-  await fireAt(page, 790, 390, 4);
+  await fireAt(page, 720, 145, 240);
+  await fireAt(page, 790, 390, 240);
   await expect(
     page.getByRole('heading', { name: 'Training field secured' })
   ).toBeVisible({ timeout: 10_000 });
@@ -367,8 +369,8 @@ test('continues combat after repeated enemy projectile impacts', async ({
 
   await page.goto('/?renderer=2d');
   await page.getByRole('button', { name: 'Start training' }).click();
-  const hullIntegrity = page.locator('.hud dd').filter({ hasText: '/150' });
-  await expect(hullIntegrity).not.toHaveText('150/150', { timeout: 5_000 });
+  const hullIntegrity = page.locator('.hud dd').filter({ hasText: '/1500' });
+  await expect(hullIntegrity).not.toHaveText('1500/1500', { timeout: 5_000 });
   const healthAfterFirstImpact = await hullIntegrity.textContent();
   await expect
     .poll(() => hullIntegrity.textContent(), { timeout: 5_000 })
@@ -416,8 +418,8 @@ test('keeps combat feedback usable when experience assets fail', async ({
       })
       .click();
   }
-  await fireAt(page, 720, 145, 4);
-  await fireAt(page, 790, 390, 4);
+  await fireAt(page, 720, 145, 240);
+  await fireAt(page, 790, 390, 240);
   await expect(
     page.getByRole('heading', { name: 'Training field secured' })
   ).toBeVisible({ timeout: 10_000 });
@@ -503,11 +505,11 @@ test('advances and completes configured enemy waves', async ({ page }) => {
   await expect(
     page.getByRole('heading', { name: 'Defend against waves · 0/2' })
   ).toBeVisible();
-  await fireAt(page, 720, 145, 4);
+  await fireAt(page, 720, 145, 240);
   await expect(
     page.getByRole('heading', { name: 'Defend against waves · 1/2' })
   ).toBeVisible({ timeout: 10_000 });
-  await fireAt(page, 790, 390, 4);
+  await fireAt(page, 790, 390, 240);
   await expect(
     page.getByRole('heading', { name: 'Defend against waves · 2/2' })
   ).toBeVisible({ timeout: 10_000 });
@@ -728,11 +730,24 @@ async function fireAt(
 
   const targetX = box.x + (worldX / 960) * box.width;
   const targetY = box.y + (worldY / 540) * box.height;
+  const destroyedBefore = await destroyedEnemyCount(page);
   await page.mouse.move(targetX, targetY);
   await page.waitForTimeout(100);
   for (let shot = 0; shot < shots; shot += 1) {
     await page.mouse.click(targetX, targetY);
     await page.waitForTimeout(400);
+    if ((await destroyedEnemyCount(page)) > destroyedBefore) break;
   }
   await page.waitForTimeout(1600);
+}
+
+async function destroyedEnemyCount(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const target = globalThis as typeof globalThis & {
+      __TANKQUEST_COMBAT_LOGS__?: Array<{ event: string }>;
+    };
+    return (target.__TANKQUEST_COMBAT_LOGS__ ?? []).filter(
+      (entry) => entry.event === 'enemy_destroyed'
+    ).length;
+  });
 }
