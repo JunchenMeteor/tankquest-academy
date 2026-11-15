@@ -619,7 +619,7 @@ function contentName(code: string, t: (key: string) => string) {
   return translated === key ? formatTankName(code) : translated;
 }
 
-function summarizeEnemies(
+export function summarizeEnemies(
   config: RuntimeLevelConfig,
   t: (key: string) => string
 ) {
