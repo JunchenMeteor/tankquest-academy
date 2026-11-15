@@ -740,6 +740,11 @@ async function slowEnemyMovement(page: Page): Promise<void> {
           speedMultiplier: 0.1,
         },
       })),
+      map: {
+        style: 'range',
+        playerSpawn: { x: 120, y: 270 },
+        obstacles: [],
+      },
     };
     await route.fulfill({ response, json: payload });
   });
