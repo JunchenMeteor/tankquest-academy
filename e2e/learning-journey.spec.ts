@@ -465,7 +465,7 @@ test('advances and completes configured enemy waves', async ({ page }) => {
           ...enemy.ai,
           attackRange: 80,
           detectionRange: 100,
-          speedMultiplier: 0.1,
+          speedMultiplier: 0,
         },
       })),
       map: {
@@ -737,7 +737,7 @@ async function slowEnemyMovement(page: Page): Promise<void> {
           ...enemy.ai,
           attackRange: 80,
           detectionRange: 100,
-          speedMultiplier: 0.1,
+          speedMultiplier: 0,
         },
       })),
       map: {
@@ -763,28 +763,37 @@ async function fireAt(
 
   const targetX = box.x + (worldX / 960) * box.width;
   const targetY = box.y + (worldY / 540) * box.height;
-  const destroyedBefore = await destroyedEnemyCount(page);
+  const destroyedBefore = await destroyedEnemyIds(page);
+  const hasNewKill = async () => {
+    const destroyed = await destroyedEnemyIds(page);
+    return destroyed.some((id) => !destroyedBefore.includes(id));
+  };
   await page.mouse.move(targetX, targetY);
   await page.waitForTimeout(100);
   for (let shot = 0; shot < shots; shot += 1) {
     await page.mouse.click(targetX, targetY);
     await page.waitForTimeout(400);
-    if ((await destroyedEnemyCount(page)) > destroyedBefore) break;
+    if (await hasNewKill()) break;
   }
   expect(
-    await destroyedEnemyCount(page),
+    await hasNewKill(),
     `enemy at ${worldX},${worldY} should be destroyed`
-  ).toBeGreaterThan(destroyedBefore);
+  ).toBe(true);
   await page.waitForTimeout(1600);
 }
 
-async function destroyedEnemyCount(page: Page): Promise<number> {
+async function destroyedEnemyIds(page: Page): Promise<string[]> {
   return page.evaluate(() => {
     const target = globalThis as typeof globalThis & {
-      __TANKQUEST_COMBAT_LOGS__?: Array<{ event: string }>;
+      __TANKQUEST_COMBAT_LOGS__?: Array<{
+        event: string;
+        details: { enemyId?: string };
+      }>;
     };
-    return (target.__TANKQUEST_COMBAT_LOGS__ ?? []).filter(
-      (entry) => entry.event === 'enemy_destroyed'
-    ).length;
+    return (target.__TANKQUEST_COMBAT_LOGS__ ?? []).flatMap((entry) =>
+      entry.event === 'enemy_destroyed' && entry.details.enemyId
+        ? [entry.details.enemyId]
+        : []
+    );
   });
 }
