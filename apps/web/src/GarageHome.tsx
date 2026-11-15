@@ -101,9 +101,7 @@ export function GarageHome(props: GarageHomeProps) {
                   primaryColor={skin?.primaryColor}
                   secondaryColor={skin?.secondaryColor}
                 />
-                <strong data-tank-visual={item.code}>
-                  {t(`content.${item.code}`)}
-                </strong>
+                <strong>{t(`content.${item.code}`)}</strong>
                 <span>{t(`role.${item.role}`)}</span>
                 <span className="tank-combat-profile">
                   {t('picker.combatProfile', {
