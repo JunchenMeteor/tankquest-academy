@@ -34,7 +34,7 @@ function correctAnswerForPrompt(prompt: string): string | undefined {
   );
 }
 
-test.setTimeout(300_000);
+test.setTimeout(120_000);
 
 test('completes the authoritative learning and upgrade journey', async ({
   page,
@@ -333,11 +333,6 @@ test('continues combat after repeated enemy projectile impacts', async ({
 }) => {
   const pageErrors: string[] = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
-  page.on('console', (message) => {
-    if (message.text().includes('[TankQuest][combat]')) {
-      console.log(message.text());
-    }
-  });
   await page.route('**/api/game-sessions', async (route) => {
     const response = await route.fetch();
     const payload =
@@ -353,14 +348,14 @@ test('continues combat after repeated enemy projectile impacts', async ({
         {
           ...closeEnemy,
           stats: { ...closeEnemy.stats, firepower: 5 },
-          x: 220,
+          x: 300,
           y: 270,
           ai: {
             ...closeEnemy.ai,
             attackRange: 500,
             detectionRange: 600,
             fireCooldownMs: 500,
-            speedMultiplier: 0,
+            speedMultiplier: 0.1,
           },
         },
       ],
@@ -466,11 +461,12 @@ test('advances and completes configured enemy waves', async ({ page }) => {
       ...payload.data.level.config,
       enemyTanks: enemies.map((enemy) => ({
         ...enemy,
+        passive: true,
         ai: {
           ...enemy.ai,
           attackRange: 80,
           detectionRange: 100,
-          speedMultiplier: 0,
+          speedMultiplier: 0.1,
         },
       })),
       map: {
@@ -513,18 +509,6 @@ test('advances and completes configured enemy waves', async ({ page }) => {
     page.getByRole('heading', { name: 'Defend against waves · 0/2' })
   ).toBeVisible();
   await fireAt(page, 720, 145, 240);
-  const waveEvents = await page.evaluate(() => {
-    const target = globalThis as typeof globalThis & {
-      __TANKQUEST_COMBAT_LOGS__?: Array<{
-        event: string;
-        details: Record<string, string | number>;
-      }>;
-    };
-    return (target.__TANKQUEST_COMBAT_LOGS__ ?? []).filter((entry) =>
-      ['enemy_destroyed', 'objective_progressed'].includes(entry.event)
-    );
-  });
-  console.log('Wave combat events', JSON.stringify(waveEvents));
   const waveProgress = page.getByRole('heading', {
     name: /Defend against waves/,
   });
@@ -754,11 +738,12 @@ async function slowEnemyMovement(page: Page): Promise<void> {
       ...payload.data.level.config,
       enemyTanks: enemies.map((enemy) => ({
         ...enemy,
+        passive: true,
         ai: {
           ...enemy.ai,
           attackRange: 80,
           detectionRange: 100,
-          speedMultiplier: 0,
+          speedMultiplier: 0.1,
         },
       })),
       map: {
