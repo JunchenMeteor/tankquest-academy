@@ -182,8 +182,8 @@ test('completes the authoritative learning and upgrade journey', async ({
   await expect(
     page.getByRole('heading', { name: '2 training tanks remain' })
   ).toBeVisible();
-  await fireAt(page, 720, 145, 240);
-  await fireAt(page, 790, 390, 240);
+  await fireAt(page, 720, 145, 80);
+  await fireAt(page, 790, 390, 80);
   await expect(
     page.getByRole('heading', { name: 'Training field secured' })
   ).toBeVisible({ timeout: 10_000 });
@@ -420,8 +420,8 @@ test('keeps combat feedback usable when experience assets fail', async ({
       })
       .click();
   }
-  await fireAt(page, 720, 145, 240);
-  await fireAt(page, 790, 390, 240);
+  await fireAt(page, 720, 145, 80);
+  await fireAt(page, 790, 390, 80);
   await expect(
     page.getByRole('heading', { name: 'Training field secured' })
   ).toBeVisible({ timeout: 10_000 });
@@ -508,7 +508,7 @@ test('advances and completes configured enemy waves', async ({ page }) => {
   await expect(
     page.getByRole('heading', { name: 'Defend against waves · 0/2' })
   ).toBeVisible();
-  await fireAt(page, 720, 145, 240);
+  await fireAt(page, 720, 145, 80);
   const waveProgress = page.getByRole('heading', {
     name: /Defend against waves/,
   });
@@ -516,7 +516,7 @@ test('advances and completes configured enemy waves', async ({ page }) => {
   await expect(waveProgress).toHaveText('Defend against waves · 1/2', {
     timeout: 10_000,
   });
-  await fireAt(page, 790, 390, 240);
+  await fireAt(page, 790, 390, 80);
   await expect(
     page.getByRole('heading', { name: 'Defend against waves · 2/2' })
   ).toBeVisible({ timeout: 10_000 });
@@ -781,10 +781,22 @@ async function fireAt(
     await page.waitForTimeout(400);
     if (await hasNewKill()) break;
   }
-  expect(
-    await hasNewKill(),
-    `enemy at ${worldX},${worldY} should be destroyed`
-  ).toBe(true);
+  if (!(await hasNewKill())) {
+    const recentHits = await page.evaluate(() => {
+      const target = globalThis as typeof globalThis & {
+        __TANKQUEST_COMBAT_LOGS__?: Array<{
+          event: string;
+          details: Record<string, string | number>;
+        }>;
+      };
+      return (target.__TANKQUEST_COMBAT_LOGS__ ?? [])
+        .filter((entry) => entry.event === 'player_projectile_hit_enemy')
+        .slice(-12);
+    });
+    throw new Error(
+      `enemy at ${worldX},${worldY} was not destroyed; recent hits: ${JSON.stringify(recentHits)}`
+    );
+  }
   await page.waitForTimeout(1600);
 }
 
