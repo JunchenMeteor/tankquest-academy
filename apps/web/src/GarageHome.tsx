@@ -96,7 +96,9 @@ export function GarageHome(props: GarageHomeProps) {
                 aria-pressed={item.id === tank.id}
                 onClick={() => props.onSelectTank(item.id)}
               >
-                <strong>{t(`content.${item.code}`)}</strong>
+                <strong data-tank-visual={item.code}>
+                  {t(`content.${item.code}`)}
+                </strong>
                 <span>{t(`role.${item.role}`)}</span>
                 <span className="tank-combat-profile">
                   {t('picker.combatProfile', {
