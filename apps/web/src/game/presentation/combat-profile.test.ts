@@ -25,7 +25,7 @@ describe('combat profiles', () => {
       dispersionRadius: 0.168,
       frontArmor: 78,
       gunElevationDegrees: 56.7,
-      health: 150,
+      health: 1500,
       mass: 110,
       penetration: 82,
       projectileSpeed: 460,

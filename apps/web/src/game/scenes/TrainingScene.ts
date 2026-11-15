@@ -190,6 +190,7 @@ export class TrainingScene extends Phaser.Scene {
         projectilePenetration: enemy.projectilePenetration,
         projectileSpeed: enemy.projectileSpeed,
         fireCooldownMs: enemy.fireCooldownMs,
+        passive: enemy.passive,
         lastShotAt: -enemy.fireCooldownMs,
         ...createEnemyAwarenessData(enemy),
         impactVelocityX: 0,
@@ -434,6 +435,11 @@ export class TrainingScene extends Phaser.Scene {
       const enemy = child as Phaser.Physics.Arcade.Sprite;
       if (!enemy.active) continue;
       const turret = enemy.getData('turret') as Phaser.GameObjects.Image;
+      if (enemy.getData('passive')) {
+        enemy.setVelocity(0, 0);
+        turret.setPosition(enemy.x, enemy.y);
+        continue;
+      }
       const distance = Phaser.Math.Distance.Between(
         enemy.x,
         enemy.y,

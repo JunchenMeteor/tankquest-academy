@@ -14,6 +14,7 @@ import {
 import type { Group } from 'three';
 
 import { loadTankRig, paintTankRig } from './tank-asset.js';
+import { playerRoleForVisualCode } from './battle-scene-model.js';
 import type { TankRig } from './tank-rig.js';
 import { useI18n } from '../../i18n/I18nProvider.js';
 
@@ -102,7 +103,8 @@ export default function GarageTankPreview({
       const painted = paintTankRig(
         assetRef.current,
         colorNumber(colorsRef.current.primaryColor, 0x5d7d46),
-        colorNumber(colorsRef.current.secondaryColor, 0xe8c65a)
+        colorNumber(colorsRef.current.secondaryColor, 0xe8c65a),
+        playerRoleForVisualCode(code)
       );
       painted.root.rotation.y = -0.45;
       painted.root.traverse((node) => {

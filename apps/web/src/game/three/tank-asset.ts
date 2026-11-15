@@ -10,6 +10,10 @@ import {
 import type { BufferGeometry, Object3D } from 'three';
 import { addRunningGearParts } from './running-gear-parts.js';
 import { tankRigFromScene, type TankRig } from './tank-rig.js';
+import {
+  applyTankRoleVariant,
+  type TankModelRole,
+} from './tank-role-variant.js';
 
 /** Bump this when the GLB changes so cached copies are refetched. */
 export const tankAssetVersion = 'v10-region-rigging';
@@ -298,7 +302,8 @@ const cloneTextureSlots = [
 export function paintTankRig(
   asset: TankRig,
   color: number,
-  secondaryColor = color
+  secondaryColor = color,
+  role: TankModelRole = 'medium'
 ): TankRig {
   const root = asset.root.clone(true);
   root.traverse((child) => {
@@ -329,5 +334,6 @@ export function paintTankRig(
     }
     child.material = clone;
   });
+  applyTankRoleVariant(root, role, color);
   return tankRigFromScene(root);
 }

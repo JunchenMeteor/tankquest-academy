@@ -83,6 +83,18 @@ describe('3D battle scene model', () => {
     expect(layout.blocks[0]?.position.y).toBeCloseTo(groundHeight(0, 0) + 0.9);
   });
 
+  it.each([
+    ['swift-fox', 'scout'],
+    ['star-shield', 'medium'],
+    ['iron-mountain', 'heavy'],
+  ] as const)('maps %s to the %s player model', (visualCode, role) => {
+    const layout = buildSceneLayout({
+      ...config,
+      player: { ...config.player, visualCode },
+    });
+    expect(layout.player.role).toBe(role);
+  });
+
   it('places zero-elevation passive targets on the local terrain', () => {
     const layout = buildSceneLayout({
       ...config,

@@ -55,6 +55,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'stat.shell': 'Shell',
     'stat.penetration': 'Penetration',
     'stat.speed': 'Speed',
+    'stat.reverseSpeed': 'Reverse speed',
     'stat.acceleration': 'Acceleration',
     'stat.turnSpeed': 'Turn speed',
     'stat.mass': 'Mass',
@@ -65,6 +66,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'stat.dispersion': 'Dispersion',
     'stat.gunElevation': 'Gun elevation speed',
     'stat.visibility': 'Visibility',
+    'stat.armorReduction': 'Armor reduction',
     'battle.threats': 'Enemy role profiles',
     'battle.enemyProfile':
       '{{role}} · Speed {{speed}} · HP {{health}} · Front armor {{armor}} · Shell {{damage}} · Reload {{reload}}s · Detection {{detection}}',
@@ -268,6 +270,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'stat.shell': '炮弹伤害',
     'stat.penetration': '穿深',
     'stat.speed': '速度',
+    'stat.reverseSpeed': '倒车速度',
     'stat.acceleration': '加速度',
     'stat.turnSpeed': '转向速度',
     'stat.mass': '重量',
@@ -278,6 +281,7 @@ export const messages: Record<Locale, Record<string, string>> = {
     'stat.dispersion': '炮弹散布',
     'stat.gunElevation': '炮管俯仰速度',
     'stat.visibility': '可见度',
+    'stat.armorReduction': '装甲减伤',
     'battle.threats': '敌方角色参数',
     'battle.enemyProfile':
       '{{role}} · 速度 {{speed}} · 生命 {{health}} · 正面装甲 {{armor}} · 炮弹 {{damage}} · 装填 {{reload}} 秒 · 探测 {{detection}}',

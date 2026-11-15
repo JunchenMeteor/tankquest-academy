@@ -9,7 +9,7 @@ import {
   type UpgradeableStat,
 } from '@tankquest/shared';
 
-import { combatProfileForStats } from './game/presentation/combat-profile.js';
+import { deriveCombatStats } from './game/systems/combat-stats.js';
 import { summarizeEnemies } from './TrainingViews.js';
 import type { RuntimeLevelConfig } from './game/runtime/types.js';
 import { useI18n } from './i18n/I18nProvider.js';
@@ -136,11 +136,48 @@ export function TankPanel({
   onUpgrade: (stat: UpgradeableStat) => void;
 }) {
   const { t } = useI18n();
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(true);
   const [upgradeOpen, setUpgradeOpen] = useState(true);
   const [skinsOpen, setSkinsOpen] = useState(true);
   const [stat, setStat] = useState<UpgradeableStat>('firepower');
-  const profile = combatProfileForStats(tank.stats);
+  const combat = deriveCombatStats(tank.stats);
+  const degrees = (radians: number) =>
+    Number(((radians * 180) / Math.PI).toFixed(1));
+  const details = [
+    { key: 'health', value: combat.maxHealth },
+    { key: 'shell', value: combat.projectileDamage },
+    { key: 'penetration', value: combat.projectilePenetration },
+    { key: 'reload', value: `${(combat.fireCooldownMs / 1000).toFixed(2)}s` },
+    { key: 'speed', value: combat.speed },
+    { key: 'reverseSpeed', value: combat.reverseSpeed },
+    { key: 'acceleration', value: combat.acceleration },
+    { key: 'turnSpeed', value: `${degrees(combat.turnSpeed)}°/s` },
+    { key: 'mass', value: combat.mass },
+    { key: 'detection', value: combat.detectionRange },
+    { key: 'projectileSpeed', value: combat.projectileSpeed },
+    { key: 'dispersion', value: combat.dispersionRadius.toFixed(3) },
+    {
+      key: 'turretTraverse',
+      value: `${degrees(combat.turretTraverseSpeed)}°/s`,
+    },
+    {
+      key: 'gunElevation',
+      value: `${degrees(combat.gunElevationSpeed ?? 0)}°/s`,
+    },
+    { key: 'accuracy', value: tank.stats.accuracy },
+    {
+      key: 'visibility',
+      value: `${Math.round(combat.visibilityMultiplier * 100)}%`,
+    },
+    {
+      key: 'armor',
+      value: `${combat.armorProfile.front} / ${combat.armorProfile.side} / ${combat.armorProfile.rear}`,
+    },
+    {
+      key: 'armorReduction',
+      value: `${Math.round(combat.armorReduction * 100)}%`,
+    },
+  ];
   const cost = tankUpgradeCost(tank.upgradeLevels[stat]);
   const before = tank.stats[stat];
   const after = Math.min(tankStatMax, before + 1);
@@ -170,34 +207,12 @@ export function TankPanel({
         onToggle={() => setDetailsOpen((value) => !value)}
       >
         <dl className="garage-details">
-          <div>
-            <dt>{t('stat.health')}</dt>
-            <dd>{profile.health}</dd>
-          </div>
-          <div>
-            <dt>{t('stat.shell')}</dt>
-            <dd>{profile.damage}</dd>
-          </div>
-          <div>
-            <dt>{t('stat.penetration')}</dt>
-            <dd>{profile.penetration}</dd>
-          </div>
-          <div>
-            <dt>{t('stat.reload')}</dt>
-            <dd>{profile.reloadSeconds}s</dd>
-          </div>
-          <div>
-            <dt>{t('stat.speed')}</dt>
-            <dd>{profile.topSpeed}</dd>
-          </div>
-          <div>
-            <dt>{t('stat.detection')}</dt>
-            <dd>{profile.detectionRange}</dd>
-          </div>
-          <div>
-            <dt>{t('stat.armor')}</dt>
-            <dd>{profile.frontArmor}</dd>
-          </div>
+          {details.map(({ key, value }) => (
+            <div key={key}>
+              <dt>{t(`stat.${key}`)}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
         </dl>
       </Accordion>
       <Accordion

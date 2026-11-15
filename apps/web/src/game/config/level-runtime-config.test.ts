@@ -171,7 +171,7 @@ describe('levelRuntimeConfig', () => {
     expect(config.enemies).toHaveLength(1);
     expect(config.enemies[0]).toMatchObject({
       role: 'heavy',
-      maxHealth: 200,
+      maxHealth: 2000,
       mass: 140,
       fireCooldownMs: 1400,
       alertMemoryMs: 6000,
@@ -259,7 +259,7 @@ describe('levelRuntimeConfig', () => {
     }).enemies;
 
     expect(enemies.map((enemy) => enemy.speed)).toEqual([79, 65, 49]);
-    expect(enemies.map((enemy) => enemy.maxHealth)).toEqual([100, 150, 200]);
+    expect(enemies.map((enemy) => enemy.maxHealth)).toEqual([1000, 1500, 2000]);
     expect(enemies.map((enemy) => enemy.armorProfile.front)).toEqual([
       54, 78, 102,
     ]);
