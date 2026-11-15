@@ -113,6 +113,7 @@ test('completes the authoritative learning and upgrade journey', async ({
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
 
+  await slowEnemyMovement(page);
   await page.goto('/?renderer=2d');
   const startButton = page.getByRole('button', { name: 'Start training' });
   await expect(startButton)
@@ -402,6 +403,7 @@ test('keeps combat feedback usable when experience assets fail', async ({
     await route.fulfill({ status: 404, body: 'asset unavailable' });
   });
 
+  await slowEnemyMovement(page);
   await page.goto('/?renderer=2d');
   await page.getByRole('button', { name: 'Start training' }).click();
   await expect(page.locator('.game-canvas canvas')).toBeVisible();
@@ -717,6 +719,32 @@ async function completeMission(request: APIRequestContext, levelCode: string) {
   expect(finished.ok(), await finished.text()).toBe(true);
 }
 
+async function slowEnemyMovement(page: Page): Promise<void> {
+  await page.route('**/api/game-sessions', async (route) => {
+    const response = await route.fetch();
+    const payload =
+      (await response.json()) as ApiResponse<StartSessionResponse>;
+    const enemies = payload.data?.level.config.enemyTanks as
+      EnemyTankConfigDto[] | undefined;
+    if (!payload.data || !enemies) {
+      throw new Error('Expected configured enemy tanks');
+    }
+    payload.data.level.config = {
+      ...payload.data.level.config,
+      enemyTanks: enemies.map((enemy) => ({
+        ...enemy,
+        ai: {
+          ...enemy.ai,
+          attackRange: 80,
+          detectionRange: 100,
+          speedMultiplier: 0.1,
+        },
+      })),
+    };
+    await route.fulfill({ response, json: payload });
+  });
+}
+
 async function fireAt(
   page: Page,
   worldX: number,
@@ -738,6 +766,10 @@ async function fireAt(
     await page.waitForTimeout(400);
     if ((await destroyedEnemyCount(page)) > destroyedBefore) break;
   }
+  expect(
+    await destroyedEnemyCount(page),
+    `enemy at ${worldX},${worldY} should be destroyed`
+  ).toBeGreaterThan(destroyedBefore);
   await page.waitForTimeout(1600);
 }
 
