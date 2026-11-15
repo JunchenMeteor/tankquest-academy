@@ -387,3 +387,10 @@
     transition: none !important;
   }
 }
+
+.garage-tank-choice .tank-combat-profile {
+  display: block;
+  color: #9eb1b8;
+  font-size: 10px;
+  line-height: 1.35;
+}

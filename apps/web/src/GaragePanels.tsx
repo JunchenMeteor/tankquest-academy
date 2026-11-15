@@ -10,6 +10,7 @@ import {
 } from '@tankquest/shared';
 
 import { combatProfileForStats } from './game/presentation/combat-profile.js';
+import { summarizeEnemies } from './TrainingViews.js';
 import type { RuntimeLevelConfig } from './game/runtime/types.js';
 import { useI18n } from './i18n/I18nProvider.js';
 
@@ -65,7 +66,7 @@ export function MissionPanel({
   });
   return (
     <aside className="garage-missions">
-      <header>
+      <header className="selection-heading">
         <p className="garage-eyebrow">{t('garage.missionPanel')}</p>
         <h2>{t('picker.title')}</h2>
       </header>
@@ -110,7 +111,7 @@ export function MissionPanel({
           <p>
             {t('picker.preview', {
               map: t(`content.${preview.mapStyle}`),
-              enemies: preview.enemies.length,
+              enemies: summarizeEnemies(preview, t),
             })}
           </p>
         </div>
@@ -145,7 +146,7 @@ export function TankPanel({
   const after = Math.min(tankStatMax, before + 1);
   return (
     <aside className="garage-stats">
-      <header>
+      <header className="selection-heading">
         <p className="garage-eyebrow">{t('garage.tankStatus')}</p>
         <h2>{t(`content.${tank.code}`)}</h2>
       </header>

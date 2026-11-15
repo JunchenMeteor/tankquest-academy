@@ -7,6 +7,7 @@ import type {
 } from '@tankquest/shared';
 
 import { MissionPanel, TankPanel } from './GaragePanels.js';
+import { combatProfileForStats } from './game/presentation/combat-profile.js';
 import { TankPreview } from './game/presentation/TankPreview.js';
 import type { RuntimeLevelConfig } from './game/runtime/types.js';
 import { useI18n } from './i18n/I18nProvider.js';
@@ -51,7 +52,7 @@ export function GarageHome(props: GarageHomeProps) {
         onSelectLevel={props.onSelectLevel}
       />
       <div className="garage-stage">
-        <header className="garage-stage-heading">
+        <header className="garage-stage-heading selection-heading">
           <div>
             <p className="garage-eyebrow">{t('garage.currentTank')}</p>
             <h2>{t(`content.${tank.code}`)}</h2>
@@ -85,17 +86,32 @@ export function GarageHome(props: GarageHomeProps) {
           className="garage-tank-choices"
           aria-label={t('picker.ownedTanks')}
         >
-          {props.tanks.map((item) => (
-            <button
-              key={item.id}
-              className={`garage-tank-choice${item.id === tank.id ? ' selected' : ''}`}
-              aria-pressed={item.id === tank.id}
-              onClick={() => props.onSelectTank(item.id)}
-            >
-              <strong>{t(`content.${item.code}`)}</strong>
-              <span>{t(`role.${item.role}`)}</span>
-            </button>
-          ))}
+          {props.tanks.map((item) => {
+            const profile = combatProfileForStats(item.stats);
+            return (
+              <button
+                key={item.id}
+                className={`garage-tank-choice${item.id === tank.id ? ' selected' : ''}`}
+                aria-pressed={item.id === tank.id}
+                onClick={() => props.onSelectTank(item.id)}
+              >
+                <strong>{t(`content.${item.code}`)}</strong>
+                <span>{t(`role.${item.role}`)}</span>
+                <span className="tank-combat-profile">
+                  {t('picker.combatProfile', {
+                    armor: profile.frontArmor,
+                    damage: profile.damage,
+                    detection: profile.detectionRange,
+                    health: profile.health,
+                    penetration: profile.penetration,
+                    reload: profile.reloadSeconds,
+                    speed: profile.topSpeed,
+                    visibility: profile.visibilityPercent,
+                  })}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
       <TankPanel
