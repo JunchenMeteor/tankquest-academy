@@ -92,6 +92,7 @@ export function GarageHome(props: GarageHomeProps) {
               <button
                 key={item.id}
                 className={`garage-tank-choice${item.id === tank.id ? ' selected' : ''}`}
+                data-tank-visual={item.code}
                 aria-pressed={item.id === tank.id}
                 onClick={() => props.onSelectTank(item.id)}
               >
