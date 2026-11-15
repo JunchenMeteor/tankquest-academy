@@ -348,14 +348,14 @@ test('continues combat after repeated enemy projectile impacts', async ({
         {
           ...closeEnemy,
           stats: { ...closeEnemy.stats, firepower: 5 },
-          x: 300,
+          x: 220,
           y: 270,
           ai: {
             ...closeEnemy.ai,
             attackRange: 500,
             detectionRange: 600,
             fireCooldownMs: 500,
-            speedMultiplier: 0.1,
+            speedMultiplier: 0,
           },
         },
       ],
@@ -508,9 +508,13 @@ test('advances and completes configured enemy waves', async ({ page }) => {
     page.getByRole('heading', { name: 'Defend against waves · 0/2' })
   ).toBeVisible();
   await fireAt(page, 720, 145, 240);
-  await expect(
-    page.getByRole('heading', { name: 'Defend against waves · 1/2' })
-  ).toBeVisible({ timeout: 10_000 });
+  const waveProgress = page.getByRole('heading', {
+    name: /Defend against waves/,
+  });
+  await expect(waveProgress).toBeVisible();
+  await expect(waveProgress).toHaveText('Defend against waves · 1/2', {
+    timeout: 10_000,
+  });
   await fireAt(page, 790, 390, 240);
   await expect(
     page.getByRole('heading', { name: 'Defend against waves · 2/2' })
