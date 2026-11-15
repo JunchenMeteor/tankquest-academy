@@ -22,7 +22,7 @@ export function deriveCombatStats(stats: TankStats): PlayerCombatRuntimeConfig {
   const turretTraverse = normalizedLevel(stats.turretTraverse);
 
   return {
-    maxHealth: 150 + (armor - 3) * 25,
+    maxHealth: 750 + armor * 250,
     armorReduction: 0.12 + (armor - 3) * 0.035,
     armorProfile: {
       front: 78 + (armor - 3) * 12,

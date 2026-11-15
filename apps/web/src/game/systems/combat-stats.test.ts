@@ -10,7 +10,7 @@ function withStat(stat: keyof TankStats, value: number): TankStats {
 describe('deriveCombatStats', () => {
   it('preserves the established level-three movement and projectile baseline', () => {
     expect(deriveCombatStats(baselineTankStats)).toMatchObject({
-      maxHealth: 150,
+      maxHealth: 1500,
       mass: 110,
       speed: 170,
       turnSpeed: 2.8,
@@ -92,10 +92,16 @@ describe('deriveCombatStats', () => {
     expect(fastTurret.gunElevationSpeed).toBe(slowTurret.gunElevationSpeed);
   });
 
+  it('sets scout, medium, and heavy health from their armor levels', () => {
+    expect(deriveCombatStats(withStat('armor', 1)).maxHealth).toBe(1000);
+    expect(deriveCombatStats(withStat('armor', 3)).maxHealth).toBe(1500);
+    expect(deriveCombatStats(withStat('armor', 5)).maxHealth).toBe(2000);
+  });
+
   it('keeps every purchased level meaningful beyond the old cap', () => {
     const heavy = deriveCombatStats(withStat('armor', 5));
     const upgradedHeavy = deriveCombatStats(withStat('armor', 6));
-    expect(upgradedHeavy.maxHealth).toBe(heavy.maxHealth + 25);
+    expect(upgradedHeavy.maxHealth).toBe(heavy.maxHealth + 250);
     expect(upgradedHeavy.armorProfile.front).toBe(
       heavy.armorProfile.front + 12
     );

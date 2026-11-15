@@ -36,6 +36,15 @@ TankRig
 
 `SideSkirts_477` 是主装甲侧裙，必须使用车型的 `primaryColor`，不能与储物箱、天线等 `Gear` 附件一起使用高亮 `secondaryColor`，否则大面积色块会产生两套车壳重叠的观感。
 
+## 轻、中、重车型变体
+
+同一份 GLB 只加载和缓存一次，`tank-role-variant.ts` 在克隆后的 rig 上生成车型差异。`swift-fox`、`star-shield`、`iron-mountain` 分别映射为 `scout`、`medium`、`heavy`；车库与战斗必须使用同一映射。
+
+- 轻型缩小车体和炮塔，附加件直接挂在根节点的车体空间。
+- 中型保留归一化后的基准比例。
+- 重型扩大车体和炮塔，车体附加装甲挂在根节点，炮塔附加装甲挂在 `TurretPivot` 下并对齐到回转前的车体空间；炮塔转动时两类部件必须分别跟随车体或炮塔。
+- 变体处理不得替换 `Hull`、`TurretPivot`、`GunPivot`、`Muzzle` 的既有层级，也不得重复下载模型。轮子 `rollingRadius` 随车体比例同步缩放，弹丸仍从真实炮口发射。
+
 - `TurretPivot` 的原点必须位于真实炮塔回转轴。
 - `GunPivot` 的原点必须位于真实炮管俯仰轴；GLB 炮管局部前向为 +Z，因此绕局部 X 轴俯仰。
 - `Muzzle` 是真实炮口位置，炮弹和火光直接读取其世界坐标，不能用固定炮管长度代替。

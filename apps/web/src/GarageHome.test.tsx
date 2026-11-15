@@ -129,7 +129,7 @@ describe('GarageHome', () => {
     expect(callbacks.onStart).toHaveBeenCalledOnce();
   });
 
-  it('filters missions and expands only the requested detail panel', async () => {
+  it('filters missions and toggles the detailed statistics panel', async () => {
     await mount();
     const search = container?.querySelector('.garage-search');
     act(() => {
@@ -143,11 +143,38 @@ describe('GarageHome', () => {
     });
     expect(container?.querySelectorAll('.garage-mission')).toHaveLength(1);
     const detailsButton = container?.querySelector('.garage-details-toggle');
-    expect(detailsButton?.getAttribute('aria-expanded')).toBe('false');
-    click(detailsButton);
     expect(detailsButton?.getAttribute('aria-expanded')).toBe('true');
+    click(detailsButton);
+    expect(detailsButton?.getAttribute('aria-expanded')).toBe('false');
     expect(
-      container?.querySelector('.garage-details')?.hasAttribute('hidden')
-    ).toBe(false);
+      container
+        ?.querySelector('.garage-details-content')
+        ?.hasAttribute('hidden')
+    ).toBe(true);
+  });
+
+  it('shows the complete derived tank statistics on the right by default', async () => {
+    await mount();
+    const details = container?.querySelector('.garage-details');
+    expect(details?.hasAttribute('hidden')).toBe(false);
+    for (const label of [
+      'Health',
+      'Shell',
+      'Penetration',
+      'Reload',
+      'Speed',
+      'Acceleration',
+      'Turn speed',
+      'Mass',
+      'Detection',
+      'Shell speed',
+      'Dispersion',
+      'Turret traverse',
+      'Gun elevation speed',
+      'Accuracy',
+      'Visibility',
+    ]) {
+      expect(details?.textContent).toContain(label);
+    }
   });
 });

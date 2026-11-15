@@ -19,7 +19,7 @@ describe('upgradeEffects', () => {
     const after = combatProfileForStats({ ...baseStats, armor: 6 });
 
     expect(upgradeEffects(before, after, 'armor')).toEqual([
-      { labelKey: 'stat.health', before: 200, after: 225 },
+      { labelKey: 'stat.health', before: 2000, after: 2250 },
       { labelKey: 'stat.armor', before: 102, after: 114 },
       { labelKey: 'stat.mass', before: 140, after: 155 },
     ]);
