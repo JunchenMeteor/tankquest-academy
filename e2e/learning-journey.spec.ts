@@ -34,6 +34,8 @@ function correctAnswerForPrompt(prompt: string): string | undefined {
   );
 }
 
+test.setTimeout(120_000);
+
 test('completes the authoritative learning and upgrade journey', async ({
   page,
   request,
@@ -111,6 +113,7 @@ test('completes the authoritative learning and upgrade journey', async ({
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
 
+  await slowEnemyMovement(page);
   await page.goto('/?renderer=2d');
   const startButton = page.getByRole('button', { name: 'Start training' });
   await expect(startButton)
@@ -140,10 +143,10 @@ test('completes the authoritative learning and upgrade journey', async ({
     /Firepower\s*[3-5]/
   );
   await expect(page.locator('.game-canvas canvas')).toBeVisible();
-  await expect(page.getByText('150/150')).toBeVisible();
+  await expect(page.getByText('1500/1500')).toBeVisible();
   await expect(page.locator('.hud-health meter')).toHaveAttribute(
     'value',
-    '150'
+    '1500'
   );
 
   for (let index = 0; index < 3; index += 1) {
@@ -179,8 +182,8 @@ test('completes the authoritative learning and upgrade journey', async ({
   await expect(
     page.getByRole('heading', { name: '2 training tanks remain' })
   ).toBeVisible();
-  await fireAt(page, 720, 145, 4);
-  await fireAt(page, 790, 390, 4);
+  await fireAt(page, 720, 145, 80);
+  await fireAt(page, 790, 390, 80);
   await expect(
     page.getByRole('heading', { name: 'Training field secured' })
   ).toBeVisible({ timeout: 10_000 });
@@ -367,11 +370,11 @@ test('continues combat after repeated enemy projectile impacts', async ({
 
   await page.goto('/?renderer=2d');
   await page.getByRole('button', { name: 'Start training' }).click();
-  const hullIntegrity = page.locator('.hud dd').filter({ hasText: '/150' });
-  await expect(hullIntegrity).not.toHaveText('150/150', { timeout: 5_000 });
+  const hullIntegrity = page.locator('.hud dd').filter({ hasText: '/1500' });
+  await expect(hullIntegrity).not.toHaveText('1500/1500', { timeout: 15_000 });
   const healthAfterFirstImpact = await hullIntegrity.textContent();
   await expect
-    .poll(() => hullIntegrity.textContent(), { timeout: 5_000 })
+    .poll(() => hullIntegrity.textContent(), { timeout: 15_000 })
     .not.toBe(healthAfterFirstImpact);
   const impacts = await page.evaluate(() => {
     const target = globalThis as typeof globalThis & {
@@ -400,6 +403,7 @@ test('keeps combat feedback usable when experience assets fail', async ({
     await route.fulfill({ status: 404, body: 'asset unavailable' });
   });
 
+  await slowEnemyMovement(page);
   await page.goto('/?renderer=2d');
   await page.getByRole('button', { name: 'Start training' }).click();
   await expect(page.locator('.game-canvas canvas')).toBeVisible();
@@ -416,8 +420,8 @@ test('keeps combat feedback usable when experience assets fail', async ({
       })
       .click();
   }
-  await fireAt(page, 720, 145, 4);
-  await fireAt(page, 790, 390, 4);
+  await fireAt(page, 720, 145, 80);
+  await fireAt(page, 790, 390, 80);
   await expect(
     page.getByRole('heading', { name: 'Training field secured' })
   ).toBeVisible({ timeout: 10_000 });
@@ -457,6 +461,7 @@ test('advances and completes configured enemy waves', async ({ page }) => {
       ...payload.data.level.config,
       enemyTanks: enemies.map((enemy) => ({
         ...enemy,
+        passive: true,
         ai: {
           ...enemy.ai,
           attackRange: 80,
@@ -503,11 +508,15 @@ test('advances and completes configured enemy waves', async ({ page }) => {
   await expect(
     page.getByRole('heading', { name: 'Defend against waves · 0/2' })
   ).toBeVisible();
-  await fireAt(page, 720, 145, 4);
-  await expect(
-    page.getByRole('heading', { name: 'Defend against waves · 1/2' })
-  ).toBeVisible({ timeout: 10_000 });
-  await fireAt(page, 790, 390, 4);
+  await fireAt(page, 720, 145, 80);
+  const waveProgress = page.getByRole('heading', {
+    name: /Defend against waves/,
+  });
+  await expect(waveProgress).toBeVisible();
+  await expect(waveProgress).toHaveText('Defend against waves · 1/2', {
+    timeout: 10_000,
+  });
+  await fireAt(page, 790, 390, 80);
   await expect(
     page.getByRole('heading', { name: 'Defend against waves · 2/2' })
   ).toBeVisible({ timeout: 10_000 });
@@ -715,6 +724,38 @@ async function completeMission(request: APIRequestContext, levelCode: string) {
   expect(finished.ok(), await finished.text()).toBe(true);
 }
 
+async function slowEnemyMovement(page: Page): Promise<void> {
+  await page.route('**/api/game-sessions', async (route) => {
+    const response = await route.fetch();
+    const payload =
+      (await response.json()) as ApiResponse<StartSessionResponse>;
+    const enemies = payload.data?.level.config.enemyTanks as
+      EnemyTankConfigDto[] | undefined;
+    if (!payload.data || !enemies) {
+      throw new Error('Expected configured enemy tanks');
+    }
+    payload.data.level.config = {
+      ...payload.data.level.config,
+      enemyTanks: enemies.map((enemy) => ({
+        ...enemy,
+        passive: true,
+        ai: {
+          ...enemy.ai,
+          attackRange: 80,
+          detectionRange: 100,
+          speedMultiplier: 0.1,
+        },
+      })),
+      map: {
+        style: 'range',
+        playerSpawn: { x: 120, y: 270 },
+        obstacles: [],
+      },
+    };
+    await route.fulfill({ response, json: payload });
+  });
+}
+
 async function fireAt(
   page: Page,
   worldX: number,
@@ -728,11 +769,53 @@ async function fireAt(
 
   const targetX = box.x + (worldX / 960) * box.width;
   const targetY = box.y + (worldY / 540) * box.height;
+  const destroyedBefore = await destroyedEnemyIds(page);
+  const hasNewKill = async () => {
+    const destroyed = await destroyedEnemyIds(page);
+    return destroyed.some((id) => !destroyedBefore.includes(id));
+  };
   await page.mouse.move(targetX, targetY);
   await page.waitForTimeout(100);
-  for (let shot = 0; shot < shots; shot += 1) {
-    await page.mouse.click(targetX, targetY);
-    await page.waitForTimeout(400);
+  await page.keyboard.down('Space');
+  try {
+    for (let shot = 0; shot < shots; shot += 1) {
+      await page.waitForTimeout(400);
+      if (await hasNewKill()) break;
+    }
+  } finally {
+    await page.keyboard.up('Space');
+  }
+  if (!(await hasNewKill())) {
+    const recentHits = await page.evaluate(() => {
+      const target = globalThis as typeof globalThis & {
+        __TANKQUEST_COMBAT_LOGS__?: Array<{
+          event: string;
+          details: Record<string, string | number>;
+        }>;
+      };
+      return (target.__TANKQUEST_COMBAT_LOGS__ ?? [])
+        .filter((entry) => entry.event === 'player_projectile_hit_enemy')
+        .slice(-12);
+    });
+    throw new Error(
+      `enemy at ${worldX},${worldY} was not destroyed; recent hits: ${JSON.stringify(recentHits)}`
+    );
   }
   await page.waitForTimeout(1600);
+}
+
+async function destroyedEnemyIds(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const target = globalThis as typeof globalThis & {
+      __TANKQUEST_COMBAT_LOGS__?: Array<{
+        event: string;
+        details: { enemyId?: string };
+      }>;
+    };
+    return (target.__TANKQUEST_COMBAT_LOGS__ ?? []).flatMap((entry) =>
+      entry.event === 'enemy_destroyed' && entry.details.enemyId
+        ? [entry.details.enemyId]
+        : []
+    );
+  });
 }

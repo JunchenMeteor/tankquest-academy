@@ -112,7 +112,19 @@ const ENEMY_COLORS = {
   },
 } as const;
 
-const PLAYER_HULL: [number, number, number] = [3.6, 1.05, 2.1];
+const PLAYER_SHAPES = {
+  scout: { hull: [3.1, 0.9, 1.85], turretRadius: 0.85, barrelLength: 2.2 },
+  medium: { hull: [3.6, 1.05, 2.1], turretRadius: 1, barrelLength: 2.6 },
+  heavy: { hull: [4.1, 1.18, 2.35], turretRadius: 1.15, barrelLength: 3 },
+} as const;
+
+export function playerRoleForVisualCode(
+  visualCode: string
+): TankPlacement['role'] {
+  if (visualCode === 'swift-fox') return 'scout';
+  if (visualCode === 'iron-mountain') return 'heavy';
+  return 'medium';
+}
 
 /**
  * Field pixels per world unit. Smaller values stretch the battlefield, so the
@@ -147,15 +159,17 @@ export function buildSceneLayout(config: RuntimeLevelConfig): SceneLayout {
       )
     : -Math.PI / 2;
 
+  const playerRole = playerRoleForVisualCode(config.player.visualCode);
+  const playerShape = PLAYER_SHAPES[playerRole];
   const player: TankPlacement = {
     id: 'player',
-    role: 'medium',
+    role: playerRole,
     elite: false,
     position: spawn,
     heading,
-    hull: PLAYER_HULL,
-    turretRadius: 1,
-    barrelLength: 2.6,
+    hull: [...playerShape.hull],
+    turretRadius: playerShape.turretRadius,
+    barrelLength: playerShape.barrelLength,
     color: config.player.appearance?.primaryColor ?? 0x6d8798,
     secondaryColor: config.player.appearance?.secondaryColor ?? 0xe8c65a,
     combat: { ...config.player },

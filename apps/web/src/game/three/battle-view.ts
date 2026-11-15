@@ -301,7 +301,7 @@ export function createBattleView(
   const meshHitTest = createMeshHitTest(enemyRoots, [ground, boundary]);
   const spawnEnemy = (enemy: (typeof layout.enemies)[number]) => {
     const rig = glbAsset
-      ? paintTankRig(glbAsset, enemy.color, enemy.secondaryColor)
+      ? paintTankRig(glbAsset, enemy.color, enemy.secondaryColor, enemy.role)
       : buildTankModel(enemy, false);
     const maximumHealth = enemy.combat?.maxHealth ?? 100;
     const roleName = `${enemy.elite ? '★ ' : ''}${roleNames[enemy.role]}`;
@@ -555,7 +555,8 @@ export function createBattleView(
         const painted = paintTankRig(
           asset,
           layout.player.color,
-          layout.player.secondaryColor
+          layout.player.secondaryColor,
+          layout.player.role
         );
         painted.root.position.copy(playerRig.root.position);
         painted.root.rotation.y = playerRig.root.rotation.y;
@@ -570,7 +571,12 @@ export function createBattleView(
         for (const enemy of layout.enemies) {
           const root = enemyRoots.get(enemy.id);
           if (!root) continue;
-          const model = paintTankRig(asset, enemy.color, enemy.secondaryColor);
+          const model = paintTankRig(
+            asset,
+            enemy.color,
+            enemy.secondaryColor,
+            enemy.role
+          );
           model.root.position.copy(root.position);
           model.root.rotation.copy(root.rotation);
           model.root.userData = { ...root.userData };
