@@ -96,6 +96,11 @@ export function GarageHome(props: GarageHomeProps) {
                 aria-pressed={item.id === tank.id}
                 onClick={() => props.onSelectTank(item.id)}
               >
+                <TankPreview
+                  code={item.code}
+                  primaryColor={skin?.primaryColor}
+                  secondaryColor={skin?.secondaryColor}
+                />
                 <strong data-tank-visual={item.code}>
                   {t(`content.${item.code}`)}
                 </strong>

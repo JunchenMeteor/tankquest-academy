@@ -138,7 +138,7 @@ export function TankPanel({
   const { t } = useI18n();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(true);
-  const [skinsOpen, setSkinsOpen] = useState(false);
+  const [skinsOpen, setSkinsOpen] = useState(true);
   const [stat, setStat] = useState<UpgradeableStat>('firepower');
   const profile = combatProfileForStats(tank.stats);
   const cost = tankUpgradeCost(tank.upgradeLevels[stat]);

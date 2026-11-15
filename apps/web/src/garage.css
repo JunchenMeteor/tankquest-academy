@@ -394,3 +394,9 @@
   font-size: 10px;
   line-height: 1.35;
 }
+
+.garage-tank-choice .tank-preview {
+  width: 64px;
+  height: 44px;
+  justify-self: center;
+}
