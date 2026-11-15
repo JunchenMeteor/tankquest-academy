@@ -333,6 +333,11 @@ test('continues combat after repeated enemy projectile impacts', async ({
 }) => {
   const pageErrors: string[] = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.text().includes('[TankQuest][combat]')) {
+      console.log(message.text());
+    }
+  });
   await page.route('**/api/game-sessions', async (route) => {
     const response = await route.fetch();
     const payload =
@@ -508,6 +513,18 @@ test('advances and completes configured enemy waves', async ({ page }) => {
     page.getByRole('heading', { name: 'Defend against waves · 0/2' })
   ).toBeVisible();
   await fireAt(page, 720, 145, 240);
+  const waveEvents = await page.evaluate(() => {
+    const target = globalThis as typeof globalThis & {
+      __TANKQUEST_COMBAT_LOGS__?: Array<{
+        event: string;
+        details: Record<string, string | number>;
+      }>;
+    };
+    return (target.__TANKQUEST_COMBAT_LOGS__ ?? []).filter((entry) =>
+      ['enemy_destroyed', 'objective_progressed'].includes(entry.event)
+    );
+  });
+  console.log('Wave combat events', JSON.stringify(waveEvents));
   const waveProgress = page.getByRole('heading', {
     name: /Defend against waves/,
   });
