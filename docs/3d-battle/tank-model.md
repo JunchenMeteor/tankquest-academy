@@ -1,6 +1,6 @@
 # 坦克模型接入说明
 
-战斗画面仅在高画质下加载 `apps/web/public/models/tank.glb`，中/低画质使用程序化模型。两种模型都必须提供同一套 `TankRig` 关节契约，运行时不再根据包围盒猜测车头、炮塔或炮口。
+战斗画面仅在高画质下加载 `apps/web/public/models/tank-scout.glb`、`tank-medium.glb`、`tank-heavy.glb`，中/低画质使用程序化模型。每种车型独立缓存，但共享同一套 `TankRig` 关节契约，运行时不再根据包围盒猜测车头、炮塔或炮口。
 
 ## 文件要求
 
@@ -36,14 +36,14 @@ TankRig
 
 `SideSkirts_477` 是主装甲侧裙，必须使用车型的 `primaryColor`，不能与储物箱、天线等 `Gear` 附件一起使用高亮 `secondaryColor`，否则大面积色块会产生两套车壳重叠的观感。
 
-## 轻、中、重车型变体
+## 轻、中、重独立车型
 
-同一份 GLB 只加载和缓存一次，`tank-role-variant.ts` 在克隆后的 rig 上生成车型差异。`swift-fox`、`star-shield`、`iron-mountain` 分别映射为 `scout`、`medium`、`heavy`；车库与战斗必须使用同一映射。
+`swift-fox`、`star-shield`、`iron-mountain` 分别映射为 `scout`、`medium`、`heavy`，车库与战斗必须使用同一映射。每种车型使用独立 GLB 和独立缓存，不再通过缩放同一模型或添加外挂装甲来伪造差异。
 
-- 轻型缩小车体和炮塔，附加件直接挂在根节点的车体空间。
-- 中型保留归一化后的基准比例。
-- 重型扩大车体和炮塔，车体附加装甲挂在根节点，炮塔附加装甲挂在 `TurretPivot` 下并对齐到回转前的车体空间；炮塔转动时两类部件必须分别跟随车体或炮塔。
-- 变体处理不得替换 `Hull`、`TurretPivot`、`GunPivot`、`Muzzle` 的既有层级，也不得重复下载模型。轮子 `rollingRadius` 随车体比例同步缩放，弹丸仍从真实炮口发射。
+- 轻型使用 Quaternius 小炮塔车型，应用骨架姿态并按履带尺寸生成完整轮组。
+- 中型使用 T-34-85 的原生 PBR 材质和独立轮节点。
+- 重型使用 Tiger I 的原生 PBR 材质，左右轮组拆分后分别挂到正确关节。
+- 所有车型必须保留 `Hull`、`TurretPivot`、`GunPivot`、`Muzzle` 层级、真实滚动半径和真实炮口；车体件与炮塔件不得互相遗留或重复显示。
 
 - `TurretPivot` 的原点必须位于真实炮塔回转轴。
 - `GunPivot` 的原点必须位于真实炮管俯仰轴；GLB 炮管局部前向为 +Z，因此绕局部 X 轴俯仰。

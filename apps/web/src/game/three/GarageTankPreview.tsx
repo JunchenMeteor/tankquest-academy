@@ -103,8 +103,7 @@ export default function GarageTankPreview({
       const painted = paintTankRig(
         assetRef.current,
         colorNumber(colorsRef.current.primaryColor, 0x5d7d46),
-        colorNumber(colorsRef.current.secondaryColor, 0xe8c65a),
-        playerRoleForVisualCode(code)
+        colorNumber(colorsRef.current.secondaryColor, 0xe8c65a)
       );
       painted.root.rotation.y = -0.45;
       painted.root.traverse((node) => {
@@ -113,7 +112,7 @@ export default function GarageTankPreview({
       paintedRef.current = painted.root;
       scene.add(painted.root);
     };
-    void loadTankRig()
+    void loadTankRig(playerRoleForVisualCode(code))
       .then((asset) => {
         if (disposed) return;
         assetRef.current = asset;

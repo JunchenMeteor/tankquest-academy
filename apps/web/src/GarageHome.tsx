@@ -7,7 +7,6 @@ import type {
 } from '@tankquest/shared';
 
 import { MissionPanel, TankPanel } from './GaragePanels.js';
-import { combatProfileForStats } from './game/presentation/combat-profile.js';
 import { TankPreview } from './game/presentation/TankPreview.js';
 import type { RuntimeLevelConfig } from './game/runtime/types.js';
 import { useI18n } from './i18n/I18nProvider.js';
@@ -82,49 +81,15 @@ export function GarageHome(props: GarageHomeProps) {
             />
           </Suspense>
         </div>
-        <div
-          className="garage-tank-choices"
-          aria-label={t('picker.ownedTanks')}
-        >
-          {props.tanks.map((item) => {
-            const profile = combatProfileForStats(item.stats);
-            return (
-              <button
-                key={item.id}
-                className={`garage-tank-choice${item.id === tank.id ? ' selected' : ''}`}
-                data-tank-visual={item.code}
-                aria-pressed={item.id === tank.id}
-                onClick={() => props.onSelectTank(item.id)}
-              >
-                <TankPreview
-                  code={item.code}
-                  primaryColor={skin?.primaryColor}
-                  secondaryColor={skin?.secondaryColor}
-                />
-                <strong>{t(`content.${item.code}`)}</strong>
-                <span>{t(`role.${item.role}`)}</span>
-                <span className="tank-combat-profile">
-                  {t('picker.combatProfile', {
-                    armor: profile.frontArmor,
-                    damage: profile.damage,
-                    detection: profile.detectionRange,
-                    health: profile.health,
-                    penetration: profile.penetration,
-                    reload: profile.reloadSeconds,
-                    speed: profile.topSpeed,
-                    visibility: profile.visibilityPercent,
-                  })}
-                </span>
-              </button>
-            );
-          })}
-        </div>
       </div>
       <TankPanel
         tank={tank}
+        tanks={props.tanks}
+        selectedTankId={props.selectedTankId}
         skins={props.skins}
         busy={props.busy}
         online={props.online}
+        onSelectTank={props.onSelectTank}
         onEquipSkin={props.onEquipSkin}
         onUpgrade={props.onUpgrade}
       />
