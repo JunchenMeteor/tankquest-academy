@@ -177,4 +177,15 @@ describe('GarageHome', () => {
       expect(details?.textContent).toContain(label);
     }
   });
+
+  it('keeps compact tank choices on the right without duplicating them in the centre', async () => {
+    await mount();
+    expect(
+      container?.querySelectorAll('.garage-stage .garage-tank-choice')
+    ).toHaveLength(0);
+    expect(
+      container?.querySelectorAll('.garage-stats .garage-tank-choice')
+    ).toHaveLength(2);
+    expect(container?.querySelectorAll('.tank-combat-profile')).toHaveLength(0);
+  });
 });

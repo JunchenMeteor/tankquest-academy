@@ -193,4 +193,46 @@ describe('imported tank asset', () => {
     expect(materialOf('Gear_Hull').color.getHex()).toBe(0xd7aa57);
     expect(materialOf('Gear_24').color.getHex()).toBe(0xd7aa57);
   });
+
+  it('preserves authored wheel radii without applying legacy wheel adjustments', () => {
+    const root = new Group();
+    const wheel = part('Wheel_L_01', 0, 1);
+    wheel.userData.rollingRadius = 2;
+    root.add(wheel);
+
+    normalise(root, 6, false);
+
+    expect(wheel.scale.toArray()).toEqual([1, 1, 1]);
+    expect(wheel.userData.rollingRadius).toBeCloseTo(6);
+    expect(root.getObjectByName('ReturnRoller_L_00')).toBeUndefined();
+  });
+
+  it('preserves every material slot on multi-material tank meshes', () => {
+    const root = new Group();
+    const hull = new Group();
+    hull.name = 'Hull';
+    const body = part('Hull_477', 0, 4);
+    const primary = new MeshStandardMaterial();
+    primary.name = 'Main';
+    const accent = new MeshStandardMaterial();
+    accent.name = 'Gear_980';
+    body.material = [primary, accent];
+    hull.add(body);
+    const turret = new Group();
+    turret.name = 'TurretPivot';
+    const gun = new Group();
+    gun.name = 'GunPivot';
+    const muzzle = new Group();
+    muzzle.name = 'Muzzle';
+    gun.add(muzzle);
+    turret.add(gun);
+    root.add(hull, turret);
+
+    const painted = paintTankRig(tankRigFromScene(root), 0x426b8a, 0xe8c65a);
+    const materials = (painted.root.getObjectByName('Hull_477') as Mesh)
+      .material as MeshStandardMaterial[];
+    expect(materials).toHaveLength(2);
+    expect(materials[0]?.color.getHex()).toBe(0x426b8a);
+    expect(materials[1]?.color.getHex()).toBe(0xe8c65a);
+  });
 });

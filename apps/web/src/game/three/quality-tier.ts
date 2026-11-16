@@ -97,6 +97,10 @@ export function tierFromQuery(search: string): QualityTier | null {
     : null;
 }
 
+export function hasForcedQualityTier(search: string): boolean {
+  return tierFromQuery(search) !== null;
+}
+
 export function readStoredTier(
   storage: Pick<Storage, 'getItem'> | null
 ): QualityTier | null {

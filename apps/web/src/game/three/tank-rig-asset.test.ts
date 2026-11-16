@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 interface GltfNode {
@@ -10,33 +10,41 @@ interface GltfNode {
 interface GltfAsset {
   nodes: GltfNode[];
   meshes: { primitives: { indices: number }[] }[];
-  accessors: { count: number }[];
   images: { mimeType?: string }[];
   extensionsRequired?: string[];
 }
 
-const data = readFileSync(
-  new URL('../../../public/models/tank.glb', import.meta.url)
-);
-const jsonLength = data.readUInt32LE(12);
-const gltf = JSON.parse(
-  data.subarray(20, 20 + jsonLength).toString('utf8')
-) as GltfAsset;
-const parents = new Map<number, number>();
-gltf.nodes.forEach((node, parent) => {
-  for (const child of node.children ?? []) parents.set(child, parent);
-});
+function load(role: 'scout' | 'medium' | 'heavy') {
+  const path = new URL(
+    `../../../public/models/tank-${role}.glb`,
+    import.meta.url
+  );
+  const data = readFileSync(path);
+  const jsonLength = data.readUInt32LE(12);
+  const gltf = JSON.parse(
+    data.subarray(20, 20 + jsonLength).toString('utf8')
+  ) as GltfAsset;
+  const parents = new Map<number, number>();
+  gltf.nodes.forEach((node, parent) => {
+    for (const child of node.children ?? []) parents.set(child, parent);
+  });
+  return { gltf, parents, bytes: statSync(path).size };
+}
 
-function nodeIndex(name: string): number {
-  const index = gltf.nodes.findIndex((node) => node.name === name);
+function nodeIndex(asset: GltfAsset, name: string): number {
+  const index = asset.nodes.findIndex((node) => node.name === name);
   expect(index, `missing node ${name}`).toBeGreaterThanOrEqual(0);
   return index;
 }
 
-function regionOf(name: string): string {
-  let current: number | undefined = nodeIndex(name);
+function regionOf(
+  asset: GltfAsset,
+  parents: Map<number, number>,
+  name: string
+): string {
+  let current: number | undefined = nodeIndex(asset, name);
   while (current !== undefined) {
-    const node = gltf.nodes[current]!;
+    const node = asset.nodes[current]!;
     if (node.name === 'GunPivot') return 'gun';
     if (node.name === 'TurretPivot') return 'turret';
     if (node.name === 'Hull') return 'hull';
@@ -45,57 +53,39 @@ function regionOf(name: string): string {
   throw new Error(`${name} is outside the tank rig`);
 }
 
-function triangleCount(name: string): number {
-  const node = gltf.nodes[nodeIndex(name)]!;
-  const mesh = gltf.meshes[node.mesh!]!;
-  return mesh.primitives.reduce(
-    (total, primitive) => total + gltf.accessors[primitive.indices]!.count / 3,
-    0
-  );
-}
+describe.each(['scout', 'medium', 'heavy'] as const)(
+  '%s tank asset',
+  (role) => {
+    const { gltf, parents, bytes } = load(role);
 
-describe('authored tank GLB regions', () => {
-  it.each([
-    ['Applique_Hull', 'hull'],
-    ['Gear_Hull', 'hull'],
-    ['Glass_Hull', 'hull'],
-    ['Hull_477', 'hull'],
-    ['SideSkirts_477', 'hull'],
-    ['Tracks_420', 'hull'],
-    ['Applique_Turret', 'turret'],
-    ['Gear_Turret', 'turret'],
-    ['Glass_Turret', 'turret'],
-    ['Turret_229', 'turret'],
-    ['Gear_24', 'turret'],
-    ['Barrel_Cannon_13', 'gun'],
-    ['Glass_Gun', 'gun'],
-  ])('keeps %s on the %s joint', (name, region) => {
-    expect(regionOf(name)).toBe(region);
-  });
+    it('keeps the articulated rig and one uniquely named wheel set', () => {
+      for (const name of ['Hull', 'TurretPivot', 'GunPivot', 'Muzzle']) {
+        nodeIndex(gltf, name);
+      }
+      expect(regionOf(gltf, parents, 'Turret_229')).toBe('turret');
+      expect(regionOf(gltf, parents, 'Barrel_Cannon_13')).toBe('gun');
+      const wheels = gltf.nodes.filter((node) =>
+        /^Wheel_[LR]_\d\d$/.test(node.name ?? '')
+      );
+      expect(wheels).toHaveLength(14);
+      expect(new Set(wheels.map((node) => node.name)).size).toBe(14);
+      for (const wheel of wheels) {
+        expect(regionOf(gltf, parents, wheel.name!)).toBe('hull');
+      }
+    });
 
-  it('does not retain unsplit mixed-region meshes', () => {
-    for (const name of ['Applique_176', 'Gear_980', 'Glass_13']) {
-      expect(gltf.nodes.some((node) => node.name === name)).toBe(false);
+    it('uses Draco geometry within the 3 MB budget', () => {
+      expect(gltf.extensionsRequired).toContain('KHR_draco_mesh_compression');
+      expect(bytes).toBeLessThanOrEqual(3 * 1024 * 1024);
+    });
+
+    if (role !== 'scout') {
+      it('retains WebP PBR maps', () => {
+        expect(gltf.images.length).toBeGreaterThan(0);
+        expect(
+          gltf.images.every((image) => image.mimeType === 'image/webp')
+        ).toBe(true);
+      });
     }
-  });
-
-  it.each([
-    ['Applique_Hull', 2899],
-    ['Applique_Turret', 1960],
-    ['Gear_Hull', 336],
-    ['Gear_Turret', 1186],
-    ['Glass_Hull', 103],
-    ['Glass_Turret', 32],
-    ['Glass_Gun', 6],
-  ])('preserves every face in %s', (name, expected) => {
-    expect(triangleCount(name)).toBe(expected);
-  });
-
-  it('keeps Draco geometry and WebP textures', () => {
-    expect(gltf.extensionsRequired).toContain('KHR_draco_mesh_compression');
-    expect(gltf.images.length).toBeGreaterThan(0);
-    expect(gltf.images.every((image) => image.mimeType === 'image/webp')).toBe(
-      true
-    );
-  });
-});
+  }
+);

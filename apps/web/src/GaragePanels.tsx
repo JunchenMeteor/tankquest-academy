@@ -122,16 +122,22 @@ export function MissionPanel({
 
 export function TankPanel({
   tank,
+  tanks,
+  selectedTankId,
   skins,
   busy,
   online,
+  onSelectTank,
   onEquipSkin,
   onUpgrade,
 }: {
   tank: OwnedTankDto;
+  tanks: OwnedTankDto[];
+  selectedTankId: string;
   skins: TankSkinDto[];
   busy: boolean;
   online: boolean;
+  onSelectTank: (tankId: string) => void;
   onEquipSkin: (skinId: string) => void;
   onUpgrade: (stat: UpgradeableStat) => void;
 }) {
@@ -187,6 +193,20 @@ export function TankPanel({
         <p className="garage-eyebrow">{t('garage.tankStatus')}</p>
         <h2>{t(`content.${tank.code}`)}</h2>
       </header>
+      <div className="garage-tank-selector" aria-label={t('picker.ownedTanks')}>
+        {tanks.map((item) => (
+          <button
+            key={item.id}
+            className={`garage-tank-choice${item.id === selectedTankId ? ' selected' : ''}`}
+            data-tank-visual={item.code}
+            aria-pressed={item.id === selectedTankId}
+            onClick={() => onSelectTank(item.id)}
+          >
+            <strong>{t(`content.${item.code}`)}</strong>
+            <span>{t(`role.${item.role}`)}</span>
+          </button>
+        ))}
+      </div>
       <dl className="garage-stat-bars">
         {(['firepower', 'mobility', 'armor', 'stealth', 'vision'] as const).map(
           (key) => (

@@ -4,6 +4,7 @@ import {
   chooseTier,
   createFrameSampler,
   downgrade,
+  hasForcedQualityTier,
   readStoredTier,
   shouldDowngrade,
   tierFromQuery,
@@ -66,6 +67,12 @@ describe('quality tiers', () => {
     expect(tierFromQuery('?quality=low')).toBe('low');
     expect(tierFromQuery('?quality=ultra')).toBeNull();
     expect(tierFromQuery('')).toBeNull();
+  });
+
+  it('locks an explicit quality query against automatic downgrades', () => {
+    expect(hasForcedQualityTier('?quality=high')).toBe(true);
+    expect(hasForcedQualityTier('?quality=ultra')).toBe(false);
+    expect(hasForcedQualityTier('')).toBe(false);
   });
 
   it('ignores a stored value that is no longer a tier', () => {
