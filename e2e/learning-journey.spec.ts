@@ -551,12 +551,8 @@ test('starts a mission with the selected owned tank', async ({ page }) => {
   const ironProfile = page.locator('.garage-stats .garage-details-content');
   await expect(ironProfile).toBeVisible();
   expect(swiftText).not.toBe(await ironProfile.textContent());
-  await expect(
-    starShield.locator('[data-tank-visual="star-shield"]')
-  ).toBeVisible();
-  await expect(
-    swiftFox.locator('[data-tank-visual="swift-fox"]')
-  ).toBeVisible();
+  await expect(starShield).toHaveAttribute('data-tank-visual', 'star-shield');
+  await expect(swiftFox).toHaveAttribute('data-tank-visual', 'swift-fox');
 
   await swiftFox.click();
   const arcticSkin = page.getByRole('button', { name: 'Arctic Dash' });
