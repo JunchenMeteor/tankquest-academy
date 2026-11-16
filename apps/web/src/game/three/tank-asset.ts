@@ -10,14 +10,12 @@ import {
 import type { BufferGeometry, Object3D } from 'three';
 import { addRunningGearParts } from './running-gear-parts.js';
 import { tankRigFromScene, type TankRig } from './tank-rig.js';
-import {
-  applyTankRoleVariant,
-  type TankModelRole,
-} from './tank-role-variant.js';
+
+export type TankModelRole = 'scout' | 'medium' | 'heavy';
 
 /** Bump this when the GLB changes so cached copies are refetched. */
-export const tankAssetVersion = 'v10-region-rigging';
-export const tankAssetUrl = `/models/tank.glb?v=${tankAssetVersion}`;
+export const tankAssetVersion = 'v11-distinct-models';
+export const tankAssetUrl = `/models/tank-medium.glb?v=${tankAssetVersion}`;
 const cacheName = `tankquest-models-${tankAssetVersion}`;
 
 export interface TankAsset {
@@ -61,27 +59,33 @@ async function fetchTankAsset(): Promise<TankAsset> {
   }
 }
 
-let pendingRig: Promise<TankRig> | null = null;
+const pendingRigs = new Map<TankModelRole, Promise<TankRig>>();
 
-export function loadTankRig(): Promise<TankRig> {
-  pendingRig ??= fetchTankRig().catch((error: unknown) => {
-    pendingRig = null;
-    throw error;
-  });
-  return pendingRig;
+export function loadTankRig(role: TankModelRole = 'medium'): Promise<TankRig> {
+  let pending = pendingRigs.get(role);
+  if (!pending) {
+    pending = fetchTankRig(role).catch((error: unknown) => {
+      pendingRigs.delete(role);
+      throw error;
+    });
+    pendingRigs.set(role, pending);
+  }
+  return pending;
 }
 
-async function fetchTankRig(): Promise<TankRig> {
+async function fetchTankRig(role: TankModelRole): Promise<TankRig> {
   const [{ GLTFLoader }, { DRACOLoader }] = await Promise.all([
     import('three/examples/jsm/loaders/GLTFLoader.js'),
     import('three/examples/jsm/loaders/DRACOLoader.js'),
   ]);
   const draco = new DRACOLoader().setDecoderPath('/draco/');
   const loader = new GLTFLoader().setDRACOLoader(draco);
-  const data = await readCached(tankAssetUrl);
+  const data = await readCached(
+    `/models/tank-${role}.glb?v=${tankAssetVersion}`
+  );
   try {
     const gltf = await loader.parseAsync(data, '');
-    normalise(gltf.scene);
+    normalise(gltf.scene, 6, false);
     return tankRigFromScene(gltf.scene);
   } finally {
     draco.dispose();
@@ -191,28 +195,40 @@ export function bake(scene: Object3D): TankAsset {
 }
 
 /** Scales to the battle footprint, faces the barrel forward and rests on the ground. */
-export function normalise(root: Object3D, length = 6): void {
+export function normalise(
+  root: Object3D,
+  length = 6,
+  adjustWheels = true
+): void {
   const scaledWheelRadii = new Map<Object3D, number>();
-  root.traverse((node) => {
-    const idler = /^Wheel_[LR]_00$/.test(node.name);
-    const roadWheel = /^Wheel_[LR]_0[1-5]$/.test(node.name);
-    const sprocket = /^Wheel_[LR]_06$/.test(node.name);
-    if (!idler && !roadWheel && !sprocket) return;
-    const scale = idler ? 0.65 : sprocket ? 0.9 : 0.85;
-    let radius = 55;
-    if (node instanceof Mesh) {
-      node.geometry.computeBoundingBox();
-      const size = node.geometry.boundingBox?.getSize(new Vector3());
-      if (size) radius = Math.max(size.y, size.z) / 2;
-    }
-    const contactLift = idler ? 23.92 : sprocket ? 2.34 : 0.77;
-    node.position.y += contactLift - radius * (1 - scale);
-    if (idler) node.position.z -= 12;
-    if (sprocket) node.position.z -= 3;
-    node.scale.multiplyScalar(scale);
-    scaledWheelRadii.set(node, (sprocket ? 56.5 : radius) * scale);
-  });
-  const accessories = addRunningGearParts(root);
+  if (adjustWheels) {
+    root.traverse((node) => {
+      const idler = /^Wheel_[LR]_00$/.test(node.name);
+      const roadWheel = /^Wheel_[LR]_0[1-5]$/.test(node.name);
+      const sprocket = /^Wheel_[LR]_06$/.test(node.name);
+      if (!idler && !roadWheel && !sprocket) return;
+      const scale = idler ? 0.65 : sprocket ? 0.9 : 0.85;
+      let radius = 55;
+      if (node instanceof Mesh) {
+        node.geometry.computeBoundingBox();
+        const size = node.geometry.boundingBox?.getSize(new Vector3());
+        if (size) radius = Math.max(size.y, size.z) / 2;
+      }
+      const contactLift = idler ? 23.92 : sprocket ? 2.34 : 0.77;
+      node.position.y += contactLift - radius * (1 - scale);
+      if (idler) node.position.z -= 12;
+      if (sprocket) node.position.z -= 3;
+      node.scale.multiplyScalar(scale);
+      scaledWheelRadii.set(node, (sprocket ? 56.5 : radius) * scale);
+    });
+  } else {
+    root.traverse((node) => {
+      if (typeof node.userData.rollingRadius === 'number') {
+        scaledWheelRadii.set(node, node.userData.rollingRadius);
+      }
+    });
+  }
+  const accessories = adjustWheels ? addRunningGearParts(root) : [];
   root.updateMatrixWorld(true);
   const box = new Box3().setFromObject(root);
   const size = box.getSize(new Vector3());
@@ -302,20 +318,15 @@ const cloneTextureSlots = [
 export function paintTankRig(
   asset: TankRig,
   color: number,
-  secondaryColor = color,
-  role: TankModelRole = 'medium'
+  secondaryColor = color
 ): TankRig {
   const root = asset.root.clone(true);
-  root.traverse((child) => {
-    if (!(child instanceof Mesh)) return;
-    const material = Array.isArray(child.material)
-      ? child.material[0]
-      : child.material;
-    if (!(material instanceof MeshStandardMaterial)) return;
+  const paintMaterial = (
+    material: MeshStandardMaterial,
+    vertexColors: boolean
+  ) => {
     const clone = material.clone();
-    clone.vertexColors = (child.geometry as BufferGeometry).hasAttribute(
-      'color'
-    );
+    clone.vertexColors = vertexColors;
     for (const slot of cloneTextureSlots) {
       const texture = clone[slot];
       if (texture) {
@@ -324,7 +335,7 @@ export function paintTankRig(
       }
     }
     if (
-      /^(Hull_477|Turret_229|Applique_176|Cannon_13|SideSkirts_477|Material)$/i.test(
+      /^(Hull_477|Turret_229|Applique_176|Cannon_13|SideSkirts_477|Material|Main|Body|body_lod1|turret_ring_lod1|ZenUV_Generic_Material.001|Turret|Gun)$/i.test(
         material.name
       )
     ) {
@@ -332,8 +343,20 @@ export function paintTankRig(
     } else if (/^(Gear_980|Gear_24)$/i.test(material.name)) {
       clone.color.setHex(secondaryColor);
     }
-    child.material = clone;
+    return clone;
+  };
+  root.traverse((child) => {
+    if (!(child instanceof Mesh)) return;
+    const vertexColors = (child.geometry as BufferGeometry).hasAttribute(
+      'color'
+    );
+    if (Array.isArray(child.material)) {
+      child.material = child.material.map((material) =>
+        paintMaterial(material, vertexColors)
+      );
+    } else if (child.material instanceof MeshStandardMaterial) {
+      child.material = paintMaterial(child.material, vertexColors);
+    }
   });
-  applyTankRoleVariant(root, role, color);
   return tankRigFromScene(root);
 }

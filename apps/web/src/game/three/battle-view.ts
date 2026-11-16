@@ -49,7 +49,7 @@ import {
 } from './battle-aim.js';
 import { buildTankModel } from './tank-model.js';
 import { createTankLabel } from './battle-tank-label.js';
-import { loadTankRig, paintTankRig } from './tank-asset.js';
+import { loadTankRig, paintTankRig, type TankModelRole } from './tank-asset.js';
 import { advanceRunningGear, type TankRig } from './tank-rig.js';
 import { bindBattlePointerInput } from './battle-pointer-input.js';
 import { createPlayerAimController } from './player-aim-controller.js';
@@ -75,6 +75,7 @@ import { planWaves } from './battle-waves.js';
 import {
   createFrameSampler,
   downgrade,
+  hasForcedQualityTier,
   qualitySettings,
   shouldDowngrade,
   type QualityTier,
@@ -279,7 +280,7 @@ export function createBattleView(
   const proceduralRigs = new Map<string, TankRig>();
   proceduralRigs.set('player', playerRig);
   let usingGlbTanks = false;
-  let glbAsset: TankRig | null = null;
+  const glbAssets = new Map<TankModelRole, TankRig>();
   const effects = new BattleEffects(scene);
   const hitFeedback = new BattleHitFeedback(scene);
   const gunRestPosition = playerRig.gun.position.clone();
@@ -300,8 +301,9 @@ export function createBattleView(
       : { scout: 'Scout', medium: 'Medium', heavy: 'Heavy' };
   const meshHitTest = createMeshHitTest(enemyRoots, [ground, boundary]);
   const spawnEnemy = (enemy: (typeof layout.enemies)[number]) => {
-    const rig = glbAsset
-      ? paintTankRig(glbAsset, enemy.color, enemy.secondaryColor, enemy.role)
+    const asset = glbAssets.get(enemy.role);
+    const rig = asset
+      ? paintTankRig(asset, enemy.color, enemy.secondaryColor)
       : buildTankModel(enemy, false);
     const maximumHealth = enemy.combat?.maxHealth ?? 100;
     const roleName = `${enemy.elite ? '★ ' : ''}${roleNames[enemy.role]}`;
@@ -545,18 +547,26 @@ export function createBattleView(
     playerRig.root.visible = state.mode !== 'first';
   };
 
+  const qualityForced =
+    typeof window !== 'undefined' &&
+    hasForcedQualityTier(window.location.search);
   const wantsProcedural =
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('model') === 'procedural';
   if (!wantsProcedural && quality === 'high') {
-    void loadTankRig()
-      .then((asset) => {
-        glbAsset = asset;
+    const roles: TankModelRole[] = ['scout', 'medium', 'heavy'];
+    void Promise.all(
+      roles.map((role) =>
+        loadTankRig(role).then((asset) => [role, asset] as const)
+      )
+    )
+      .then((assets) => {
+        for (const [role, asset] of assets) glbAssets.set(role, asset);
+        const asset = glbAssets.get(layout.player.role)!;
         const painted = paintTankRig(
           asset,
           layout.player.color,
-          layout.player.secondaryColor,
-          layout.player.role
+          layout.player.secondaryColor
         );
         painted.root.position.copy(playerRig.root.position);
         painted.root.rotation.y = playerRig.root.rotation.y;
@@ -570,12 +580,12 @@ export function createBattleView(
 
         for (const enemy of layout.enemies) {
           const root = enemyRoots.get(enemy.id);
-          if (!root) continue;
+          const enemyAsset = glbAssets.get(enemy.role);
+          if (!root || !enemyAsset) continue;
           const model = paintTankRig(
-            asset,
+            enemyAsset,
             enemy.color,
-            enemy.secondaryColor,
-            enemy.role
+            enemy.secondaryColor
           );
           model.root.position.copy(root.position);
           model.root.rotation.copy(root.rotation);
@@ -603,7 +613,7 @@ export function createBattleView(
     /* Watch the real frame rate and step down once if the GPU cannot keep up. */
     sampler.add(delta);
     if (sampler.ready) {
-      if (shouldDowngrade(quality, sampler.averageFps)) {
+      if (!qualityForced && shouldDowngrade(quality, sampler.averageFps)) {
         quality = downgrade(quality);
         applyQuality(quality);
         onQualityChange?.(quality);

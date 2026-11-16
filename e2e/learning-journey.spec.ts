@@ -533,38 +533,35 @@ test('starts a mission with the selected owned tank', async ({ page }) => {
   await expect(starShield).toBeVisible();
   await expect(swiftFox).toBeVisible();
   await expect(ironMountain).toBeVisible();
-  const swiftProfile = swiftFox.locator('.tank-combat-profile');
-  const ironProfile = ironMountain.locator('.tank-combat-profile');
+  const swiftProfile = page.locator('.garage-stats .garage-details-content');
   for (const label of [
+    'Health',
     'Shell',
     'Penetration',
     'Reload',
     'Speed',
-    'HP',
-    'Front armor',
     'Detection',
     'Visibility',
+    'Armor',
   ]) {
     await expect(swiftProfile).toContainText(label);
-    await expect(ironProfile).toContainText(label);
   }
-  expect(await swiftProfile.textContent()).not.toBe(
-    await ironProfile.textContent()
-  );
-  await expect(
-    starShield.locator('[data-tank-visual="star-shield"]')
-  ).toBeVisible();
-  await expect(
-    swiftFox.locator('[data-tank-visual="swift-fox"]')
-  ).toBeVisible();
+  const swiftText = await swiftProfile.textContent();
+  await ironMountain.click();
+  const ironProfile = page.locator('.garage-stats .garage-details-content');
+  await expect(ironProfile).toBeVisible();
+  expect(swiftText).not.toBe(await ironProfile.textContent());
+  await expect(starShield).toHaveAttribute('data-tank-visual', 'star-shield');
+  await expect(swiftFox).toHaveAttribute('data-tank-visual', 'swift-fox');
 
   await swiftFox.click();
   const arcticSkin = page.getByRole('button', { name: 'Arctic Dash' });
   await expect(arcticSkin).toBeVisible();
   await arcticSkin.click();
   await expect(arcticSkin).toHaveAttribute('aria-pressed', 'true');
-  await expect(swiftFox.locator('[fill="#85aebf"]')).not.toHaveCount(0);
-  await expect(swiftFox.locator('[fill="#f2f7f8"]')).not.toHaveCount(0);
+  await expect(
+    page.locator('canvas[data-garage-preview="swift-fox"]')
+  ).toBeVisible();
   const sessionRequest = page.waitForRequest(
     (request) =>
       request.url().endsWith('/api/game-sessions') &&
