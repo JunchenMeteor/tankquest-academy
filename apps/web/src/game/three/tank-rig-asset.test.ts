@@ -124,8 +124,12 @@ describe.each(['scout', 'medium', 'heavy'] as const)(
     }
 
     if (role === 'heavy') {
-      it('keeps the mantlet on the same articulated gun as the barrel', () => {
-        expect(regionOf(gltf, parents, 'Gear_Gun_Mantlet')).toBe('gun');
+      it('keeps the outer mantlet on the turret while the barrel elevates', () => {
+        expect(regionOf(gltf, parents, 'Gear_Turret_Mantlet')).toBe('turret');
+        expect(regionOf(gltf, parents, 'Barrel_Cannon_13')).toBe('gun');
+        expect(
+          gltf.nodes.findIndex((node) => node.name === 'Gear_Gun_Mantlet')
+        ).toBe(-1);
       });
     }
 
