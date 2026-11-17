@@ -1,5 +1,5 @@
 import { Mesh, MeshStandardMaterial } from 'three';
-import type { Group, Object3D, Texture } from 'three';
+import type { Group, Object3D, Texture, Vector3 } from 'three';
 
 import { sampleTrackPath, type TrackPath } from './running-gear-layout.js';
 
@@ -92,6 +92,15 @@ function rollingRadius(node: Object3D, fallback: number): number {
   return typeof radius === 'number' && Number.isFinite(radius) && radius > 0
     ? radius
     : fallback;
+}
+
+export function applyGunRecoil(
+  rig: TankRig,
+  restPosition: Vector3,
+  recoil: number
+): void {
+  const direction = rig.muzzle.position.clone().normalize();
+  rig.gun.position.copy(restPosition).addScaledVector(direction, -recoil);
 }
 
 export function advanceRunningGear(rig: TankRig, travelled: number): void {
