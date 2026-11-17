@@ -14,7 +14,7 @@ import { tankRigFromScene, type TankRig } from './tank-rig.js';
 export type TankModelRole = 'scout' | 'medium' | 'heavy';
 
 /** Bump this when the GLB changes so cached copies are refetched. */
-export const tankAssetVersion = 'v11-distinct-models';
+export const tankAssetVersion = 'v12-muzzle-orientation';
 export const tankAssetUrl = `/models/tank-medium.glb?v=${tankAssetVersion}`;
 const cacheName = `tankquest-models-${tankAssetVersion}`;
 
