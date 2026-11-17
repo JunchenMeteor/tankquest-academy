@@ -5,6 +5,7 @@ interface GltfNode {
   name?: string;
   mesh?: number;
   children?: number[];
+  translation?: [number, number, number];
 }
 
 interface GltfAsset {
@@ -72,6 +73,13 @@ describe.each(['scout', 'medium', 'heavy'] as const)(
       for (const wheel of wheels) {
         expect(regionOf(gltf, parents, wheel.name!)).toBe('hull');
       }
+    });
+
+    it('keeps the muzzle at a real barrel-tip position instead of the origin', () => {
+      const muzzle = gltf.nodes[nodeIndex(gltf, 'Muzzle')]!;
+      expect(muzzle.translation?.some((value) => Math.abs(value) > 0.001)).toBe(
+        true
+      );
     });
 
     it('uses Draco geometry within the 3 MB budget', () => {
