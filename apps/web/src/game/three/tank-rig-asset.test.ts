@@ -1,4 +1,5 @@
 import { readFileSync, statSync } from 'node:fs';
+import { Object3D, Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
 
 interface GltfNode {
@@ -6,6 +7,8 @@ interface GltfNode {
   mesh?: number;
   children?: number[];
   translation?: [number, number, number];
+  rotation?: [number, number, number, number];
+  scale?: [number, number, number];
 }
 
 interface GltfAsset {
@@ -54,6 +57,28 @@ function regionOf(
   throw new Error(`${name} is outside the tank rig`);
 }
 
+function worldPosition(asset: GltfAsset, name: string): Vector3 {
+  const scene = new Object3D();
+  const nodes = asset.nodes.map((node) => {
+    const object = new Object3D();
+    object.name = node.name ?? '';
+    if (node.translation) object.position.fromArray(node.translation);
+    if (node.rotation) object.quaternion.fromArray(node.rotation);
+    if (node.scale) object.scale.fromArray(node.scale);
+    return object;
+  });
+  asset.nodes.forEach((node, index) => {
+    for (const child of node.children ?? []) nodes[index]!.add(nodes[child]!);
+  });
+  nodes.forEach((node, index) => {
+    if (!asset.nodes.some((parent) => parent.children?.includes(index))) {
+      scene.add(node);
+    }
+  });
+  scene.updateMatrixWorld(true);
+  return scene.getObjectByName(name)!.getWorldPosition(new Vector3());
+}
+
 describe.each(['scout', 'medium', 'heavy'] as const)(
   '%s tank asset',
   (role) => {
@@ -75,17 +100,34 @@ describe.each(['scout', 'medium', 'heavy'] as const)(
       }
     });
 
-    it('keeps the muzzle at a real barrel-tip position instead of the origin', () => {
-      const muzzle = gltf.nodes[nodeIndex(gltf, 'Muzzle')]!;
-      expect(muzzle.translation?.some((value) => Math.abs(value) > 0.001)).toBe(
-        true
-      );
+    it('places the gun pivot at the turret connection and the muzzle at the tip', () => {
+      const turret = worldPosition(gltf, 'TurretPivot');
+      const gun = worldPosition(gltf, 'GunPivot');
+      const muzzle = worldPosition(gltf, 'Muzzle');
+      expect(gun.distanceTo(muzzle)).toBeGreaterThan(0.1);
+      expect(gun.distanceTo(turret)).toBeLessThan(muzzle.distanceTo(turret));
+      expect(muzzle.z).toBeGreaterThan(gun.z);
     });
 
     it('uses Draco geometry within the 3 MB budget', () => {
       expect(gltf.extensionsRequired).toContain('KHR_draco_mesh_compression');
       expect(bytes).toBeLessThanOrEqual(3 * 1024 * 1024);
     });
+
+    if (role === 'medium') {
+      it('keeps track-material fuel drums and fenders out of track animation', () => {
+        expect(regionOf(gltf, parents, 'Gear_Hull_TrackMaterial')).toBe('hull');
+        expect(
+          gltf.nodes.findIndex((node) => node.name === 'Tracks_420_Hull')
+        ).toBe(-1);
+      });
+    }
+
+    if (role === 'heavy') {
+      it('keeps the mantlet on the same articulated gun as the barrel', () => {
+        expect(regionOf(gltf, parents, 'Gear_Gun_Mantlet')).toBe('gun');
+      });
+    }
 
     if (role !== 'scout') {
       it('retains WebP PBR maps', () => {

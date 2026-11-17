@@ -1,6 +1,7 @@
 import {
   Box3,
   BufferAttribute,
+  Color,
   Group,
   Matrix4,
   Mesh,
@@ -14,7 +15,7 @@ import { tankRigFromScene, type TankRig } from './tank-rig.js';
 export type TankModelRole = 'scout' | 'medium' | 'heavy';
 
 /** Bump this when the GLB changes so cached copies are refetched. */
-export const tankAssetVersion = 'v12-muzzle-orientation';
+export const tankAssetVersion = 'v14-articulation-forward';
 export const tankAssetUrl = `/models/tank-medium.glb?v=${tankAssetVersion}`;
 const cacheName = `tankquest-models-${tankAssetVersion}`;
 
@@ -334,14 +335,18 @@ export function paintTankRig(
         clone[slot].needsUpdate = true;
       }
     }
+    const tint = (hex: number) => {
+      if (clone.map) clone.color.lerp(new Color(hex), 0.2);
+      else clone.color.setHex(hex);
+    };
     if (
       /^(Hull_477|Turret_229|Applique_176|Cannon_13|SideSkirts_477|Material|Main|Body|body_lod1|turret_ring_lod1|ZenUV_Generic_Material.001|Turret|Gun)$/i.test(
         material.name
       )
     ) {
-      clone.color.setHex(color);
+      tint(color);
     } else if (/^(Gear_980|Gear_24)$/i.test(material.name)) {
-      clone.color.setHex(secondaryColor);
+      tint(secondaryColor);
     }
     return clone;
   };

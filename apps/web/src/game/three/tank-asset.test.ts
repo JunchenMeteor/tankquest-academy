@@ -1,4 +1,12 @@
-import { BoxGeometry, Group, Mesh, MeshStandardMaterial, Vector3 } from 'three';
+import {
+  BoxGeometry,
+  Color,
+  Group,
+  Mesh,
+  MeshStandardMaterial,
+  Texture,
+  Vector3,
+} from 'three';
 import { describe, expect, it } from 'vitest';
 
 import { bake, normalise, paintTank, paintTankRig } from './tank-asset.js';
@@ -234,5 +242,37 @@ describe('imported tank asset', () => {
     expect(materials).toHaveLength(2);
     expect(materials[0]?.color.getHex()).toBe(0x426b8a);
     expect(materials[1]?.color.getHex()).toBe(0xe8c65a);
+  });
+});
+
+describe('authored PBR painting', () => {
+  it('keeps textured armour readable instead of replacing its base colour', () => {
+    const root = new Group();
+    const turret = new Group();
+    turret.name = 'TurretPivot';
+    const gun = new Group();
+    gun.name = 'GunPivot';
+    const muzzle = new Group();
+    muzzle.name = 'Muzzle';
+    gun.add(muzzle);
+    turret.add(gun);
+    const material = new MeshStandardMaterial({
+      color: 0x808080,
+      map: new Texture(),
+    });
+    material.name = 'Main';
+    const armour = part('Turret_229', 0, 2);
+    armour.material = material;
+    turret.add(armour);
+    root.add(turret);
+
+    const painted = paintTankRig(tankRigFromScene(root), 0x406080);
+    const paintedMaterial = (painted.root.getObjectByName('Turret_229') as Mesh)
+      .material as MeshStandardMaterial;
+    const expected = new Color(0x808080).lerp(new Color(0x406080), 0.2);
+
+    expect(paintedMaterial.color.toArray()).toEqual(expected.toArray());
+    expect(paintedMaterial.map).not.toBe(material.map);
+    expect(material.color.getHex()).toBe(0x808080);
   });
 });

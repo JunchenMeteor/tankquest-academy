@@ -9,7 +9,11 @@ import {
 import { describe, expect, it } from 'vitest';
 
 import { buildTankModel } from './tank-model.js';
-import { advanceRunningGear, tankRigFromScene } from './tank-rig.js';
+import {
+  advanceRunningGear,
+  applyGunRecoil,
+  tankRigFromScene,
+} from './tank-rig.js';
 
 describe('TankRig contract', () => {
   it('uses explicit articulation nodes instead of inferred bounds', () => {
@@ -161,5 +165,71 @@ describe('procedural TankRig', () => {
     advanceRunningGear(rig, -0.6);
     expect(loop.travelled).toBeCloseTo(0);
     expect(loop.links[0]!.position.x).toBeCloseTo(initialLinkX);
+  });
+});
+
+describe('tank presentation attachments', () => {
+  it('does not scroll textures on hull equipment that shares the track material', () => {
+    const root = new Group();
+    const texture = new Texture();
+    const material = new MeshStandardMaterial({ map: texture });
+    const track = new Mesh(undefined, material);
+    track.name = 'Tracks_420_L';
+    const equipment = new Mesh(undefined, material);
+    equipment.name = 'Gear_Hull_TrackMaterial';
+    root.add(track, equipment);
+    const turret = new Group();
+    turret.name = 'TurretPivot';
+    const gun = new Group();
+    gun.name = 'GunPivot';
+    const muzzle = new Group();
+    muzzle.name = 'Muzzle';
+    gun.add(muzzle);
+    turret.add(gun);
+    root.add(turret);
+
+    const rig = tankRigFromScene(root);
+    advanceRunningGear(rig, 2);
+
+    expect(rig.trackTextures).toEqual([texture]);
+    expect(texture.offset.y).toBeCloseTo(-0.5);
+    expect(equipment.rotation.x).toBe(0);
+  });
+
+  it('recoils a +Z imported gun without moving it sideways', () => {
+    const gun = new Object3D();
+    const muzzle = new Object3D();
+    muzzle.position.z = 4;
+    gun.add(muzzle);
+    const rig = { gun, muzzle } as ReturnType<typeof tankRigFromScene>;
+    const rest = new Vector3(1, 2, 3);
+
+    applyGunRecoil(rig, rest, 0.12);
+    expect(gun.position.toArray()).toEqual([1, 2, 2.88]);
+    applyGunRecoil(rig, rest, 0);
+    expect(gun.position.toArray()).toEqual([1, 2, 3]);
+  });
+
+  it('recoils a +X procedural gun along its own barrel', () => {
+    const rig = buildTankModel(
+      {
+        id: 'player',
+        role: 'medium',
+        elite: false,
+        position: { x: 0, y: 0, z: 0 },
+        heading: 0,
+        hull: [3.4, 1, 2],
+        turretRadius: 0.95,
+        barrelLength: 2.4,
+        color: 0x6d8798,
+      },
+      true
+    );
+    const rest = rig.gun.position.clone();
+
+    applyGunRecoil(rig, rest, 0.12);
+    expect(rig.gun.position.x).toBeCloseTo(rest.x - 0.12);
+    expect(rig.gun.position.y).toBeCloseTo(rest.y);
+    expect(rig.gun.position.z).toBeCloseTo(rest.z);
   });
 });
