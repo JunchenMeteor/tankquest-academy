@@ -50,7 +50,11 @@ import {
 import { buildTankModel } from './tank-model.js';
 import { createTankLabel } from './battle-tank-label.js';
 import { loadTankRig, paintTankRig, type TankModelRole } from './tank-asset.js';
-import { advanceRunningGear, type TankRig } from './tank-rig.js';
+import {
+  advanceRunningGear,
+  applyGunRecoil,
+  type TankRig,
+} from './tank-rig.js';
 import { bindBattlePointerInput } from './battle-pointer-input.js';
 import { createPlayerAimController } from './player-aim-controller.js';
 import { applyTankGroundPose } from './terrain-contact.js';
@@ -1104,7 +1108,7 @@ export function createBattleView(
             reticleBounds.height
           );
         }
-        playerRig.gun.translateX(-recoil);
+        applyGunRecoil(playerRig, gunRestPosition, recoil);
         recoil = Math.max(0, recoil - delta * 0.65);
       }
     };
