@@ -111,21 +111,23 @@ export function applyGunRecoil(
 }
 
 export function advanceRunningGear(rig: TankRig, travelled: number): void {
+  const rotationDirection = rig.wheelAxis === 'x' ? 1 : -1;
   for (const wheel of rig.wheels) {
     const radius = rollingRadius(wheel, rig.wheelRadius * 0.85);
-    wheel.rotation[rig.wheelAxis] -= travelled / radius;
+    wheel.rotation[rig.wheelAxis] += rotationDirection * (travelled / radius);
   }
   for (const idler of rig.idlers) {
     const radius = rollingRadius(idler, rig.wheelRadius * 0.65);
-    idler.rotation[rig.wheelAxis] -= travelled / radius;
+    idler.rotation[rig.wheelAxis] += rotationDirection * (travelled / radius);
   }
   for (const sprocket of rig.sprockets) {
     const radius = rollingRadius(sprocket, rig.wheelRadius * 0.9);
-    sprocket.rotation[rig.wheelAxis] -= travelled / radius;
+    sprocket.rotation[rig.wheelAxis] +=
+      rotationDirection * (travelled / radius);
   }
   for (const roller of rig.returnRollers) {
     const radius = rollingRadius(roller, 0.14);
-    roller.rotation[rig.wheelAxis] -= travelled / radius;
+    roller.rotation[rig.wheelAxis] += rotationDirection * (travelled / radius);
   }
   for (const texture of rig.trackTextures) {
     const axis = texture.userData.scrollAxis === 'x' ? 'x' : 'y';
