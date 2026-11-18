@@ -55,6 +55,7 @@ describe('TankRig contract', () => {
       root: new Group(),
       turret: new Object3D(),
       gun: new Object3D(),
+      recoil: new Object3D(),
       muzzle: new Object3D(),
       wheels: [wheel],
       idlers: [],
@@ -84,6 +85,7 @@ describe('TankRig contract', () => {
       root: new Group(),
       turret: new Object3D(),
       gun: new Object3D(),
+      recoil: new Object3D(),
       muzzle: new Object3D(),
       wheels: [],
       idlers: [idler],
@@ -196,6 +198,30 @@ describe('tank presentation attachments', () => {
     expect(equipment.rotation.x).toBe(0);
   });
 
+  it('scrolls the Tiger track atlas along its U axis', () => {
+    const root = new Group();
+    const texture = new Texture();
+    const material = new MeshStandardMaterial({ map: texture });
+    material.name = 'Track';
+    const track = new Mesh(undefined, material);
+    track.name = 'Tracks_420';
+    const turret = new Group();
+    turret.name = 'TurretPivot';
+    const gun = new Group();
+    gun.name = 'GunPivot';
+    const muzzle = new Group();
+    muzzle.name = 'Muzzle';
+    gun.add(muzzle);
+    turret.add(gun);
+    root.add(track, turret);
+    const rig = tankRigFromScene(root);
+
+    advanceRunningGear(rig, 2);
+
+    expect(texture.offset.x).toBeCloseTo(-0.5);
+    expect(texture.offset.y).toBe(0);
+  });
+
   it('recoils a +Z imported gun without moving it sideways', () => {
     const gun = new Object3D();
     const muzzle = new Object3D();
@@ -208,6 +234,35 @@ describe('tank presentation attachments', () => {
     expect(gun.position.toArray()).toEqual([1, 2, 2.88]);
     applyGunRecoil(rig, rest, 0);
     expect(gun.position.toArray()).toEqual([1, 2, 3]);
+  });
+
+  it('keeps the trunnion and mantlet fixed while only the barrel recoils', () => {
+    const root = new Group();
+    const turret = new Group();
+    turret.name = 'TurretPivot';
+    const gun = new Group();
+    gun.name = 'GunPivot';
+    gun.position.set(1, 2, 3);
+    const recoil = new Group();
+    recoil.name = 'RecoilPivot';
+    const mantlet = new Group();
+    const muzzle = new Object3D();
+    muzzle.name = 'Muzzle';
+    muzzle.position.z = 4;
+    root.add(turret);
+    turret.add(gun);
+    gun.add(recoil, mantlet);
+    recoil.add(muzzle);
+    const rig = tankRigFromScene(root);
+    const rest = recoil.position.clone();
+
+    applyGunRecoil(rig, rest, 0.12);
+
+    expect(gun.position.toArray()).toEqual([1, 2, 3]);
+    expect(mantlet.position.toArray()).toEqual([0, 0, 0]);
+    expect(recoil.position.toArray()).toEqual([0, 0, -0.12]);
+    applyGunRecoil(rig, rest, 0);
+    expect(recoil.position.toArray()).toEqual([0, 0, 0]);
   });
 
   it('recoils a +X procedural gun along its own barrel', () => {

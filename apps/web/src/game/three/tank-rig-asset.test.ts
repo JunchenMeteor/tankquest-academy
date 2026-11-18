@@ -13,7 +13,10 @@ interface GltfNode {
 
 interface GltfAsset {
   nodes: GltfNode[];
-  meshes: { primitives: { indices: number }[] }[];
+  meshes: {
+    primitives: { indices: number; attributes: { POSITION: number } }[];
+  }[];
+  accessors: { min?: number[]; max?: number[] }[];
   images: { mimeType?: string }[];
   extensionsRequired?: string[];
 }
@@ -124,12 +127,49 @@ describe.each(['scout', 'medium', 'heavy'] as const)(
     }
 
     if (role === 'heavy') {
-      it('keeps the outer mantlet on the turret while the barrel elevates', () => {
-        expect(regionOf(gltf, parents, 'Gear_Turret_Mantlet')).toBe('turret');
+      it('keeps every wheel mesh centred on its own axle', () => {
+        const wheels = gltf.nodes.filter((node) =>
+          /^Wheel_[LR]_\d\d$/.test(node.name ?? '')
+        );
+        for (const wheel of wheels) {
+          const primitive = gltf.meshes[wheel.mesh!]!.primitives[0]!;
+          const accessor = gltf.accessors[primitive.attributes.POSITION]!;
+          const centre = accessor.min!.map(
+            (value, index) => (value + accessor.max![index]!) / 2
+          );
+          expect(Math.hypot(...centre), wheel.name).toBeLessThan(0.05);
+        }
+      });
+
+      it('articulates the outer mantlet and barrel around the trunnion axis', () => {
+        expect(regionOf(gltf, parents, 'Gear_Gun_Mantlet')).toBe('gun');
         expect(regionOf(gltf, parents, 'Barrel_Cannon_13')).toBe('gun');
         expect(
-          gltf.nodes.findIndex((node) => node.name === 'Gear_Gun_Mantlet')
+          gltf.nodes.findIndex((node) => node.name === 'Gear_Turret_Mantlet')
         ).toBe(-1);
+        const trunnion = worldPosition(gltf, 'GunPivot');
+        expect(trunnion.x).toBeCloseTo(0, 4);
+        expect(trunnion.y).toBeCloseTo(2.2748733, 5);
+        expect(trunnion.z).toBeCloseTo(1.4601427, 5);
+      });
+
+      it('keeps the smoke launcher components on the rotating turret', () => {
+        const launchers = gltf.nodes.filter((node) =>
+          node.name?.startsWith('Gear_Turret_Smoke')
+        );
+        expect(launchers.length).toBeGreaterThan(0);
+        for (const launcher of launchers) {
+          expect(regionOf(gltf, parents, launcher.name!)).toBe('turret');
+        }
+      });
+
+      it('recoils only the barrel and muzzle without translating the mantlet', () => {
+        const recoil = nodeIndex(gltf, 'RecoilPivot');
+        expect(parents.get(nodeIndex(gltf, 'Barrel_Cannon_13'))).toBe(recoil);
+        expect(parents.get(nodeIndex(gltf, 'Muzzle'))).toBe(recoil);
+        expect(parents.get(nodeIndex(gltf, 'Gear_Gun_Mantlet'))).toBe(
+          nodeIndex(gltf, 'GunPivot')
+        );
       });
     }
 

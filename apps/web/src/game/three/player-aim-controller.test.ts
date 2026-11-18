@@ -21,6 +21,7 @@ function rigWithOffset(): TankRig {
     root,
     turret,
     gun,
+    recoil: gun,
     muzzle,
     wheels: [],
     idlers: [],
