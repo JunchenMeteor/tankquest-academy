@@ -71,7 +71,7 @@ export default function GarageTankPreview({
     scene.background = null;
     scene.fog = new Fog(0x121b1f, 12, 28);
     sceneRef.current = scene;
-    const camera = new PerspectiveCamera(42, 1, 0.1, 100);
+    const camera = new PerspectiveCamera(35, 1, 0.1, 100);
     camera.position.set(7, 4.1, 7);
     camera.lookAt(new Vector3(0, 0.85, 0));
     const renderer = new WebGLRenderer({ alpha: true, antialias: true });
@@ -106,6 +106,7 @@ export default function GarageTankPreview({
         colorNumber(colorsRef.current.secondaryColor, 0xe8c65a)
       );
       painted.root.rotation.y = -0.45;
+      painted.root.scale.setScalar(1.18);
       painted.root.traverse((node) => {
         if (node instanceof Mesh) node.castShadow = true;
       });
@@ -123,7 +124,9 @@ export default function GarageTankPreview({
       });
     attach();
 
-    let distance = 10;
+    const defaultDistance = 5.5;
+    let distance = defaultDistance;
+    let framingScale = 1;
     let yaw = -0.45;
     let dragging = false;
     let previousX = 0;
@@ -133,6 +136,7 @@ export default function GarageTankPreview({
       const height = Math.max(1, host.clientHeight);
       renderer.setSize(width, height);
       camera.aspect = width / height;
+      framingScale = Math.max(1, 2.2 / camera.aspect);
       camera.updateProjectionMatrix();
     };
     const observer = new ResizeObserver(resize);
@@ -170,7 +174,7 @@ export default function GarageTankPreview({
       if (event.key === 'ArrowRight') paintedRef.current.rotation.y += 0.12;
       if (event.key.toLowerCase() === 'r') {
         paintedRef.current.rotation.y = -0.45;
-        distance = 10;
+        distance = defaultDistance;
       }
       if (event.key.startsWith('Arrow') || event.key.toLowerCase() === 'r') {
         event.preventDefault();
@@ -186,7 +190,7 @@ export default function GarageTankPreview({
     let frame = 0;
     const render = () => {
       frame = requestAnimationFrame(render);
-      const scale = distance / 10;
+      const scale = (distance / 10) * framingScale;
       camera.position.set(7 * scale, 4.1 * scale, 7 * scale);
       camera.lookAt(0, 0.85, 0);
       renderer.render(scene, camera);

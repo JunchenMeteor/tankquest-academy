@@ -7,7 +7,7 @@
   gap: 16px;
   max-width: 1600px;
   margin: 0 auto;
-  padding: 16px 16px 96px;
+  padding: 16px;
   color: #e7edf0;
 }
 
@@ -133,7 +133,7 @@
 .garage-preview-frame {
   display: grid;
   width: 100%;
-  height: clamp(240px, 32vh, 310px);
+  height: clamp(180px, 25vh, 240px);
   min-height: 0;
   flex: none;
   place-items: center;
@@ -285,34 +285,10 @@
   outline: 2px solid #d9b960;
 }
 
-.garage-startbar {
-  position: fixed;
-  z-index: 20;
-  bottom: 12px;
-  left: 50%;
-  width: min(calc(100% - 32px), 1568px);
-  transform: translateX(-50%);
-  grid-column: 1 / -1;
+.garage-stage-actions {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  border: 1px solid #52636a;
-  border-radius: 10px;
-  padding: 12px 16px;
-  background: #101b20f2;
-  box-shadow: 0 -8px 24px #0005;
-  backdrop-filter: blur(10px);
-}
-
-.garage-startbar > div {
-  display: grid;
-  gap: 3px;
-}
-
-.garage-startbar span,
-.garage-startbar small {
-  color: #91a7af;
+  align-items: flex-start;
+  gap: 10px;
 }
 
 .garage-start {
@@ -354,9 +330,18 @@
     order: -2;
   }
 
+  .garage-stage-heading {
+    flex-wrap: wrap;
+  }
+
+  .garage-stage-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .garage-preview-frame,
   .garage-preview {
-    height: 240px;
+    height: 200px;
     min-height: 0;
   }
 
@@ -370,11 +355,6 @@
 
   .garage-stats {
     display: block;
-  }
-
-  .garage-startbar {
-    margin-top: 4px;
-    padding: 10px;
   }
 
   .garage-start {
