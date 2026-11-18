@@ -134,7 +134,7 @@ export default function GarageTankPreview({
     const resize = () => {
       const width = Math.max(1, host.clientWidth);
       const height = Math.max(1, host.clientHeight);
-      renderer.setSize(width, height);
+      renderer.setSize(width, height, false);
       camera.aspect = width / height;
       framingScale = Math.max(1, 3 / camera.aspect);
       camera.updateProjectionMatrix();
