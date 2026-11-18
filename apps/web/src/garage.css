@@ -133,7 +133,7 @@
 .garage-preview-frame {
   display: grid;
   width: 100%;
-  height: clamp(180px, 25vh, 240px);
+  height: clamp(260px, 38vh, 360px);
   min-width: 0;
   min-height: 0;
   overflow: hidden;
