@@ -13,6 +13,7 @@ export interface TankRig {
   root: Group;
   turret: Object3D;
   gun: Object3D;
+  recoil: Object3D;
   muzzle: Object3D;
   wheels: Object3D[];
   idlers: Object3D[];
@@ -44,7 +45,10 @@ export function texturesForTracks(root: Object3D): Texture[] {
       if (!(material instanceof MeshStandardMaterial)) continue;
       for (const slot of textureSlots) {
         const texture = material[slot];
-        if (texture) textures.add(texture);
+        if (!texture) continue;
+        texture.userData.scrollAxis =
+          node.name === 'Tracks_420' && material.name === 'Track' ? 'x' : 'y';
+        textures.add(texture);
       }
     }
   });
@@ -58,6 +62,7 @@ export function tankRigFromScene(root: Group): TankRig {
   if (!turret || !gun || !muzzle) {
     throw new Error('Tank rig requires explicit turret, gun, and muzzle nodes');
   }
+  const recoil = root.getObjectByName('RecoilPivot') ?? gun;
   gun.userData.pitchAxis = 'x';
   const wheels: Object3D[] = [];
   const idlers: Object3D[] = [];
@@ -75,6 +80,7 @@ export function tankRigFromScene(root: Group): TankRig {
     root,
     turret,
     gun,
+    recoil,
     muzzle,
     wheels,
     idlers,
@@ -100,7 +106,8 @@ export function applyGunRecoil(
   recoil: number
 ): void {
   const direction = rig.muzzle.position.clone().normalize();
-  rig.gun.position.copy(restPosition).addScaledVector(direction, -recoil);
+  const recoilNode = rig.recoil ?? rig.gun;
+  recoilNode.position.copy(restPosition).addScaledVector(direction, -recoil);
 }
 
 export function advanceRunningGear(rig: TankRig, travelled: number): void {
@@ -121,7 +128,8 @@ export function advanceRunningGear(rig: TankRig, travelled: number): void {
     roller.rotation[rig.wheelAxis] -= travelled / radius;
   }
   for (const texture of rig.trackTextures) {
-    texture.offset.y -= travelled * 0.25;
+    const axis = texture.userData.scrollAxis === 'x' ? 'x' : 'y';
+    texture.offset[axis] -= travelled * 0.25;
   }
   for (const loop of rig.trackLoops) {
     loop.travelled += travelled;

@@ -287,7 +287,7 @@ export function createBattleView(
   const glbAssets = new Map<TankModelRole, TankRig>();
   const effects = new BattleEffects(scene);
   const hitFeedback = new BattleHitFeedback(scene);
-  const gunRestPosition = playerRig.gun.position.clone();
+  const gunRestPosition = playerRig.recoil.position.clone();
   let recoil = 0;
   const enemySpeeds = new Map<string, number>();
   for (const enemy of config.enemies) {
@@ -578,7 +578,7 @@ export function createBattleView(
         scene.remove(playerRig.root);
         scene.add(painted.root);
         playerRig = painted;
-        gunRestPosition.copy(painted.gun.position);
+        gunRestPosition.copy(painted.recoil.position);
         recoil = 0;
         usingGlbTanks = true;
 
@@ -631,7 +631,7 @@ export function createBattleView(
             procedural.root.add(playerLabel.sprite);
             scene.add(procedural.root);
             playerRig = procedural;
-            gunRestPosition.copy(procedural.gun.position);
+            gunRestPosition.copy(procedural.recoil.position);
             recoil = 0;
             usingGlbTanks = false;
           }
@@ -641,7 +641,7 @@ export function createBattleView(
     }
     const update = (delta: number) => {
       if (input) {
-        playerRig.gun.position.copy(gunRestPosition);
+        playerRig.recoil.position.copy(gunRestPosition);
         const previousPositions = new Map<string, { x: number; z: number }>([
           ['player', { x: state.position.x, z: state.position.z }],
           ...layout.enemies.map(
