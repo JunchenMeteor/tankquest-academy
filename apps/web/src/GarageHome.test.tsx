@@ -129,6 +129,14 @@ describe('GarageHome', () => {
     expect(callbacks.onStart).toHaveBeenCalledOnce();
   });
 
+  it('places the start action above the preview without a bottom start bar', async () => {
+    await mount();
+    expect(
+      container?.querySelector('.garage-stage-heading .garage-start')
+    ).not.toBeNull();
+    expect(container?.querySelector('.garage-startbar')).toBeNull();
+  });
+
   it('filters missions and toggles the detailed statistics panel', async () => {
     await mount();
     const search = container?.querySelector('.garage-search');
