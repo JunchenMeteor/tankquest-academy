@@ -48,7 +48,7 @@ describe('TankRig contract', () => {
     expect(rig.trackTextures).toHaveLength(1);
   });
 
-  it('drives wheels and track textures in both travel directions', () => {
+  it('rolls imported wheels forwards and backwards with the track textures', () => {
     const wheel = new Object3D();
     const texture = new Texture();
     const rig = {
@@ -68,15 +68,15 @@ describe('TankRig contract', () => {
     };
 
     advanceRunningGear(rig, 1.5);
-    expect(wheel.rotation.x).toBeCloseTo(-1.5 / (0.3 * 0.85));
+    expect(wheel.rotation.x).toBeCloseTo(1.5 / (0.3 * 0.85));
     expect(texture.offset.y).toBeCloseTo(-0.375);
 
     advanceRunningGear(rig, -0.5);
-    expect(wheel.rotation.x).toBeCloseTo(-1 / (0.3 * 0.85));
+    expect(wheel.rotation.x).toBeCloseTo(1 / (0.3 * 0.85));
     expect(texture.offset.y).toBeCloseTo(-0.25);
   });
 
-  it('rotates idlers and sprockets with their measured radii', () => {
+  it('rotates imported idlers and sprockets forwards with their measured radii', () => {
     const idler = new Object3D();
     idler.userData.rollingRadius = 0.21;
     const sprocket = new Object3D();
@@ -97,8 +97,8 @@ describe('TankRig contract', () => {
       trackLoops: [],
     };
     advanceRunningGear(rig, 1);
-    expect(idler.rotation.x).toBeCloseTo(-1 / 0.21);
-    expect(sprocket.rotation.x).toBeCloseTo(-1 / 0.33);
+    expect(idler.rotation.x).toBeCloseTo(1 / 0.21);
+    expect(sprocket.rotation.x).toBeCloseTo(1 / 0.33);
   });
 
   it('reads the muzzle from its articulated world transform', () => {
