@@ -518,6 +518,7 @@ export function buildTankModel(
     root: group,
     turret,
     gun: gunGroup,
+    recoil: gunGroup,
     muzzle,
     wheels,
     idlers,
