@@ -60,9 +60,15 @@ export function GarageHome(props: GarageHomeProps) {
               {t('picker.level', { value: tank.level })}
             </p>
           </div>
-          <span className="garage-mission-tag">
-            {t(`content.${level.code}`)}
-          </span>
+          <div className="garage-stage-actions">
+            <button
+              className="primary-start garage-start"
+              disabled={props.busy || !props.online}
+              onClick={props.onStart}
+            >
+              <span aria-hidden="true">▶</span> {t('action.start')}
+            </button>
+          </div>
         </header>
         <div className="garage-preview-frame">
           <Suspense
@@ -93,20 +99,6 @@ export function GarageHome(props: GarageHomeProps) {
         onEquipSkin={props.onEquipSkin}
         onUpgrade={props.onUpgrade}
       />
-      <footer className="garage-startbar">
-        <div>
-          <span>{t('garage.currentMission')}</span>
-          <strong>{t(`content.${level.code}`)}</strong>
-          <small>{t(`content.${tank.code}`)}</small>
-        </div>
-        <button
-          className="primary-start garage-start"
-          disabled={props.busy || !props.online}
-          onClick={props.onStart}
-        >
-          <span aria-hidden="true">▶</span> {t('action.start')}
-        </button>
-      </footer>
     </section>
   );
 }
