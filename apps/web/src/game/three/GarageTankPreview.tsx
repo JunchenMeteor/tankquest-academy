@@ -136,7 +136,7 @@ export default function GarageTankPreview({
       const height = Math.max(1, host.clientHeight);
       renderer.setSize(width, height);
       camera.aspect = width / height;
-      framingScale = Math.max(1, 2.2 / camera.aspect);
+      framingScale = Math.max(1, 3 / camera.aspect);
       camera.updateProjectionMatrix();
     };
     const observer = new ResizeObserver(resize);
