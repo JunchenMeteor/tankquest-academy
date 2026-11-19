@@ -11,12 +11,6 @@ import type { ScenePalette } from '../presentation/map-visual-definition.js';
 
 export type BattleSurfaceKind = 'ground' | 'cover';
 
-function hash(x: number, y: number, seed: number): number {
-  let value = Math.imul(x + seed, 374761393) + Math.imul(y - seed, 668265263);
-  value = Math.imul(value ^ (value >>> 13), 1274126177);
-  return ((value ^ (value >>> 16)) >>> 0) / 4294967295;
-}
-
 export function battleSurfacePixels(
   theme: RuntimeLevelConfig['theme'],
   baseColor: number,
@@ -30,21 +24,22 @@ export function battleSurfacePixels(
   const blue = baseColor & 0xff;
   for (let y = 0; y < size; y += 1) {
     for (let x = 0; x < size; x += 1) {
-      const broad = hash(Math.floor(x / 12), Math.floor(y / 12), seed) - 0.5;
-      const fine = hash(x, y, seed + 11) - 0.5;
-      let factor = 0.94 + broad * 0.16 + fine * 0.1;
+      const broad =
+        (((((x / 12) | 0) * 37) ^ (((y / 12) | 0) * 57) ^ seed) & 31) / 31 -
+        0.5;
+      let factor = 0.94 + broad * 0.22;
       if (kind === 'ground') {
         const lane = x % 64;
         if (theme !== 'snow-field' && (lane < 5 || (lane > 27 && lane < 32))) {
           factor *= y % 11 < 2 ? 0.72 : 0.84;
         }
-        if (theme === 'snow-field' && hash(x, y, seed + 29) > 0.965) {
+        if (
+          theme === 'snow-field' &&
+          (((x * 73) ^ (y * 91) ^ seed) & 255) > 245
+        ) {
           factor = 1.12;
         }
-      } else {
-        if (x % 32 < 2 || y % 32 < 2) factor *= 0.68;
-        if (x % 32 === 5 && y % 32 === 5) factor *= 0.48;
-      }
+      } else if (x % 32 < 2 || y % 32 < 2) factor *= 0.68;
       const offset = (y * size + x) * 4;
       pixels[offset] = Math.min(255, red * factor);
       pixels[offset + 1] = Math.min(255, green * factor);
@@ -69,11 +64,9 @@ function surfaceTexture(
     RGBAFormat
   );
   texture.colorSpace = SRGBColorSpace;
-  texture.wrapS = RepeatWrapping;
-  texture.wrapT = RepeatWrapping;
+  texture.wrapS = texture.wrapT = RepeatWrapping;
   texture.repeat.set(repeat, repeat);
-  texture.magFilter = LinearFilter;
-  texture.minFilter = LinearFilter;
+  texture.magFilter = texture.minFilter = LinearFilter;
   texture.needsUpdate = true;
   return texture;
 }
