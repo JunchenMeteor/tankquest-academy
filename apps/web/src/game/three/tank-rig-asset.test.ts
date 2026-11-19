@@ -94,10 +94,13 @@ describe.each(['scout', 'medium', 'heavy'] as const)(
       expect(regionOf(gltf, parents, 'Turret_229')).toBe('turret');
       expect(regionOf(gltf, parents, 'Barrel_Cannon_13')).toBe('gun');
       const wheels = gltf.nodes.filter((node) =>
-        /^Wheel_[LR]_\d\d$/.test(node.name ?? '')
+        /^Wheel_[LR]_\d\d(?:[AB])?$/.test(node.name ?? '')
       );
-      expect(wheels).toHaveLength(14);
-      expect(new Set(wheels.map((node) => node.name)).size).toBe(14);
+      const expectedWheelNodes = role === 'heavy' ? 20 : 14;
+      expect(wheels).toHaveLength(expectedWheelNodes);
+      expect(new Set(wheels.map((node) => node.name)).size).toBe(
+        expectedWheelNodes
+      );
       for (const wheel of wheels) {
         expect(regionOf(gltf, parents, wheel.name!)).toBe('hull');
       }
@@ -144,7 +147,7 @@ describe.each(['scout', 'medium', 'heavy'] as const)(
     if (role === 'heavy') {
       it('keeps every wheel mesh centred on its own axle', () => {
         const wheels = gltf.nodes.filter((node) =>
-          /^Wheel_[LR]_\d\d$/.test(node.name ?? '')
+          /^Wheel_[LR]_\d\d(?:[AB])?$/.test(node.name ?? '')
         );
         for (const wheel of wheels) {
           const primitive = gltf.meshes[wheel.mesh!]!.primitives[0]!;
@@ -153,6 +156,30 @@ describe.each(['scout', 'medium', 'heavy'] as const)(
             (value, index) => (value + accessor.max![index]!) / 2
           );
           expect(Math.hypot(...centre), wheel.name).toBeLessThan(0.05);
+        }
+      });
+
+      it('separates every interleaved road wheel onto its own axle', () => {
+        for (const side of ['L', 'R']) {
+          for (const suffix of [
+            '01',
+            '02A',
+            '02B',
+            '03A',
+            '03B',
+            '04A',
+            '04B',
+            '05',
+          ]) {
+            nodeIndex(gltf, `Wheel_${side}_${suffix}`);
+          }
+          for (const group of ['02', '03', '04']) {
+            expect(
+              gltf.nodes.findIndex(
+                (node) => node.name === `Wheel_${side}_${group}`
+              )
+            ).toBe(-1);
+          }
         }
       });
 
