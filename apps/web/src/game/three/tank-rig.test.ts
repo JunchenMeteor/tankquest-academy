@@ -1,4 +1,5 @@
 import {
+  BoxGeometry,
   Group,
   Mesh,
   MeshStandardMaterial,
@@ -10,12 +11,35 @@ import { describe, expect, it } from 'vitest';
 
 import { buildTankModel } from './tank-model.js';
 import {
+  addRoadWheelFaceMarkers,
   advanceRunningGear,
   applyGunRecoil,
   tankRigFromScene,
 } from './tank-rig.js';
 
 describe('TankRig contract', () => {
+  it('adds an off-centre face marker that follows the road wheel', () => {
+    const wheel = new Mesh(
+      new BoxGeometry(0.5, 1, 1),
+      new MeshStandardMaterial()
+    );
+    wheel.name = 'Wheel_L_01';
+    const root = new Group();
+    root.add(wheel);
+    addRoadWheelFaceMarkers(root);
+    const marker = wheel.getObjectByName('WheelFaceMarker_L_01');
+    expect(marker).toBeDefined();
+    expect(marker?.position.x).toBeLessThan(0);
+    const initial = marker!.getWorldPosition(new Vector3());
+
+    wheel.rotation.x = Math.PI / 2;
+    root.updateMatrixWorld(true);
+
+    expect(
+      marker!.getWorldPosition(new Vector3()).distanceTo(initial)
+    ).toBeGreaterThan(0.1);
+  });
+
   it('uses explicit articulation nodes instead of inferred bounds', () => {
     const root = new Group();
     const turret = new Group();

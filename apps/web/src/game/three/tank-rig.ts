@@ -93,6 +93,37 @@ export function tankRigFromScene(root: Group): TankRig {
   };
 }
 
+export function addRoadWheelFaceMarkers(root: Group): void {
+  root.traverse((node) => {
+    if (!(node instanceof Mesh) || !/^Wheel_[LR]_0[1-5]$/.test(node.name)) {
+      return;
+    }
+    node.geometry.computeBoundingBox();
+    const size = node.geometry.boundingBox?.getSize(node.position.clone());
+    if (!size) return;
+    const axle = size.x < size.y ? 'x' : 'y';
+    const radius =
+      axle === 'x'
+        ? Math.max(size.y, size.z) / 2
+        : Math.max(size.x, size.z) / 2;
+    if (radius <= 0) return;
+    const marker = new Mesh(
+      node.geometry,
+      new MeshStandardMaterial({
+        color: 0x9aa3a8,
+        metalness: 0.65,
+        roughness: 0.45,
+      })
+    );
+    marker.name = `WheelFaceMarker_${node.name.replace('Wheel_', '')}`;
+    marker.scale.setScalar(0.18);
+    const side = node.name.includes('_L_') ? -1 : 1;
+    marker.position[axle] = side * (size[axle] / 2 + 0.001);
+    marker.position.z = radius * 0.55;
+    node.add(marker);
+  });
+}
+
 function rollingRadius(node: Object3D, fallback: number): number {
   const radius = node.userData.rollingRadius;
   return typeof radius === 'number' && Number.isFinite(radius) && radius > 0
