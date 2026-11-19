@@ -117,6 +117,21 @@ describe.each(['scout', 'medium', 'heavy'] as const)(
       expect(bytes).toBeLessThanOrEqual(3 * 1024 * 1024);
     });
 
+    if (role === 'scout') {
+      it('uses positioned articulated wheels without a static combined tank', () => {
+        expect(gltf.nodes.findIndex((node) => node.name === 'Tank_body')).toBe(
+          -1
+        );
+        const wheels = gltf.nodes.filter((node) =>
+          /^(Wheel|ReturnRoller)_[LR]_\d\d$/.test(node.name ?? '')
+        );
+        expect(wheels.length).toBeGreaterThan(0);
+        for (const wheel of wheels) {
+          expect(Math.abs(wheel.translation![0])).toBeGreaterThan(3);
+        }
+      });
+    }
+
     if (role === 'medium') {
       it('keeps track-material fuel drums and fenders out of track animation', () => {
         expect(regionOf(gltf, parents, 'Gear_Hull_TrackMaterial')).toBe('hull');
