@@ -40,6 +40,30 @@ describe('TankRig contract', () => {
     ).toBeGreaterThan(0.1);
   });
 
+  it('adds markers to grouped multi-material road wheels', () => {
+    const wheel = new Group();
+    wheel.name = 'Wheel_L_01';
+    const wheelMesh = new Mesh(
+      new BoxGeometry(0.5, 1, 1),
+      new MeshStandardMaterial()
+    );
+    wheelMesh.name = 'Wheel_L_01_Track_0';
+    wheel.add(wheelMesh);
+    const root = new Group();
+    root.add(wheel);
+    addRoadWheelFaceMarkers(root);
+    const marker = wheelMesh.getObjectByName('WheelFaceMarker_L_01');
+    expect(marker).toBeDefined();
+    const initial = marker!.getWorldPosition(new Vector3());
+
+    wheel.rotation.x = Math.PI / 2;
+    root.updateMatrixWorld(true);
+
+    expect(
+      marker!.getWorldPosition(new Vector3()).distanceTo(initial)
+    ).toBeGreaterThan(0.1);
+  });
+
   it('uses explicit articulation nodes instead of inferred bounds', () => {
     const root = new Group();
     const turret = new Group();
