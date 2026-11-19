@@ -10,12 +10,16 @@ import {
 } from 'three';
 import type { BufferGeometry, Object3D } from 'three';
 import { addRunningGearParts } from './running-gear-parts.js';
-import { tankRigFromScene, type TankRig } from './tank-rig.js';
+import {
+  addRoadWheelFaceMarkers,
+  tankRigFromScene,
+  type TankRig,
+} from './tank-rig.js';
 
 export type TankModelRole = 'scout' | 'medium' | 'heavy';
 
 /** Bump this when the GLB changes so cached copies are refetched. */
-export const tankAssetVersion = 'v17-tiger-rig';
+export const tankAssetVersion = 'v18-scout-wheel-rig';
 export const tankAssetUrl = `/models/tank-medium.glb?v=${tankAssetVersion}`;
 const cacheName = `tankquest-models-${tankAssetVersion}`;
 
@@ -62,6 +66,17 @@ async function fetchTankAsset(): Promise<TankAsset> {
 
 const pendingRigs = new Map<TankModelRole, Promise<TankRig>>();
 
+export function pruneRedundantCombinedTank(root: Group): void {
+  const combined = root.getObjectByName('Tank_body');
+  if (
+    combined &&
+    root.getObjectByName('Hull_477') &&
+    root.getObjectByName('Wheel_L_01')
+  ) {
+    combined.removeFromParent();
+  }
+}
+
 export function loadTankRig(role: TankModelRole = 'medium'): Promise<TankRig> {
   let pending = pendingRigs.get(role);
   if (!pending) {
@@ -86,6 +101,8 @@ async function fetchTankRig(role: TankModelRole): Promise<TankRig> {
   );
   try {
     const gltf = await loader.parseAsync(data, '');
+    pruneRedundantCombinedTank(gltf.scene);
+    addRoadWheelFaceMarkers(gltf.scene);
     normalise(gltf.scene, 6, false);
     return tankRigFromScene(gltf.scene);
   } finally {
