@@ -95,11 +95,16 @@ export function tankRigFromScene(root: Group): TankRig {
 
 export function addRoadWheelFaceMarkers(root: Group): void {
   root.traverse((node) => {
-    if (!(node instanceof Mesh) || !/^Wheel_[LR]_0[1-5]$/.test(node.name)) {
-      return;
-    }
-    node.geometry.computeBoundingBox();
-    const size = node.geometry.boundingBox?.getSize(node.position.clone());
+    if (!/^Wheel_[LR]_0[1-5]$/.test(node.name)) return;
+    let wheelMesh: Mesh | undefined;
+    node.traverse((child) => {
+      if (!wheelMesh && child instanceof Mesh) wheelMesh = child;
+    });
+    if (!wheelMesh) return;
+    wheelMesh.geometry.computeBoundingBox();
+    const size = wheelMesh.geometry.boundingBox?.getSize(
+      wheelMesh.position.clone()
+    );
     if (!size) return;
     const axle = size.x < size.y ? 'x' : 'y';
     const radius =
@@ -108,7 +113,7 @@ export function addRoadWheelFaceMarkers(root: Group): void {
         : Math.max(size.x, size.z) / 2;
     if (radius <= 0) return;
     const marker = new Mesh(
-      node.geometry,
+      wheelMesh.geometry,
       new MeshStandardMaterial({
         color: 0x9aa3a8,
         metalness: 0.65,
@@ -120,7 +125,7 @@ export function addRoadWheelFaceMarkers(root: Group): void {
     const side = node.name.includes('_L_') ? -1 : 1;
     marker.position[axle] = side * (size[axle] / 2 + 0.001);
     marker.position.z = radius * 0.55;
-    node.add(marker);
+    wheelMesh.add(marker);
   });
 }
 
