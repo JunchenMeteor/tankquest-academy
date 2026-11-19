@@ -1396,7 +1396,8 @@ body {
 .battle-layout[data-layout='3d'] .battle-camera-toggle {
   position: absolute;
   left: 50%;
-  bottom: 24px;
+  top: 94px;
+  bottom: auto;
   transform: translateX(-50%);
   z-index: 3;
 }
@@ -1469,7 +1470,8 @@ body {
 .battle-ammo {
   position: absolute;
   left: 50%;
-  bottom: 74px;
+  top: 56px;
+  bottom: auto;
   transform: translateX(-50%);
   z-index: 3;
   margin: 0;
@@ -1711,7 +1713,8 @@ body {
 .battle-pointer-hint {
   position: absolute;
   left: 50%;
-  bottom: 116px;
+  top: 18px;
+  bottom: auto;
   transform: translateX(-50%);
   z-index: 3;
   margin: 0;
