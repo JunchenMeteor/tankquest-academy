@@ -71,7 +71,7 @@ export function tankRigFromScene(root: Group): TankRig {
   root.traverse((node) => {
     if (/^Wheel_[LR]_00$/.test(node.name)) idlers.push(node);
     else if (/^Wheel_[LR]_06$/.test(node.name)) sprockets.push(node);
-    else if (/^Wheel_[LR]_\d\d$/.test(node.name)) wheels.push(node);
+    else if (/^Wheel_[LR]_\d\d(?:[AB])?$/.test(node.name)) wheels.push(node);
     else if (/^ReturnRoller_[LR]_\d\d$/.test(node.name)) {
       returnRollers.push(node);
     }
@@ -95,7 +95,7 @@ export function tankRigFromScene(root: Group): TankRig {
 
 export function addRoadWheelFaceMarkers(root: Group): void {
   root.traverse((node) => {
-    if (!/^Wheel_[LR]_0[1-5]$/.test(node.name)) return;
+    if (!/^Wheel_[LR]_0[1-5](?:[AB])?$/.test(node.name)) return;
     let wheelMesh: Mesh | undefined;
     node.traverse((child) => {
       if (!wheelMesh && child instanceof Mesh) wheelMesh = child;
