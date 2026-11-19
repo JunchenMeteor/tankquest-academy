@@ -9,7 +9,13 @@ import {
 } from 'three';
 import { describe, expect, it } from 'vitest';
 
-import { bake, normalise, paintTank, paintTankRig } from './tank-asset.js';
+import {
+  bake,
+  normalise,
+  paintTank,
+  paintTankRig,
+  pruneRedundantCombinedTank,
+} from './tank-asset.js';
 import { tankRigFromScene } from './tank-rig.js';
 
 function part(name: string, z: number, length: number): Mesh {
@@ -23,6 +29,20 @@ function part(name: string, z: number, length: number): Mesh {
 }
 
 describe('imported tank asset', () => {
+  it('removes the combined scout mesh when articulated hull and wheels exist', () => {
+    const root = new Group();
+    root.add(
+      part('Tank_body', 0, 6),
+      part('Hull_477', 0, 6),
+      part('Wheel_L_01', 0, 1)
+    );
+
+    pruneRedundantCombinedTank(root);
+
+    expect(root.getObjectByName('Tank_body')).toBeUndefined();
+    expect(root.getObjectByName('Hull_477')).toBeDefined();
+    expect(root.getObjectByName('Wheel_L_01')).toBeDefined();
+  });
   it('centres the turret on its drum and preserves part names', () => {
     const scene = new Group();
     scene.add(
