@@ -19,7 +19,7 @@ import {
 export type TankModelRole = 'scout' | 'medium' | 'heavy';
 
 /** Bump this when the GLB changes so cached copies are refetched. */
-export const tankAssetVersion = 'v18-scout-wheel-rig';
+export const tankAssetVersion = 'v19-interleaved-wheel-centres';
 export const tankAssetUrl = `/models/tank-medium.glb?v=${tankAssetVersion}`;
 const cacheName = `tankquest-models-${tankAssetVersion}`;
 

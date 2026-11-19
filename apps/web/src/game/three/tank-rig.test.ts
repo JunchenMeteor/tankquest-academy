@@ -96,6 +96,24 @@ describe('TankRig contract', () => {
     expect(rig.trackTextures).toHaveLength(1);
   });
 
+  it('discovers independently centred interleaved road wheels', () => {
+    const root = new Group();
+    for (const name of ['TurretPivot', 'GunPivot', 'Muzzle']) {
+      const node = new Group();
+      node.name = name;
+      root.add(node);
+    }
+    const first = new Group();
+    first.name = 'Wheel_L_02A';
+    const second = new Group();
+    second.name = 'Wheel_L_02B';
+    root.add(first, second);
+
+    const rig = tankRigFromScene(root);
+
+    expect(rig.wheels).toEqual([first, second]);
+  });
+
   it('rolls imported wheels forwards and backwards with the track textures', () => {
     const wheel = new Object3D();
     const texture = new Texture();
