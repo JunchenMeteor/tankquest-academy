@@ -72,6 +72,10 @@ import { BattleEffects } from './battle-effects.js';
 import { BattleHitFeedback } from './battle-hit-feedback.js';
 import { advanceReload } from './battle-combat.js';
 import { createMeshHitTest } from './battle-mesh-collision.js';
+import {
+  createBattleMapMaterials,
+  type BattleMapMaterials,
+} from './battle-map-materials.js';
 import { applyRamImpacts, calculateRamImpacts } from './battle-ram.js';
 import { FixedStepDriver } from './battle-fixed-step.js';
 import { applyAnswerCombo, emptyCombo } from './battle-combo.js';
@@ -114,7 +118,10 @@ export interface Battle3DHandle {
   dispose(): void;
 }
 
-function buildGround(layout: SceneLayout, palette: ScenePalette): Group {
+function buildGround(
+  layout: SceneLayout,
+  materials: BattleMapMaterials
+): Group {
   const ground = new Group();
   /* The ground matches the playable bounds, so the edge you see is the edge you hit. */
   const visualWidth = layout.ground.width;
@@ -128,10 +135,7 @@ function buildGround(layout: SceneLayout, palette: ScenePalette): Group {
   }
   geometry.computeVertexNormals();
 
-  const floor = new Mesh(
-    geometry,
-    new MeshStandardMaterial({ color: palette.floor.base, roughness: 0.95 })
-  );
+  const floor = new Mesh(geometry, materials.floor);
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
   ground.add(floor);
@@ -139,7 +143,7 @@ function buildGround(layout: SceneLayout, palette: ScenePalette): Group {
   for (const block of layout.blocks) {
     const mesh = new Mesh(
       new BoxGeometry(block.size[0], block.size[1], block.size[2]),
-      new MeshStandardMaterial({ color: palette.obstacle.top, roughness: 0.85 })
+      materials.obstacle
     );
     mesh.position.set(block.position.x, block.position.y, block.position.z);
     mesh.castShadow = true;
@@ -153,10 +157,7 @@ function buildGround(layout: SceneLayout, palette: ScenePalette): Group {
     const height = Math.max(0.2, elevation - base);
     const platform = new Mesh(
       new BoxGeometry(4.2, height, 6.4),
-      new MeshStandardMaterial({
-        color: palette.obstacle.side,
-        roughness: 0.9,
-      })
+      materials.obstacle
     );
     platform.position.set(
       enemy.position.x,
@@ -254,17 +255,11 @@ export function createBattleView(
   scene.add(new HemisphereLight(0xcfe0ff, 0x5a4c36, 1.6));
   scene.add(new AmbientLight(0xffffff, 0.45));
 
-  const ground = buildGround(layout, palette);
+  const mapMaterials = createBattleMapMaterials(config.theme, palette);
+  const ground = buildGround(layout, mapMaterials);
   scene.add(ground);
   /* A distant skirt keeps the horizon filled; the fence marks the real edge. */
-  const skirt = new Mesh(
-    new PlaneGeometry(600, 600),
-    new MeshStandardMaterial({
-      color: palette.floor.base,
-      roughness: 1,
-      metalness: 0,
-    })
-  );
+  const skirt = new Mesh(new PlaneGeometry(600, 600), mapMaterials.floor);
   skirt.rotation.x = -Math.PI / 2;
   skirt.position.y = -2;
   skirt.receiveShadow = true;
@@ -1156,6 +1151,7 @@ export function createBattleView(
       for (const label of enemyLabels.values()) label.dispose();
       effects.dispose();
       hitFeedback.dispose();
+      mapMaterials.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     },
