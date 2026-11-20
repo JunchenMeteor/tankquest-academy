@@ -13,8 +13,10 @@ import {
   projectGunSight,
   rotateTowards,
   scatterAimPoint,
-  stepGunPitch,
 } from './battle-aim.js';
+
+const stepGunPitch = (current: number, target: number, maxStep: number) =>
+  rotateTowards(current, clampGunPitch(target), maxStep);
 
 describe('3D battle aiming', () => {
   it('projects the sight through the actual muzzle axis', () => {
@@ -116,6 +118,13 @@ describe('3D battle aiming', () => {
     expect(clampGunPitch(1)).toBeCloseTo(MAX_GUN_PITCH);
     expect(clampGunPitch(-1)).toBeCloseTo(-MAX_GUN_PITCH);
     expect(clampGunPitch(0.1)).toBeCloseTo(0.1);
+  });
+
+  it('reads asymmetric gun limits from the model metadata', () => {
+    const limits = { a: -Math.PI / 12, b: Math.PI / 22.5 };
+    expect(clampGunPitch(-1, limits)).toBeCloseTo(limits.a);
+    expect(clampGunPitch(1, limits)).toBeCloseTo(limits.b);
+    expect(clampGunPitch(0, limits)).toBe(0);
   });
 
   it('turns toward the target no faster than the traverse speed', () => {

@@ -19,7 +19,7 @@ import {
 export type TankModelRole = 'scout' | 'medium' | 'heavy';
 
 /** Bump this when the GLB changes so cached copies are refetched. */
-export const tankAssetVersion = 'v21';
+export const tankAssetVersion = 'v2';
 export const tankAssetUrl = `/models/tank-medium.glb?v=${tankAssetVersion}`;
 const cacheName = `tankquest-models-${tankAssetVersion}`;
 
@@ -103,7 +103,7 @@ async function fetchTankRig(role: TankModelRole): Promise<TankRig> {
     const gltf = await loader.parseAsync(data, '');
     pruneRedundantCombinedTank(gltf.scene);
     addRoadWheelFaceMarkers(gltf.scene);
-    normalise(gltf.scene, 6, false);
+    normalise(gltf.scene, gltf.scene.userData.l, false);
     return tankRigFromScene(gltf.scene);
   } finally {
     draco.dispose();
