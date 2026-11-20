@@ -1,4 +1,9 @@
-import { aimPitch, aimYaw, rotateTowards, stepGunPitch } from './battle-aim.js';
+import {
+  aimPitch,
+  aimYaw,
+  clampGunPitch,
+  rotateTowards,
+} from './battle-aim.js';
 import { normaliseAngle } from './battle-input.js';
 
 export interface EnemyAimState {
@@ -21,9 +26,9 @@ export function aimEnemyWeapon(
       normaliseAngle(aimYaw(turretOrigin, target) - hullHeading),
       traverseStep
     ),
-    pitch: stepGunPitch(
+    pitch: rotateTowards(
       current.pitch,
-      aimPitch(gunOrigin, target),
+      clampGunPitch(aimPitch(gunOrigin, target)),
       elevationStep
     ),
   };

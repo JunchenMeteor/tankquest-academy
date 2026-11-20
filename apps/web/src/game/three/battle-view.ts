@@ -422,7 +422,6 @@ export function createBattleView(
     traverseSpeed,
     elevationSpeed,
     initialGunPitch: camPitch,
-    heavy: layout.player.role === 'heavy',
   });
   /* Pointer target in CSS pixels inside the canvas; the gun sight is separate. */
   const aim = { x: 0, y: 0, ready: false };

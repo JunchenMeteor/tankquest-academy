@@ -9,7 +9,7 @@ import {
   projectGunSight,
   resolveAimPoint,
   rotateTowards,
-  stepGunPitch,
+  clampGunPitch,
 } from './battle-aim.js';
 import { SHELL_RANGE } from './battle-combat.js';
 import { normaliseAngle } from './battle-input.js';
@@ -52,7 +52,6 @@ export interface PlayerAimControllerOptions {
   traverseSpeed: number;
   elevationSpeed: number;
   initialGunPitch?: number;
-  heavy?: boolean;
 }
 
 export function createPlayerAimController(options: PlayerAimControllerOptions) {
@@ -81,12 +80,12 @@ export function createPlayerAimController(options: PlayerAimControllerOptions) {
         frame.state.heading,
         frame.state.turret
       );
-      gunPitch = stepGunPitch(
+      gunPitch = rotateTowards(
         gunPitch,
-        localAimPitch(rig.gun, aimPoint, rig.muzzle),
-        options.elevationSpeed * frame.delta,
-        options.heavy
+        clampGunPitch(localAimPitch(rig.gun, aimPoint, rig.muzzle)),
+        options.elevationSpeed * frame.delta
       );
+      gunPitch = clampGunPitch(gunPitch, rig.gun.userData);
     }
     const turret =
       targetWorld === null

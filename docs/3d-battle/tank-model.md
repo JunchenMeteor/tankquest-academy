@@ -42,7 +42,7 @@ TankRig
 
 `swift-fox`、`star-shield`、`iron-mountain` 分别映射为 `scout`、`medium`、`heavy`，车库与战斗必须使用同一映射。每种车型使用独立 GLB 和独立缓存，不再通过缩放同一模型或添加外挂装甲来伪造差异。
 
-三车不再统一压成同一个含炮管总长。以 T-34-85 的 6 个世界单位为基准，按 [M24 5.56 m](https://afvdatabase.com/usa/m24chaffee.html)、[T-34-85 8.15 m](https://tanks-encyclopedia.com/ww2/soviet/soviet_t34-85) 和 [Tiger II 10.29 m](https://www.festungsmuseum.ch/koenigstiger/english/technical-data-tiger-ii/) 的真实总长比例缩放，目标总长约为 4.09、6.00、7.57。目标值写入每份 GLB 的 `scene.extras.length`，运行时读取该元数据；每辆车只做整体等比缩放，不单独拉伸宽度或高度，以免轮子和炮管截面变形。
+三车不再统一压成同一个含炮管总长。以 T-34-85 的 6 个世界单位为基准，按 [M24 5.56 m](https://afvdatabase.com/usa/m24chaffee.html)、[T-34-85 8.15 m](https://tanks-encyclopedia.com/ww2/soviet/soviet_t34-85) 和 [Tiger II 10.29 m](https://www.festungsmuseum.ch/koenigstiger/english/technical-data-tiger-ii/) 的真实总长比例缩放，目标总长约为 4.09、6.00、7.57。目标值写入每份 GLB 的 `scene.extras.l`，运行时读取该元数据；每辆车只做整体等比缩放，不单独拉伸宽度或高度，以免轮子和炮管截面变形。
 
 - 轻型使用 buffinbag 的 M24 Chaffee（霞飞）原生 PBR 模型。源网格按连通组件重新分组，每侧保留 5 个独立负重轮、1 个前主动轮、1 个后诱导轮和 3 个托带轮，不生成替代圆柱轮。
 - 中型使用 T-34-85 的原生 PBR 材质和独立轮节点。
@@ -52,7 +52,7 @@ TankRig
 - `TurretPivot` 的原点必须位于真实炮塔回转轴。
 - `GunPivot` 的原点必须位于真实耳轴中心，不能按车型统一猜测包围盒的某一端；GLB 炮管局部前向为 +Z，因此绕局部 X 轴俯仰。俯仰时枢轴的局部位置保持不变，只有炮口与炮盾围绕它转动。
 - `Muzzle` 是真实炮口位置，必须位于 `GunPivot` 的 +Z 前方，炮弹和火光直接读取其世界坐标，不能用固定炮管长度代替。开炮后坐沿 `Muzzle` 在炮管局部空间的方向后退并回弹，不能使用横轴平移。带独立 `RecoilPivot` 的车型只移动该节点下的炮管和炮口，不能平移 `GunPivot` 或炮盾。
-- 重坦 Tiger II 的外层炮盾使用 `Gear_Gun_Mantlet` 并挂在 `GunPivot` 下，与炮管共用源模型耳轴中心；炮塔壳体与车顶机枪 `Gear_Turret_Machinegun` 固定在 `TurretPivot` 下。源网格必须先焊接重复顶点，再按连通组件识别完整火炮，不能把断开的炮塔面片按坐标猜成炮管。外部炮管与炮口另挂到同原点的 `RecoilPivot`，开炮后坐时外炮盾保持耳轴连接，不得随炮管整体后退。Tiger II 的俯仰范围为仰角 15°、俯角 8°；运行时以正负 pitch 表示为 `-Math.PI / 12` 至 `Math.PI / 22.5`。
+- 重坦 Tiger II 的外层炮盾使用 `Gear_Gun_Mantlet` 并挂在 `GunPivot` 下，与炮管共用源模型耳轴中心；炮塔壳体与车顶机枪 `Gear_Turret_Machinegun` 固定在 `TurretPivot` 下。源网格必须先焊接重复顶点，再按连通组件识别完整火炮，不能把断开的炮塔面片按坐标猜成炮管。外部炮管与炮口另挂到同原点的 `RecoilPivot`，开炮后坐时外炮盾保持耳轴连接，不得随炮管整体后退。Tiger II 的俯仰范围为仰角 15°、俯角 8°；上下限写入 `GunPivot.extras.a` 与 `GunPivot.extras.b`，运行时以正负 pitch 读取，未提供该元数据的车型使用默认范围。
 - 共享履带材质的车体附件（例如 T-34 油桶、M24 悬挂和翼子板）使用 `Gear_Hull_TrackMaterial` 命名并挂在 `Hull` 下；只有真正的 `Tracks_` 履带网格才滚动贴图，车体附件不得参与履带 UV 动画。T-34 履带沿 V 轴滚动；Tiger II 的图集履带沿 U 轴滚动，不能共用一个固定轴向。
 - 左右轮节点的局部 X 轴是轮轴，且每个节点的原点必须位于该轮子的实际几何中心；转动时轮心不得上下或前后漂移。T-34 与 M24 使用 `Wheel_L/R_00`、`06` 表示端轮，中间 `01–05` 是负重轮；M24 的 `00` 是前主动轮、`06` 是后诱导轮。Tiger II 的 `00` 是前主动轮、`01–08` 是八组同轴双负重轮、`09` 是后诱导轮。每个节点记录真实 `rollingRadius` 和 `wheelRole`，运行时按角色驱动，不再把编号硬套到单一车型。各轮与履带下支内表面接触，诱导轮随端部弧形履带独立抬升，不强求所有轮底同线。相邻轮不得重叠，端轮不得穿出履带轮廓。
 - 后主动轮的齿形部件随轮旋转；M24 每侧有三个托带轮，其他车型每侧两个，托带轮和悬挂都挂在 `Hull` 下，不能跟随炮塔。每个轮节点记录归一化后的实际 `rollingRadius`，敌我车辆按实际位移驱动轮轨，倒车必须反向。GLB 履带使用贴图滚动，不伪装成逐节物理履带。

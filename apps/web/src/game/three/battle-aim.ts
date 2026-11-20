@@ -98,20 +98,14 @@ export function aimAlignmentError(
   return Math.acos(Math.max(-1, Math.min(1, dot)));
 }
 
-export function clampGunPitch(pitch: number, tigerIi?: boolean): number {
-  return Math.max(
-    tigerIi ? -Math.PI / 12 : -MAX_GUN_PITCH,
-    Math.min(tigerIi ? Math.PI / 22.5 : MAX_GUN_PITCH, pitch)
-  );
-}
-
-export function stepGunPitch(
-  current: number,
-  target: number,
-  maxStep: number,
-  tigerIi?: boolean
+export function clampGunPitch(
+  pitch: number,
+  limits?: { a?: number; b?: number }
 ): number {
-  return rotateTowards(current, clampGunPitch(target, tigerIi), maxStep);
+  return Math.max(
+    limits?.a ?? -MAX_GUN_PITCH,
+    Math.min(limits?.b ?? MAX_GUN_PITCH, pitch)
+  );
 }
 
 /**

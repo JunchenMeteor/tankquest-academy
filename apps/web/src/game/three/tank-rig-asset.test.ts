@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 interface GltfNode {
   name?: string;
+  extras?: { a?: number; b?: number };
   mesh?: number;
   children?: number[];
   translation?: [number, number, number];
@@ -12,7 +13,7 @@ interface GltfNode {
 }
 
 interface GltfAsset {
-  scenes: { extras?: { length?: number } }[];
+  scenes: { extras?: { l?: number } }[];
   nodes: GltfNode[];
   meshes: {
     primitives: { indices: number; attributes: { POSITION: number } }[];
@@ -94,7 +95,7 @@ describe.each(['scout', 'medium', 'heavy'] as const)(
         medium: 6,
         heavy: 6 * (10.29 / 8.15),
       };
-      expect(gltf.scenes[0]?.extras?.length).toBeCloseTo(expected[role]);
+      expect(gltf.scenes[0]?.extras?.l).toBeCloseTo(expected[role]);
     });
 
     it('keeps the articulated rig and one uniquely named wheel set', () => {
@@ -178,6 +179,12 @@ describe.each(['scout', 'medium', 'heavy'] as const)(
     }
 
     if (role === 'heavy') {
+      it('stores the Tiger II elevation limits on the gun pivot', () => {
+        const gun = gltf.nodes[nodeIndex(gltf, 'GunPivot')]!;
+        expect(gun.extras?.a).toBeCloseTo(-Math.PI / 12);
+        expect(gun.extras?.b).toBeCloseTo(Math.PI / 22.5);
+      });
+
       it('keeps every wheel mesh centred on its own axle', () => {
         const wheels = gltf.nodes.filter((node) =>
           /^Wheel_[LR]_\d\d(?:[AB])?$/.test(node.name ?? '')
