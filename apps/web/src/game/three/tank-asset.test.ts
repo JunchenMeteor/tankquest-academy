@@ -10,9 +10,7 @@ import {
 import { describe, expect, it } from 'vitest';
 
 import {
-  bake,
   normalise,
-  paintTank,
   paintTankRig,
   pruneRedundantCombinedTank,
 } from './tank-asset.js';
@@ -43,54 +41,6 @@ describe('imported tank asset', () => {
     expect(root.getObjectByName('Hull_477')).toBeDefined();
     expect(root.getObjectByName('Wheel_L_01')).toBeDefined();
   });
-  it('centres the turret on its drum and preserves part names', () => {
-    const scene = new Group();
-    scene.add(
-      part('Hull_477', 0, 6),
-      part('Turret_229', 0, 2),
-      part('Barrel_Cannon_13', 6, 10)
-    );
-
-    const asset = bake(scene);
-
-    expect(asset.turret.position.x).toBeCloseTo(0);
-    expect(asset.turret.position.z).toBeCloseTo(0);
-    expect(asset.turret.children.map((child) => child.name)).toEqual([
-      'Turret_229',
-      'gun-pivot',
-    ]);
-    expect(asset.turret.userData.gun).toBe(
-      asset.root.getObjectByName('gun-pivot')
-    );
-    expect(asset.root.getObjectByName('gun-pivot')?.children[0]?.name).toBe(
-      'Barrel_Cannon_13'
-    );
-    expect(asset.root.getObjectByName('hull')?.children).toHaveLength(1);
-  });
-
-  it('reports the muzzle in gun-local coordinates for an offset turret', () => {
-    const scene = new Group();
-    scene.add(
-      part('Hull_477', 0, 6),
-      part('Turret_229', 1, 2),
-      part('Barrel_Cannon_13', 6, 10)
-    );
-    const asset = bake(scene);
-    normalise(asset.root);
-
-    const painted = paintTank(asset, 0xffffff);
-    const gun = painted.turret.userData.gun as Group;
-    const muzzle = gun.localToWorld(painted.muzzle!.clone());
-    const barrelTip = new Vector3(0, 0, 11).applyMatrix4(
-      painted.root.getObjectByName('model-normalised')!.matrixWorld
-    );
-
-    expect(gun).toBe(painted.root.getObjectByName('gun-pivot'));
-    expect(gun.userData.pitchAxis).toBe('x');
-    expect(asset.turret.position.z).toBeCloseTo(1);
-    expect(muzzle.distanceTo(barrelTip)).toBeCloseTo(0);
-  });
-
   it('normalises a +Z barrel to the +X battle forward axis', () => {
     const root = new Group();
     root.add(part('Barrel_Cannon_13', 3, 6));
@@ -105,54 +55,6 @@ describe('imported tank asset', () => {
     expect(forward.z).toBeCloseTo(0);
     expect(root.rotation.y).toBe(0);
     expect(root.position.toArray()).toEqual([0, 0, 0]);
-  });
-
-  it('keeps every wheel inside the track and records its actual rolling radius', () => {
-    const root = new Group();
-    const track = new Mesh(new BoxGeometry(352.4, 126.2, 726.3));
-    track.position.set(0, 62.8, -81.55);
-    const wheel = (name: string, z: number) => {
-      const node = new Mesh(new BoxGeometry(28, 110, 110));
-      node.name = name;
-      node.position.set(0, 62.8, z);
-      return node;
-    };
-    const idler = wheel('Wheel_L_00', 238.81);
-    const firstRoadWheel = wheel('Wheel_L_01', 143.17);
-    const lastRoadWheel = wheel('Wheel_L_05', -239.41);
-    const sprocket = wheel('Wheel_L_06', -335.06);
-    root.add(track, idler, firstRoadWheel, lastRoadWheel, sprocket);
-
-    normalise(root);
-
-    expect(idler.position.y).toBeCloseTo(67.47);
-    expect(idler.position.z).toBeCloseTo(226.81);
-    expect(idler.scale.toArray()).toEqual([0.65, 0.65, 0.65]);
-    expect(firstRoadWheel.position.y).toBeCloseTo(55.32);
-    expect(firstRoadWheel.scale.toArray()).toEqual([0.85, 0.85, 0.85]);
-    expect(sprocket.position.y).toBeCloseTo(59.64);
-    expect(sprocket.position.z).toBeCloseTo(-338.06);
-    expect(sprocket.scale.toArray()).toEqual([0.9, 0.9, 0.9]);
-    const surfaceGap = (
-      front: Mesh,
-      rear: Mesh,
-      frontRadius = 55,
-      rearRadius = 55
-    ) =>
-      front.position.z -
-      rear.position.z -
-      frontRadius * front.scale.z -
-      rearRadius * rear.scale.z;
-    expect(surfaceGap(idler, firstRoadWheel)).toBeCloseTo(1.14);
-    expect(surfaceGap(lastRoadWheel, sprocket, 55, 56.5)).toBeCloseTo(1.05);
-    expect(idler.position.z + 55 * idler.scale.z).toBeLessThanOrEqual(281.6);
-    const normalisedScale = 6 / 726.3;
-    for (const node of [idler, firstRoadWheel, lastRoadWheel, sprocket]) {
-      const sourceRadius = node === sprocket ? 56.5 : 55;
-      expect(node.userData.rollingRadius).toBeCloseTo(
-        sourceRadius * node.scale.z * normalisedScale
-      );
-    }
   });
 
   it('preserves authored hull and turret regions during painting', () => {
@@ -228,7 +130,7 @@ describe('imported tank asset', () => {
     wheel.userData.rollingRadius = 2;
     root.add(wheel);
 
-    normalise(root, 6, false);
+    normalise(root);
 
     expect(wheel.scale.toArray()).toEqual([1, 1, 1]);
     expect(wheel.userData.rollingRadius).toBeCloseTo(6);
