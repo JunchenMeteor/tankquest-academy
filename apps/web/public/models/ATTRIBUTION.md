@@ -34,10 +34,10 @@ The model is used for the high-quality Three.js battle view. No non-commercial l
 - License text: https://creativecommons.org/licenses/by/4.0/
 - Changes: geometry is reduced and compressed with Draco; WebP textures are capped at 512px. Existing wheel nodes are recentered and the hull, turret, gun, and muzzle are articulated explicitly.
 
-## German Armoured Division WWII Tiger Tank — heavy
+## Tiger II H (Königstiger) — heavy
 
-- Author: drcrazzie
-- Source: https://sketchfab.com/3d-models/german-armoured-division-wwii-tiger-tank-a982b6e03db143a8aa299f59e30b0d1a
+- Author: Pechacek
+- Source: https://sketchfab.com/3d-models/tiger-ii-h-konigstiger-f33fc5fbaef04727b4f9b9a1230084d6
 - License: Creative Commons Attribution 4.0 International (CC BY 4.0)
 - License text: https://creativecommons.org/licenses/by/4.0/
-- Changes: left/right wheel geometry is separated and joined into independent wheel nodes; the original wheel groups are not duplicated. Each physical wheel in the three interleaved double-wheel groups is further split onto its own axle. Geometry is reduced and compressed with Draco; WebP textures are capped at 384px. The turret, gun, and muzzle are articulated explicitly.
+- Changes: the hull, turret, machine gun, mantlet and cannon are regrouped into explicit articulation joints. Eight double-road-wheel stations per side, the front drive sprocket and rear idler are independently centred and tagged with their physical roles. The non-welded cannon is preserved without decimation so the barrel remains continuous. Geometry is reduced to 29,566 triangles and compressed with Draco; native PBR textures, including AO, are capped at 512px and converted to WebP.

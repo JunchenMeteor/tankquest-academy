@@ -69,10 +69,23 @@ export function tankRigFromScene(root: Group): TankRig {
   const sprockets: Object3D[] = [];
   const returnRollers: Object3D[] = [];
   root.traverse((node) => {
-    if (/^Wheel_[LR]_00$/.test(node.name)) idlers.push(node);
-    else if (/^Wheel_[LR]_06$/.test(node.name)) sprockets.push(node);
-    else if (/^Wheel_[LR]_\d\d(?:[AB])?$/.test(node.name)) wheels.push(node);
-    else if (/^ReturnRoller_[LR]_\d\d$/.test(node.name)) {
+    const role = node.userData.wheelRole;
+    if (
+      role?.includes('idler') ||
+      (!role && /^Wheel_[LR]_00$/.test(node.name))
+    ) {
+      idlers.push(node);
+    } else if (
+      role?.includes('sprocket') ||
+      (!role && /^Wheel_[LR]_06$/.test(node.name))
+    ) {
+      sprockets.push(node);
+    } else if (
+      role?.includes('road') ||
+      (!role && /^Wheel_[LR]_\d\d(?:[AB])?$/.test(node.name))
+    ) {
+      wheels.push(node);
+    } else if (/^ReturnRoller_[LR]_\d\d$/.test(node.name)) {
       returnRollers.push(node);
     }
   });
@@ -95,7 +108,12 @@ export function tankRigFromScene(root: Group): TankRig {
 
 export function addRoadWheelFaceMarkers(root: Group): void {
   root.traverse((node) => {
-    if (!/^Wheel_[LR]_0[1-5](?:[AB])?$/.test(node.name)) return;
+    if (
+      !node.userData.wheelRole?.includes('road') &&
+      !/^Wheel_[LR]_0[1-5](?:[AB])?$/.test(node.name)
+    ) {
+      return;
+    }
     let wheelMesh: Mesh | undefined;
     node.traverse((child) => {
       if (!wheelMesh && child instanceof Mesh) wheelMesh = child;

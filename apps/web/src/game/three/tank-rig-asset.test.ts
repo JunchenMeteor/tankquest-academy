@@ -182,26 +182,21 @@ describe.each(['scout', 'medium', 'heavy'] as const)(
         }
       });
 
-      it('separates every interleaved road wheel onto its own axle', () => {
+      it('separates every Tiger II road-wheel station onto its own axle', () => {
         for (const side of ['L', 'R']) {
           for (const suffix of [
+            '00',
             '01',
-            '02A',
-            '02B',
-            '03A',
-            '03B',
-            '04A',
-            '04B',
+            '02',
+            '03',
+            '04',
             '05',
+            '06',
+            '07',
+            '08',
+            '09',
           ]) {
             nodeIndex(gltf, `Wheel_${side}_${suffix}`);
-          }
-          for (const group of ['02', '03', '04']) {
-            expect(
-              gltf.nodes.findIndex(
-                (node) => node.name === `Wheel_${side}_${group}`
-              )
-            ).toBe(-1);
           }
         }
       });
@@ -214,18 +209,14 @@ describe.each(['scout', 'medium', 'heavy'] as const)(
         ).toBe(-1);
         const trunnion = worldPosition(gltf, 'GunPivot');
         expect(trunnion.x).toBeCloseTo(0, 4);
-        expect(trunnion.y).toBeCloseTo(2.2748733, 5);
-        expect(trunnion.z).toBeCloseTo(1.4601427, 5);
+        expect(trunnion.y).toBeCloseTo(2.291673, 5);
+        expect(trunnion.z).toBeCloseTo(1.906101, 5);
       });
 
-      it('keeps the smoke launcher components on the rotating turret', () => {
-        const launchers = gltf.nodes.filter((node) =>
-          node.name?.startsWith('Gear_Turret_Smoke')
+      it('keeps the machine gun on the rotating turret', () => {
+        expect(regionOf(gltf, parents, 'Gear_Turret_Machinegun')).toBe(
+          'turret'
         );
-        expect(launchers.length).toBeGreaterThan(0);
-        for (const launcher of launchers) {
-          expect(regionOf(gltf, parents, launcher.name!)).toBe('turret');
-        }
       });
 
       it('recoils only the barrel and muzzle without translating the mantlet', () => {
