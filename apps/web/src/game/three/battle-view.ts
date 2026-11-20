@@ -666,12 +666,16 @@ export function createBattleView(
             layout.blocks,
             groundHeight
           );
-          const travelled =
-            Math.hypot(
-              state.position.x - previousPosition.x,
-              state.position.z - previousPosition.z
-            ) * Math.sign(next.trackSpeed);
-          advanceRunningGear(playerRig, travelled);
+          let leftTravelled = next.leftSpeed * delta;
+          let rightTravelled = next.rightSpeed * delta;
+          if (command.forward !== 0 && command.turn === 0) {
+            leftTravelled = rightTravelled =
+              Math.hypot(
+                state.position.x - previousPosition.x,
+                state.position.z - previousPosition.z
+              ) * Math.sign(next.trackSpeed);
+          }
+          advanceRunningGear(playerRig, leftTravelled, rightTravelled);
         }
         if (command.turret !== 0) {
           state.turret = normaliseAngle(

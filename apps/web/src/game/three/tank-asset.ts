@@ -1,15 +1,5 @@
-import {
-  Box3,
-  BufferAttribute,
-  Color,
-  Group,
-  Matrix4,
-  Mesh,
-  MeshStandardMaterial,
-  Vector3,
-} from 'three';
+import { Box3, Color, Group, Mesh, MeshStandardMaterial, Vector3 } from 'three';
 import type { BufferGeometry, Object3D } from 'three';
-import { addRunningGearParts } from './running-gear-parts.js';
 import {
   addRoadWheelFaceMarkers,
   tankRigFromScene,
@@ -19,51 +9,8 @@ import {
 export type TankModelRole = 'scout' | 'medium' | 'heavy';
 
 /** Bump this when the GLB changes so cached copies are refetched. */
-export const tankAssetVersion = 'v2';
-export const tankAssetUrl = `/models/tank-medium.glb?v=${tankAssetVersion}`;
+export const tankAssetVersion = 'v4';
 const cacheName = `tankquest-models-${tankAssetVersion}`;
-
-export interface TankAsset {
-  /** Clean group: hull meshes plus a turret pivot group. */
-  root: Group;
-  /** Turret pivot, already centred on the rotation axis. */
-  turret: Group;
-}
-
-export interface PaintedTank {
-  root: Group;
-  turret: Object3D;
-  muzzle?: Vector3;
-}
-
-let pending: Promise<TankAsset> | null = null;
-
-export function loadTankAsset(): Promise<TankAsset> {
-  pending ??= fetchTankAsset().catch((error: unknown) => {
-    pending = null;
-    throw error;
-  });
-  return pending;
-}
-
-async function fetchTankAsset(): Promise<TankAsset> {
-  const [{ GLTFLoader }, { DRACOLoader }] = await Promise.all([
-    import('three/examples/jsm/loaders/GLTFLoader.js'),
-    import('three/examples/jsm/loaders/DRACOLoader.js'),
-  ]);
-  const draco = new DRACOLoader().setDecoderPath('/draco/');
-  const loader = new GLTFLoader().setDRACOLoader(draco);
-  const data = await readCached(tankAssetUrl);
-  try {
-    const gltf = await loader.parseAsync(data, '');
-    const baked = bake(gltf.scene);
-    normalise(baked.root);
-    return baked;
-  } finally {
-    draco.dispose();
-  }
-}
-
 const pendingRigs = new Map<TankModelRole, Promise<TankRig>>();
 
 export function pruneRedundantCombinedTank(root: Group): void {
@@ -103,150 +50,21 @@ async function fetchTankRig(role: TankModelRole): Promise<TankRig> {
     const gltf = await loader.parseAsync(data, '');
     pruneRedundantCombinedTank(gltf.scene);
     addRoadWheelFaceMarkers(gltf.scene);
-    normalise(gltf.scene, gltf.scene.userData.l, false);
+    normalise(gltf.scene, gltf.scene.userData.l);
     return tankRigFromScene(gltf.scene);
   } finally {
     draco.dispose();
   }
 }
 
-/** Box-projects UVs from the dominant normal axis, so textures stick to plates. */
-function projectUVs(geometry: BufferGeometry, scale = 0.16): void {
-  const position = geometry.getAttribute('position');
-  const normal = geometry.getAttribute('normal');
-  const uv = new Float32Array(position.count * 2);
-  for (let index = 0; index < position.count; index += 1) {
-    const nx = Math.abs(normal?.getX(index) ?? 0);
-    const ny = Math.abs(normal?.getY(index) ?? 1);
-    const nz = Math.abs(normal?.getZ(index) ?? 0);
-    let u: number;
-    let v: number;
-    if (nx >= ny && nx >= nz) {
-      u = position.getZ(index);
-      v = position.getY(index);
-    } else if (ny >= nx && ny >= nz) {
-      u = position.getX(index);
-      v = position.getZ(index);
-    } else {
-      u = position.getX(index);
-      v = position.getY(index);
-    }
-    uv[index * 2] = u * scale;
-    uv[index * 2 + 1] = v * scale;
-  }
-  geometry.setAttribute('uv', new BufferAttribute(uv, 2));
-}
-
-function inTurret(node: Object3D, scene: Object3D): boolean {
-  let current: Object3D | null = node;
-  while (current && current !== scene) {
-    if (/turret|gun|barrel/i.test(current.name)) return true;
-    current = current.parent;
-  }
-  return false;
-}
-
-/**
- * Bakes world transforms into each mesh, then regroups the parts into a plain
- * hull and a turret pivot so artist hierarchy transforms cannot skew rotation.
- */
-export function bake(scene: Object3D): TankAsset {
-  scene.updateMatrixWorld(true);
-  const hullMeshes: Mesh[] = [];
-  const turretMeshes: Mesh[] = [];
-
-  scene.traverse((node) => {
-    if (!(node instanceof Mesh)) return;
-    const geometry = node.geometry.clone();
-    geometry.applyMatrix4(node.matrixWorld);
-    if (!geometry.getAttribute('uv')) projectUVs(geometry);
-    const mesh = new Mesh(geometry, node.material);
-    mesh.name = node.name;
-    (inTurret(node, scene) ? turretMeshes : hullMeshes).push(mesh);
-  });
-
-  const root = new Group();
-  const hull = new Group();
-  hull.name = 'hull';
-  hull.add(...hullMeshes);
-  root.add(hull);
-
-  const turret = new Group();
-  turret.name = 'turret-pivot';
-  if (turretMeshes.length > 0) {
-    /* Pivot on the turret drum, not on the gun sticking out of it. */
-    const drum = turretMeshes.filter(
-      (mesh) =>
-        !/gun|barrel/i.test(mesh.name) &&
-        !/gun|barrel/i.test(mesh.parent?.name ?? '')
-    );
-    const gunMeshes = turretMeshes.filter((mesh) => !drum.includes(mesh));
-    const box = new Box3();
-    for (const mesh of drum.length > 0 ? drum : turretMeshes) {
-      box.expandByObject(mesh);
-    }
-    const centre = box.getCenter(new Vector3());
-    centre.y = 0;
-    const shift = new Matrix4().makeTranslation(-centre.x, 0, -centre.z);
-    for (const mesh of turretMeshes) mesh.geometry.applyMatrix4(shift);
-    turret.position.set(centre.x, 0, centre.z);
-
-    const gunBox = new Box3();
-    for (const mesh of gunMeshes) gunBox.expandByObject(mesh);
-    const gunHeight = gunBox.isEmpty() ? 0 : gunBox.getCenter(new Vector3()).y;
-    for (const mesh of gunMeshes) {
-      mesh.geometry.applyMatrix4(
-        new Matrix4().makeTranslation(0, -gunHeight, 0)
-      );
-    }
-    const gun = new Group();
-    gun.name = 'gun-pivot';
-    gun.userData.pitchAxis = 'x';
-    gun.position.y = gunHeight;
-    gun.add(...gunMeshes);
-    turret.userData.gun = gun;
-    turret.add(...drum, gun);
-    root.add(turret);
-  }
-
-  return { root, turret };
-}
-
 /** Scales to the battle footprint, faces the barrel forward and rests on the ground. */
-export function normalise(
-  root: Object3D,
-  length = 6,
-  adjustWheels = true
-): void {
+export function normalise(root: Object3D, length = 6): void {
   const scaledWheelRadii = new Map<Object3D, number>();
-  if (adjustWheels) {
-    root.traverse((node) => {
-      const idler = /^Wheel_[LR]_00$/.test(node.name);
-      const roadWheel = /^Wheel_[LR]_0[1-5]$/.test(node.name);
-      const sprocket = /^Wheel_[LR]_06$/.test(node.name);
-      if (!idler && !roadWheel && !sprocket) return;
-      const scale = idler ? 0.65 : sprocket ? 0.9 : 0.85;
-      let radius = 55;
-      if (node instanceof Mesh) {
-        node.geometry.computeBoundingBox();
-        const size = node.geometry.boundingBox?.getSize(new Vector3());
-        if (size) radius = Math.max(size.y, size.z) / 2;
-      }
-      const contactLift = idler ? 23.92 : sprocket ? 2.34 : 0.77;
-      node.position.y += contactLift - radius * (1 - scale);
-      if (idler) node.position.z -= 12;
-      if (sprocket) node.position.z -= 3;
-      node.scale.multiplyScalar(scale);
-      scaledWheelRadii.set(node, (sprocket ? 56.5 : radius) * scale);
-    });
-  } else {
-    root.traverse((node) => {
-      if (typeof node.userData.rollingRadius === 'number') {
-        scaledWheelRadii.set(node, node.userData.rollingRadius);
-      }
-    });
-  }
-  const accessories = adjustWheels ? addRunningGearParts(root) : [];
+  root.traverse((node) => {
+    if (typeof node.userData.rollingRadius === 'number') {
+      scaledWheelRadii.set(node, node.userData.rollingRadius);
+    }
+  });
   root.updateMatrixWorld(true);
   const box = new Box3().setFromObject(root);
   const size = box.getSize(new Vector3());
@@ -259,10 +77,6 @@ export function normalise(
   normalised.rotation.y = Math.PI / 2;
   for (const [node, radius] of scaledWheelRadii) {
     node.userData.rollingRadius = radius * normalised.scale.x;
-  }
-  for (const node of accessories) {
-    node.userData.rollingRadius =
-      node.userData.sourceRollingRadius * normalised.scale.x;
   }
   root.updateMatrixWorld(true);
 
@@ -291,37 +105,6 @@ async function readCached(url: string): Promise<ArrayBuffer> {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`tank asset ${response.status}`);
   return response.arrayBuffer();
-}
-
-/** Clones the asset without replacing its authored PBR maps. */
-export function paintTank(asset: TankAsset, color: number): PaintedTank {
-  const root = asset.root.clone(true);
-  const turret = root.getObjectByName('turret-pivot') ?? root;
-  root.traverse((child) => {
-    if (!(child instanceof Mesh)) return;
-    const material = Array.isArray(child.material)
-      ? child.material[0]
-      : child.material;
-    if (!(material instanceof MeshStandardMaterial)) return;
-    const clone = material.clone();
-    clone.vertexColors = (child.geometry as BufferGeometry).hasAttribute(
-      'color'
-    );
-    if (/^main$/i.test(material.name ?? '')) clone.color.setHex(color);
-    child.material = clone;
-  });
-  const gun = root.getObjectByName('gun-pivot');
-  if (gun) turret.userData.gun = gun;
-  const barrel = root.getObjectByName('Barrel_Cannon_13');
-  if (!barrel || !gun) return { root, turret };
-  root.updateMatrixWorld(true);
-  const bounds = new Box3().setFromObject(barrel);
-  const centre = bounds.getCenter(new Vector3());
-  return {
-    root,
-    turret,
-    muzzle: gun.worldToLocal(new Vector3(bounds.max.x, centre.y, centre.z)),
-  };
 }
 
 const cloneTextureSlots = [

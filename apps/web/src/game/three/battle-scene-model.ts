@@ -411,7 +411,7 @@ function moveToward(current: number, target: number, amount: number): number {
     : Math.max(target, current - amount);
 }
 
-/** Applies an accelerated movement step to a tank, clamped to the field. */
+/** Applies single-flow or dual-flow steering, clamped to the field. */
 export function stepTank(
   player: Pick<TankPlacement, 'position' | 'heading'> & {
     trackSpeed?: number;
@@ -420,12 +420,22 @@ export function stepTank(
   input: { forward: number; turn: number },
   deltaSeconds: number,
   layout: SceneLayout
-): { position: Vec3; heading: number; trackSpeed: number; turnRate: number } {
+): {
+  position: Vec3;
+  heading: number;
+  trackSpeed: number;
+  turnRate: number;
+  leftSpeed: number;
+  rightSpeed: number;
+} {
   const mobility = layout.player.combat;
   const forwardSpeed = (mobility?.speed ?? 170) * (6 / 170);
   const reverseSpeed = (mobility?.reverseSpeed ?? 120) * (6 / 170);
-  const targetSpeed =
-    input.forward > 0
+  const turning = input.turn !== 0;
+  const singleFlow = turning && input.forward === 0;
+  const targetSpeed = turning
+    ? 0
+    : input.forward > 0
       ? forwardSpeed * Math.min(1, input.forward)
       : input.forward < 0
         ? -reverseSpeed * Math.min(1, -input.forward)
@@ -437,7 +447,11 @@ export function stepTank(
     acceleration * deltaSeconds
   );
   const speedFactor = Math.min(1, Math.abs(trackSpeed) / forwardSpeed);
-  const steerSign = trackSpeed < -0.001 || input.forward < 0 ? -1 : 1;
+  const steerSign = singleFlow
+    ? 1
+    : trackSpeed < -0.001 || input.forward < 0
+      ? -1
+      : 1;
   const traverse = mobility?.turnSpeed ?? 2.8;
   const targetTurnRate =
     input.turn * steerSign * traverse * (0.7 + speedFactor * 0.3);
@@ -448,22 +462,41 @@ export function stepTank(
   );
   const heading =
     player.heading + ((player.turnRate ?? 0) + turnRate) * 0.5 * deltaSeconds;
-  const distance = ((player.trackSpeed ?? 0) + trackSpeed) * 0.5 * deltaSeconds;
+  const trackRadius = 1.1;
+  const outerSpeed = turning ? Math.abs(turnRate) * trackRadius : trackSpeed;
+  const leftSpeed = singleFlow
+    ? outerSpeed * Number(input.turn < 0)
+    : turning
+      ? -turnRate * trackRadius
+      : trackSpeed;
+  const rightSpeed = singleFlow
+    ? outerSpeed * Number(input.turn > 0)
+    : turning
+      ? turnRate * trackRadius
+      : trackSpeed;
+  let x = player.position.x;
+  let z = player.position.z;
+  if (singleFlow) {
+    const offset = -input.turn * trackRadius;
+    x += (Math.sin(player.heading) - Math.sin(heading)) * offset;
+    z += (Math.cos(player.heading) - Math.cos(heading)) * offset;
+  } else {
+    const distance =
+      ((player.trackSpeed ?? 0) + trackSpeed) * 0.5 * deltaSeconds;
+    x += Math.cos(heading) * distance;
+    z -= Math.sin(heading) * distance;
+  }
   const bounds = layout.playfield ?? layout.ground;
   const halfWidth = bounds.width / 2 - 2.2;
   const halfDepth = bounds.depth / 2 - 2.2;
-  const x = Math.max(
-    -halfWidth,
-    Math.min(halfWidth, player.position.x + Math.cos(heading) * distance)
-  );
-  const z = Math.max(
-    -halfDepth,
-    Math.min(halfDepth, player.position.z - Math.sin(heading) * distance)
-  );
+  x = Math.max(-halfWidth, Math.min(halfWidth, x));
+  z = Math.max(-halfDepth, Math.min(halfDepth, z));
   return {
     heading,
     trackSpeed,
     turnRate,
+    leftSpeed,
+    rightSpeed,
     position: { x, y: groundHeight(x, z), z },
   };
 }
