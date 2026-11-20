@@ -118,6 +118,13 @@ describe('3D battle aiming', () => {
     expect(clampGunPitch(0.1)).toBeCloseTo(0.1);
   });
 
+  it('supports the Tiger II elevation and depression limits', () => {
+    expect(clampGunPitch(-1, true)).toBeCloseTo(-Math.PI / 12);
+    expect(clampGunPitch(1, true)).toBeCloseTo(Math.PI / 22.5);
+    expect(stepGunPitch(0, 1, 1, true)).toBeCloseTo(Math.PI / 22.5);
+    expect(stepGunPitch(0, -1, 1, true)).toBeCloseTo(-Math.PI / 12);
+  });
+
   it('turns toward the target no faster than the traverse speed', () => {
     const slow = rotateTowards(0, Math.PI / 2, 0.1);
     expect(slow).toBeCloseTo(0.1);

@@ -52,6 +52,7 @@ export interface PlayerAimControllerOptions {
   traverseSpeed: number;
   elevationSpeed: number;
   initialGunPitch?: number;
+  heavy?: boolean;
 }
 
 export function createPlayerAimController(options: PlayerAimControllerOptions) {
@@ -83,7 +84,8 @@ export function createPlayerAimController(options: PlayerAimControllerOptions) {
       gunPitch = stepGunPitch(
         gunPitch,
         localAimPitch(rig.gun, aimPoint, rig.muzzle),
-        options.elevationSpeed * frame.delta
+        options.elevationSpeed * frame.delta,
+        options.heavy
       );
     }
     const turret =

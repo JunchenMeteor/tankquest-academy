@@ -12,6 +12,7 @@ interface GltfNode {
 }
 
 interface GltfAsset {
+  scenes: { extras?: { length?: number } }[];
   nodes: GltfNode[];
   meshes: {
     primitives: { indices: number; attributes: { POSITION: number } }[];
@@ -86,6 +87,15 @@ describe.each(['scout', 'medium', 'heavy'] as const)(
   '%s tank asset',
   (role) => {
     const { gltf, parents, bytes } = load(role);
+
+    it('carries its real-world relative battle length in the asset metadata', () => {
+      const expected = {
+        scout: 6 * (5.56 / 8.15),
+        medium: 6,
+        heavy: 6 * (10.29 / 8.15),
+      };
+      expect(gltf.scenes[0]?.extras?.length).toBeCloseTo(expected[role]);
+    });
 
     it('keeps the articulated rig and one uniquely named wheel set', () => {
       for (const name of ['Hull', 'TurretPivot', 'GunPivot', 'Muzzle']) {
