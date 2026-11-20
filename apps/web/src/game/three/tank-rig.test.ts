@@ -114,6 +114,42 @@ describe('TankRig contract', () => {
     expect(rig.wheels).toEqual([first, second]);
   });
 
+  it('uses authored wheel roles for Tiger II stations and face markers', () => {
+    const root = new Group();
+    for (const name of ['TurretPivot', 'GunPivot', 'Muzzle']) {
+      const node = new Group();
+      node.name = name;
+      root.add(node);
+    }
+    const drive = new Group();
+    drive.name = 'Wheel_L_00';
+    drive.userData.wheelRole = 'front drive sprocket';
+    root.add(drive);
+    const idler = new Group();
+    idler.name = 'Wheel_L_09';
+    idler.userData.wheelRole = 'rear idler';
+    root.add(idler);
+    const roadWheels = [];
+    for (let index = 1; index <= 8; index += 1) {
+      const wheel = new Mesh(
+        new BoxGeometry(0.5, 1, 1),
+        new MeshStandardMaterial()
+      );
+      wheel.name = `Wheel_L_0${index}`;
+      wheel.userData.wheelRole = 'road wheel';
+      roadWheels.push(wheel);
+      root.add(wheel);
+    }
+
+    const rig = tankRigFromScene(root);
+    addRoadWheelFaceMarkers(root);
+
+    expect(rig.sprockets).toEqual([drive]);
+    expect(rig.idlers).toEqual([idler]);
+    expect(rig.wheels).toEqual(roadWheels);
+    expect(root.getObjectByName('WheelFaceMarker_L_08')).toBeDefined();
+  });
+
   it('rolls imported wheels forwards and backwards with the track textures', () => {
     const wheel = new Object3D();
     const texture = new Texture();
