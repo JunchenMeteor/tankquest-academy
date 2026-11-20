@@ -70,15 +70,18 @@ export function tankRigFromScene(root: Group): TankRig {
   const returnRollers: Object3D[] = [];
   root.traverse((node) => {
     const role = node.userData.wheelRole;
-    if (role === 'rear idler' || (!role && /^Wheel_[LR]_00$/.test(node.name))) {
+    if (
+      role?.includes('idler') ||
+      (!role && /^Wheel_[LR]_00$/.test(node.name))
+    ) {
       idlers.push(node);
     } else if (
-      role === 'front drive sprocket' ||
+      role?.includes('sprocket') ||
       (!role && /^Wheel_[LR]_06$/.test(node.name))
     ) {
       sprockets.push(node);
     } else if (
-      role === 'road wheel' ||
+      role?.includes('road') ||
       (!role && /^Wheel_[LR]_\d\d(?:[AB])?$/.test(node.name))
     ) {
       wheels.push(node);
@@ -106,7 +109,7 @@ export function tankRigFromScene(root: Group): TankRig {
 export function addRoadWheelFaceMarkers(root: Group): void {
   root.traverse((node) => {
     if (
-      node.userData.wheelRole !== 'road wheel' &&
+      !node.userData.wheelRole?.includes('road') &&
       !/^Wheel_[LR]_0[1-5](?:[AB])?$/.test(node.name)
     ) {
       return;
