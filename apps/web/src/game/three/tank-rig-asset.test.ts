@@ -121,16 +121,39 @@ describe.each(['scout', 'medium', 'heavy'] as const)(
     });
 
     if (role === 'scout') {
-      it('uses positioned articulated wheels without a static combined tank', () => {
+      it('uses the M24 running gear without a static combined tank', () => {
         expect(gltf.nodes.findIndex((node) => node.name === 'Tank_body')).toBe(
           -1
         );
+        for (const side of ['L', 'R']) {
+          for (let index = 0; index <= 6; index += 1) {
+            nodeIndex(gltf, `Wheel_${side}_0${index}`);
+          }
+          for (let index = 0; index <= 2; index += 1) {
+            nodeIndex(gltf, `ReturnRoller_${side}_0${index}`);
+          }
+        }
         const wheels = gltf.nodes.filter((node) =>
           /^(Wheel|ReturnRoller)_[LR]_\d\d$/.test(node.name ?? '')
         );
-        expect(wheels.length).toBeGreaterThan(0);
+        expect(wheels).toHaveLength(20);
         for (const wheel of wheels) {
-          expect(Math.abs(wheel.translation![0])).toBeGreaterThan(3);
+          expect(Math.abs(wheel.translation![0])).toBeGreaterThan(1);
+          expect(Math.abs(wheel.translation![0])).toBeLessThan(1.5);
+        }
+      });
+
+      it('keeps every M24 wheel mesh centred on its own axle', () => {
+        const wheels = gltf.nodes.filter((node) =>
+          /^Wheel_[LR]_\d\d$/.test(node.name ?? '')
+        );
+        for (const wheel of wheels) {
+          const primitive = gltf.meshes[wheel.mesh!]!.primitives[0]!;
+          const accessor = gltf.accessors[primitive.attributes.POSITION]!;
+          const centre = accessor.min!.map(
+            (value, index) => (value + accessor.max![index]!) / 2
+          );
+          expect(Math.hypot(...centre), wheel.name).toBeLessThan(0.0001);
         }
       });
     }
@@ -155,7 +178,7 @@ describe.each(['scout', 'medium', 'heavy'] as const)(
           const centre = accessor.min!.map(
             (value, index) => (value + accessor.max![index]!) / 2
           );
-          expect(Math.hypot(...centre), wheel.name).toBeLessThan(0.05);
+          expect(Math.hypot(...centre), wheel.name).toBeLessThan(0.0001);
         }
       });
 
@@ -215,13 +238,11 @@ describe.each(['scout', 'medium', 'heavy'] as const)(
       });
     }
 
-    if (role !== 'scout') {
-      it('retains WebP PBR maps', () => {
-        expect(gltf.images.length).toBeGreaterThan(0);
-        expect(
-          gltf.images.every((image) => image.mimeType === 'image/webp')
-        ).toBe(true);
-      });
-    }
+    it('retains WebP PBR maps', () => {
+      expect(gltf.images.length).toBeGreaterThan(0);
+      expect(
+        gltf.images.every((image) => image.mimeType === 'image/webp')
+      ).toBe(true);
+    });
   }
 );
