@@ -10,7 +10,15 @@
 
 The model is used for the high-quality Three.js battle view. No non-commercial licensed assets are included.
 
-## Tank (light scout) — Quaternius
+## M24 Chaffee — light scout
+
+- Author: buffinbag
+- Source: https://sketchfab.com/3d-models/m24-chaffee-4f5e64590a514da2a6736fcac5c954e9
+- License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+- License text: https://creativecommons.org/licenses/by/4.0/
+- Changes: the material-partitioned source is regrouped by connected geometry into hull, turret, cannon, track links, suspension, five independent road wheels per side, a front drive sprocket, a rear idler, and three return rollers per side. Every wheel is centred on its own axle. The turret ring, gun trunnion and muzzle are articulated explicitly. Geometry is reduced to 26,427 triangles and compressed with Draco; native PBR textures are capped at 512px and converted to WebP.
+
+## Tank (legacy light scout) — Quaternius
 
 - Author: Quaternius
 - Source: https://poly.pizza/m/jWS1CLA0RO and https://poly.pizza/bundle/Animated-Tank-Pack-0tfvbeAJkU
