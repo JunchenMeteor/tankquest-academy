@@ -178,6 +178,39 @@ describe('TankRig contract', () => {
     expect(texture.offset.y).toBeCloseTo(-0.25);
   });
 
+  it('advances left and right running gear independently', () => {
+    const leftWheel = new Object3D();
+    leftWheel.name = 'Wheel_L_01';
+    const rightWheel = new Object3D();
+    rightWheel.name = 'Wheel_R_01';
+    const leftTexture = new Texture();
+    leftTexture.userData.side = 'L';
+    const rightTexture = new Texture();
+    rightTexture.userData.side = 'R';
+    const rig = {
+      root: new Group(),
+      turret: new Object3D(),
+      gun: new Object3D(),
+      recoil: new Object3D(),
+      muzzle: new Object3D(),
+      wheels: [leftWheel, rightWheel],
+      idlers: [],
+      sprockets: [],
+      returnRollers: [],
+      wheelAxis: 'x' as const,
+      wheelRadius: 0.3,
+      trackTextures: [leftTexture, rightTexture],
+      trackLoops: [],
+    };
+
+    advanceRunningGear(rig, 1, -2);
+
+    expect(leftWheel.rotation.x).toBeCloseTo(1 / (0.3 * 0.85));
+    expect(rightWheel.rotation.x).toBeCloseTo(-2 / (0.3 * 0.85));
+    expect(leftTexture.offset.y).toBeCloseTo(-0.25);
+    expect(rightTexture.offset.y).toBeCloseTo(0.5);
+  });
+
   it('rotates imported idlers and sprockets forwards with their measured radii', () => {
     const idler = new Object3D();
     idler.userData.rollingRadius = 0.21;

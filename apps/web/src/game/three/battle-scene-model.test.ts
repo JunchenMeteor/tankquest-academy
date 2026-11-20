@@ -286,7 +286,7 @@ describe('reverse steering', () => {
 describe('tracked steering', () => {
   const layout = buildSceneLayout(config as RuntimeLevelConfig);
 
-  it('pivots on the spot without moving when only turning', () => {
+  it('uses single flow to pivot around the stopped left track', () => {
     const turned = stepTank(
       { position: { x: 0, y: 0, z: 0 }, heading: 0 },
       { forward: 0, turn: 1 },
@@ -294,9 +294,48 @@ describe('tracked steering', () => {
       layout
     );
     expect(turned.heading).toBeGreaterThan(0);
-    expect(turned.position.x).toBeCloseTo(0);
-    expect(turned.position.z).toBeCloseTo(0);
+    expect(turned.position.x).toBeGreaterThan(0);
+    expect(turned.position.z).toBeLessThan(0);
+    expect(turned.leftSpeed).toBe(0);
+    expect(turned.rightSpeed).toBeGreaterThan(0);
   });
+
+  it('uses single flow to pivot around the stopped right track', () => {
+    const turned = stepTank(
+      { position: { x: 0, y: 0, z: 0 }, heading: 0 },
+      { forward: 0, turn: -1 },
+      0.5,
+      layout
+    );
+    expect(turned.heading).toBeLessThan(0);
+    expect(turned.position.x).toBeGreaterThan(0);
+    expect(turned.position.z).toBeGreaterThan(0);
+    expect(turned.leftSpeed).toBeGreaterThan(0);
+    expect(turned.rightSpeed).toBe(0);
+  });
+
+  it.each([
+    { forward: 1, turn: 1, heading: 1, left: -1, right: 1 },
+    { forward: 1, turn: -1, heading: -1, left: 1, right: -1 },
+    { forward: -1, turn: 1, heading: -1, left: 1, right: -1 },
+    { forward: -1, turn: -1, heading: 1, left: -1, right: 1 },
+  ])(
+    'uses dual flow with opposite tracks for forward=$forward turn=$turn',
+    ({ forward, turn, heading, left, right }) => {
+      const turned = stepTank(
+        { position: { x: 0, y: 0, z: 0 }, heading: 0 },
+        { forward, turn },
+        0.5,
+        layout
+      );
+      expect(Math.sign(turned.heading)).toBe(heading);
+      expect(Math.sign(turned.leftSpeed)).toBe(left);
+      expect(Math.sign(turned.rightSpeed)).toBe(right);
+      expect(turned.leftSpeed).toBeCloseTo(-turned.rightSpeed);
+      expect(turned.position.x).toBeCloseTo(0);
+      expect(turned.position.z).toBeCloseTo(0);
+    }
+  );
 
   it('ramps steering up and settles smoothly after the key is released', () => {
     const started = stepTank(

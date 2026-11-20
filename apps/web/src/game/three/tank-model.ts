@@ -188,6 +188,7 @@ function addTrackBand(
   ] as const) {
     const loop: TrackLoop = {
       ...track,
+      side,
       links: [],
       baseY: floor + radius * 0.02,
       travelled: 0,

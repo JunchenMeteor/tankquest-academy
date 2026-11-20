@@ -4,6 +4,7 @@ import type { Group, Object3D, Texture, Vector3 } from 'three';
 import { sampleTrackPath, type TrackPath } from './running-gear-layout.js';
 
 export interface TrackLoop extends TrackPath {
+  side: 'L' | 'R';
   links: Object3D[];
   baseY: number;
   travelled: number;
@@ -48,6 +49,11 @@ export function texturesForTracks(root: Object3D): Texture[] {
         if (!texture) continue;
         texture.userData.scrollAxis =
           node.name === 'Tracks_420' && material.name === 'Track' ? 'x' : 'y';
+        texture.userData.side = node.name.endsWith('_L')
+          ? 'L'
+          : node.name.endsWith('_R')
+            ? 'R'
+            : undefined;
         textures.add(texture);
       }
     }
@@ -164,30 +170,42 @@ export function applyGunRecoil(
   recoilNode.position.copy(restPosition).addScaledVector(direction, -recoil);
 }
 
-export function advanceRunningGear(rig: TankRig, travelled: number): void {
+export function advanceRunningGear(
+  rig: TankRig,
+  leftTravelled: number,
+  rightTravelled = leftTravelled
+): void {
   const rotationDirection = rig.wheelAxis === 'x' ? 1 : -1;
+  const travelledFor = (node: Object3D) =>
+    node.name[6] === 'L' ? leftTravelled : rightTravelled;
   for (const wheel of rig.wheels) {
     const radius = rollingRadius(wheel, rig.wheelRadius * 0.85);
-    wheel.rotation[rig.wheelAxis] += rotationDirection * (travelled / radius);
+    wheel.rotation[rig.wheelAxis] +=
+      rotationDirection * (travelledFor(wheel) / radius);
   }
   for (const idler of rig.idlers) {
     const radius = rollingRadius(idler, rig.wheelRadius * 0.65);
-    idler.rotation[rig.wheelAxis] += rotationDirection * (travelled / radius);
+    idler.rotation[rig.wheelAxis] +=
+      rotationDirection * (travelledFor(idler) / radius);
   }
   for (const sprocket of rig.sprockets) {
     const radius = rollingRadius(sprocket, rig.wheelRadius * 0.9);
     sprocket.rotation[rig.wheelAxis] +=
-      rotationDirection * (travelled / radius);
+      rotationDirection * (travelledFor(sprocket) / radius);
   }
   for (const roller of rig.returnRollers) {
     const radius = rollingRadius(roller, 0.14);
-    roller.rotation[rig.wheelAxis] += rotationDirection * (travelled / radius);
+    roller.rotation[rig.wheelAxis] +=
+      rotationDirection * (travelledFor(roller) / radius);
   }
   for (const texture of rig.trackTextures) {
     const axis = texture.userData.scrollAxis === 'x' ? 'x' : 'y';
+    const travelled =
+      texture.userData.side === 'L' ? leftTravelled : rightTravelled;
     texture.offset[axis] -= travelled * 0.25;
   }
   for (const loop of rig.trackLoops) {
+    const travelled = loop.side === 'L' ? leftTravelled : rightTravelled;
     loop.travelled += travelled;
     for (const [index, link] of loop.links.entries()) {
       const distance =

@@ -14,6 +14,11 @@ interface GltfNode {
 
 interface GltfAsset {
   scenes: { extras?: { l?: number } }[];
+  materials: {
+    alphaMode?: string;
+    occlusionTexture?: { index: number };
+    pbrMetallicRoughness?: { metallicRoughnessTexture?: { index: number } };
+  }[];
   nodes: GltfNode[];
   meshes: {
     primitives: { indices: number; attributes: { POSITION: number } }[];
@@ -179,6 +184,15 @@ describe.each(['scout', 'medium', 'heavy'] as const)(
     }
 
     if (role === 'heavy') {
+      it('uses the valid ORM occlusion channel and an opaque hull', () => {
+        for (const material of gltf.materials) {
+          expect(material.alphaMode).toBe('OPAQUE');
+          expect(material.occlusionTexture?.index).toBe(
+            material.pbrMetallicRoughness?.metallicRoughnessTexture?.index
+          );
+        }
+      });
+
       it('stores the Tiger II elevation limits on the gun pivot', () => {
         const gun = gltf.nodes[nodeIndex(gltf, 'GunPivot')]!;
         expect(gun.extras?.a).toBeCloseTo(-Math.PI / 12);
