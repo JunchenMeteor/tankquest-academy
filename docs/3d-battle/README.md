@@ -50,10 +50,12 @@ use the Phaser scene instead, then pick a mission and start training.
   screen touch controls). Configured acceleration smooths launch, braking, and
   reverse, while steering ramps up and settles instead of changing instantly.
   A/D alone uses single-flow steering: the inner track stops and the hull pivots
-  around it. W/S combined with A/D keeps the hull moving and differentiates the
-  two track speeds to form an arc; neither track reverses during a moving turn.
-  WA/SD turn counter-clockwise, while WD/AS turn clockwise. Left/right wheels
-  and track textures consume independent travelled distances.
+  around it. At rest, W/S combined with A/D uses equal-and-opposite tracks for
+  neutral steering around the hull centre. Once moving, those combinations use
+  same-direction differential speeds to form an arc. Average track speed drives
+  translation, their difference drives yaw, and low-speed yaw is limited so the
+  inner track does not reverse. WA/SD turn counter-clockwise, while WD/AS turn
+  clockwise. Left/right wheels and track textures consume independent distances.
   The visible fence uses the same playfield bounds as tank movement, so there is
   no separate invisible boundary in front of it.
 - Firing spends a round from a five-round magazine. A correct answer loads the
