@@ -433,9 +433,8 @@ export function stepTank(
   const reverseSpeed = (mobility?.reverseSpeed ?? 120) * (6 / 170);
   const turning = input.turn !== 0;
   const singleFlow = turning && input.forward === 0;
-  const targetSpeed = turning
-    ? 0
-    : input.forward > 0
+  const targetSpeed =
+    input.forward > 0
       ? forwardSpeed * Math.min(1, input.forward)
       : input.forward < 0
         ? -reverseSpeed * Math.min(1, -input.forward)
@@ -464,16 +463,22 @@ export function stepTank(
     player.heading + ((player.turnRate ?? 0) + turnRate) * 0.5 * deltaSeconds;
   const trackRadius = 1.1;
   const outerSpeed = turning ? Math.abs(turnRate) * trackRadius : trackSpeed;
-  const leftSpeed = singleFlow
+  let leftSpeed = singleFlow
     ? outerSpeed * Number(input.turn < 0)
     : turning
-      ? -turnRate * trackRadius
+      ? trackSpeed - turnRate * trackRadius
       : trackSpeed;
-  const rightSpeed = singleFlow
+  let rightSpeed = singleFlow
     ? outerSpeed * Number(input.turn > 0)
     : turning
-      ? turnRate * trackRadius
+      ? trackSpeed + turnRate * trackRadius
       : trackSpeed;
+  if (turning && !singleFlow) {
+    leftSpeed =
+      input.forward > 0 ? Math.max(0, leftSpeed) : Math.min(0, leftSpeed);
+    rightSpeed =
+      input.forward > 0 ? Math.max(0, rightSpeed) : Math.min(0, rightSpeed);
+  }
   let x = player.position.x;
   let z = player.position.z;
   if (singleFlow) {
