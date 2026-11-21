@@ -433,12 +433,16 @@ export function stepTank(
   const reverseSpeed = (mobility?.reverseSpeed ?? 120) * (6 / 170);
   const turning = input.turn !== 0;
   const singleFlow = turning && input.forward === 0;
+  const moving = Math.abs(player.trackSpeed ?? 0) > 0.05;
+  const neutralFlow = turning && !singleFlow && !moving;
   const targetSpeed =
-    input.forward > 0
-      ? forwardSpeed * Math.min(1, input.forward)
-      : input.forward < 0
-        ? -reverseSpeed * Math.min(1, -input.forward)
-        : 0;
+    singleFlow || neutralFlow
+      ? 0
+      : input.forward > 0
+        ? forwardSpeed * Math.min(1, input.forward)
+        : input.forward < 0
+          ? -reverseSpeed * Math.min(1, -input.forward)
+          : 0;
   const acceleration = (mobility?.acceleration ?? 420) * (6 / 170);
   const trackSpeed = moveToward(
     player.trackSpeed ?? 0,
@@ -459,26 +463,37 @@ export function stepTank(
     targetTurnRate,
     traverse * 5 * deltaSeconds
   );
-  const heading =
-    player.heading + ((player.turnRate ?? 0) + turnRate) * 0.5 * deltaSeconds;
   const trackRadius = 1.1;
+  const movingTurn = turning && !singleFlow && !neutralFlow;
+  const previousTurnRate = movingTurn
+    ? Math.sign(player.turnRate ?? 0) *
+      Math.min(
+        Math.abs(player.turnRate ?? 0),
+        Math.abs(player.trackSpeed ?? 0) / trackRadius
+      )
+    : (player.turnRate ?? 0);
+  const effectiveTurnRate = movingTurn
+    ? Math.sign(turnRate) *
+      Math.min(Math.abs(turnRate), Math.abs(trackSpeed) / trackRadius)
+    : turnRate;
+  const heading =
+    player.heading +
+    (previousTurnRate + effectiveTurnRate) * 0.5 * deltaSeconds;
   const outerSpeed = turning ? Math.abs(turnRate) * trackRadius : trackSpeed;
-  let leftSpeed = singleFlow
+  const leftSpeed = singleFlow
     ? outerSpeed * Number(input.turn < 0)
-    : turning
-      ? trackSpeed - turnRate * trackRadius
-      : trackSpeed;
-  let rightSpeed = singleFlow
+    : neutralFlow
+      ? -turnRate * trackRadius
+      : turning
+        ? trackSpeed - effectiveTurnRate * trackRadius
+        : trackSpeed;
+  const rightSpeed = singleFlow
     ? outerSpeed * Number(input.turn > 0)
-    : turning
-      ? trackSpeed + turnRate * trackRadius
-      : trackSpeed;
-  if (turning && !singleFlow) {
-    leftSpeed =
-      input.forward > 0 ? Math.max(0, leftSpeed) : Math.min(0, leftSpeed);
-    rightSpeed =
-      input.forward > 0 ? Math.max(0, rightSpeed) : Math.min(0, rightSpeed);
-  }
+    : neutralFlow
+      ? turnRate * trackRadius
+      : turning
+        ? trackSpeed + effectiveTurnRate * trackRadius
+        : trackSpeed;
   let x = player.position.x;
   let z = player.position.z;
   if (singleFlow) {

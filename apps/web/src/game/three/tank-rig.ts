@@ -48,7 +48,9 @@ export function texturesForTracks(root: Object3D): Texture[] {
         const texture = material[slot];
         if (!texture) continue;
         texture.userData.scrollAxis =
-          node.name === 'Tracks_420' && material.name === 'Track' ? 'x' : 'y';
+          node.name.startsWith('Tracks_420') && material.name === 'Tracks'
+            ? 'x'
+            : 'y';
         texture.userData.side = node.name.endsWith('_L')
           ? 'L'
           : node.name.endsWith('_R')
