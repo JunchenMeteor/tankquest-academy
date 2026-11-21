@@ -345,19 +345,51 @@ describe('tracked steering', () => {
     }
   );
 
-  it.each([1, -1])(
-    'does not reverse either track when starting a moving turn at forward=%s',
-    (forward) => {
+  it.each([
+    { forward: 1, turn: 1, heading: 1, left: -1, right: 1 },
+    { forward: 1, turn: -1, heading: -1, left: 1, right: -1 },
+    { forward: -1, turn: 1, heading: -1, left: 1, right: -1 },
+    { forward: -1, turn: -1, heading: 1, left: -1, right: 1 },
+  ])(
+    'uses neutral steering at rest for forward=$forward turn=$turn',
+    ({ forward, turn, heading, left, right }) => {
       const turned = stepTank(
         { position: { x: 0, y: 0, z: 0 }, heading: 0 },
-        { forward, turn: 1 },
-        0.05,
+        { forward, turn },
+        0.5,
         layout
       );
-      expect(turned.leftSpeed * forward).toBeGreaterThanOrEqual(0);
-      expect(turned.rightSpeed * forward).toBeGreaterThanOrEqual(0);
+      expect(Math.sign(turned.heading)).toBe(heading);
+      expect(Math.sign(turned.leftSpeed)).toBe(left);
+      expect(Math.sign(turned.rightSpeed)).toBe(right);
+      expect(turned.leftSpeed).toBeCloseTo(-turned.rightSpeed);
+      expect(turned.trackSpeed).toBe(0);
+      expect(turned.position.x).toBeCloseTo(0);
+      expect(turned.position.z).toBeCloseTo(0);
     }
   );
+
+  it('keeps track speeds and yaw consistent at low speed', () => {
+    const turned = stepTank(
+      {
+        position: { x: 0, y: 0, z: 0 },
+        heading: 0,
+        trackSpeed: 0.5,
+        turnRate: 2.8,
+      },
+      { forward: 1, turn: 1 },
+      0.5,
+      layout
+    );
+    const previousRate = 0.5 / 1.1;
+    const nextRate = (turned.rightSpeed - turned.leftSpeed) / 2.2;
+    expect(turned.heading).toBeCloseTo((previousRate + nextRate) * 0.25);
+    expect((turned.leftSpeed + turned.rightSpeed) / 2).toBeCloseTo(
+      turned.trackSpeed
+    );
+    expect(turned.leftSpeed).toBeGreaterThanOrEqual(0);
+    expect(turned.rightSpeed).toBeGreaterThan(turned.leftSpeed);
+  });
 
   it('ramps steering up and settles smoothly after the key is released', () => {
     const started = stepTank(
