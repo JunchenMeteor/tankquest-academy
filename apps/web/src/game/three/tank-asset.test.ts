@@ -1,4 +1,5 @@
 import {
+  Box3,
   BoxGeometry,
   Color,
   Group,
@@ -55,6 +56,28 @@ describe('imported tank asset', () => {
     expect(forward.z).toBeCloseTo(0);
     expect(root.rotation.y).toBe(0);
     expect(root.position.toArray()).toEqual([0, 0, 0]);
+  });
+
+  it('centres the root on the hull rather than the gun barrel', () => {
+    const root = new Group();
+    const hull = new Group();
+    hull.name = 'Hull';
+    hull.add(part('Hull_477', 0, 4));
+    const turret = new Group();
+    turret.name = 'TurretPivot';
+    const gun = new Group();
+    gun.name = 'GunPivot';
+    gun.add(part('Barrel_Cannon_13', -4, 6));
+    turret.add(gun);
+    root.add(hull, turret);
+
+    normalise(root);
+    root.updateMatrixWorld(true);
+
+    const hullCentre = new Box3().setFromObject(hull).getCenter(new Vector3());
+    expect(hullCentre.x).toBeCloseTo(0);
+    expect(hullCentre.z).toBeCloseTo(0);
+    expect(new Box3().setFromObject(root).min.y).toBeCloseTo(0);
   });
 
   it('preserves authored hull and turret regions during painting', () => {
