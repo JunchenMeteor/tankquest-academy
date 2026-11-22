@@ -57,7 +57,7 @@ async function fetchTankRig(role: TankModelRole): Promise<TankRig> {
   }
 }
 
-/** Scales to the battle footprint, faces the barrel forward and rests on the ground. */
+/** Scales to the battle footprint and places the hull centre on the ground. */
 export function normalise(root: Object3D, length = 6): void {
   const scaledWheelRadii = new Map<Object3D, number>();
   root.traverse((node) => {
@@ -81,7 +81,8 @@ export function normalise(root: Object3D, length = 6): void {
   root.updateMatrixWorld(true);
 
   const scaled = new Box3().setFromObject(root);
-  const centre = scaled.getCenter(new Vector3());
+  const hull = root.getObjectByName('Hull') ?? root;
+  const centre = new Box3().setFromObject(hull).getCenter(new Vector3());
   normalised.position.x -= centre.x;
   normalised.position.z -= centre.z;
   normalised.position.y -= scaled.min.y;
